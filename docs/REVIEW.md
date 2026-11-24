@@ -173,7 +173,12 @@ The organizers hold the following records.
 2. Tickets sold and entry scan times from the ticketing platform.
 3. Bar staff by hour, prices, and the split between cash and card.
 4. Licensed capacity of the hall, and the position and width of each exit.
-5. Photos or videos of the bar with a time.
+5. Photos or videos of the ticket and bar lines, with the time each one was taken.
+6. Reports from attendees (a short survey of ticket buyers): time in line to get a drink, number and kind of drinks, and whether they stood in the drink line only or also in the ticket line.
+7. Who runs the bar and receives the drink sales (Orus Producciones, the venue or a concessionaire).
+8. Whether the venue allows closed cans to be handed to the crowd.
+9. Cost of a staff hour at the bar (or of a shift and its length) and the margin per beer.
+10. Cocktails sold and the people serving cocktails.
 
 ## 10. Work plan
 
@@ -222,5 +227,7 @@ No result of the study was changed.
 | Faster serving | Unopened cans, draft beer and faster payment are compared by the crew each one needs at 2,000 tickets, on the same nights as the staffing grid. The time each one saves was not measured and is stated as an assumption with low and high cases |
 | Sellers at the edge of the grid and two sets of nights | Every minimum crew used 12 sellers, the largest number tested. The grid now goes to 15 sellers. The scenarios and what-ifs ran on 48 nights with their own seeds, so the plan showed one count of nights in the staffing table and another in the what-if table. They now run on the 64 staffing nights with the staffing seeds |
 | Organizer pages on phones and kinds of range | Charts have narrow versions with text of at least 11 px, tables show each row as a block below 600 px, and the videos have a phone cut with the floor panels and their readouts. Every range on the organizer pages covers 9 of 10 simulated nights; intervals of the median stay on the technical page |
+| Toilets | The study author reported the toilets at the east end of the bar wall. The plan views draw them (5 m wide, assumed) and the bar starts after them; the model does not simulate trips to the toilets |
+| Workers behind the bar | Each person serving is drawn behind the counter as off, idle, charging or pouring, in the videos, the floor plan and the process diagrams. The run records busy shares by hour and seller time by state; a fixture of three nights checks that recording them changes no other result |
 
 Tests of the model invariants were added (`tests/test_model.py`). The staffing and scenario runs store their progress in batches and continue after an interruption. Still open: a git commit, restrooms, exits and evacuation, a cost model, and the measured size of the hall.
