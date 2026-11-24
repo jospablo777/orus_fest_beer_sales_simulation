@@ -26,7 +26,7 @@ At Orus Fest 2026 the line for a beer took more than 40 minutes between 18:00 an
 The target, 9 of 10 buyers waiting 10 minutes or less, is met in 61 of 64 simulated nights. With 6 more people, in 64 of 64, and in 61 of 64 if 2,500 tickets are sold (with the recommended crew, 53).
 
 ```{=html}
-<p class="method"><a href="evidence.html#como-se-hizo">8,960 simulated nights · 64 nights per comparison · ranges that cover 9 of 10 nights</a></p>
+<p class="method"><a href="evidence.html#como-se-hizo">8,960 simulated nights to fit the model to 2026 · 64 fitted nights, the same in every comparison · ranges that cover 9 of 10 nights</a></p>
 ```
 
 ## Watch the night

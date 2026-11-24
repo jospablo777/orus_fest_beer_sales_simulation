@@ -387,8 +387,8 @@ sum_levels_same:
   es: "La meta, que 9 de cada 10 compradores esperen {target_wait} minutos o menos, se cumple en {rec_met} de {rec_nights} noches simuladas."
   en: "The target, 9 of 10 buyers waiting {target_wait} minutes or less, is met in {rec_met} of {rec_nights} simulated nights."
 sum_method:
-  es: "{sims} noches simuladas · {nights} noches por comparación · rangos que cubren 9 de cada 10 noches"
-  en: "{sims} simulated nights · {nights} nights per comparison · ranges that cover 9 of 10 nights"
+  es: "{sims} noches simuladas para ajustar el modelo a 2026 · {nights} noches ajustadas, las mismas en cada comparación · rangos que cubren 9 de cada 10 noches"
+  en: "{sims} simulated nights to fit the model to 2026 · {nights} fitted nights, the same in every comparison · ranges that cover 9 of 10 nights"
 sum_h_video: {es: "Así se ve la noche", en: "Watch the night"}
 sum_video_cap:
   es: "La misma noche simulada, de {clip_from} a {clip_to}. A la izquierda 2026, a la derecha el plan. Cada punto es una persona."

@@ -26,7 +26,7 @@ En Orus Fest 2026 la fila para una cerveza tomó más de 40 minutos entre las 18
 La meta, que 9 de cada 10 compradores esperen 10 minutos o menos, se cumple en 61 de 64 noches simuladas. Con 6 personas más, en 64 de 64, y en 61 de 64 si se venden 2,500 boletos (con el recomendado, 53).
 
 ```{=html}
-<p class="method"><a href="evidencia.html#como-se-hizo">8,960 noches simuladas · 64 noches por comparación · rangos que cubren 9 de cada 10 noches</a></p>
+<p class="method"><a href="evidencia.html#como-se-hizo">8,960 noches simuladas para ajustar el modelo a 2026 · 64 noches ajustadas, las mismas en cada comparación · rangos que cubren 9 de cada 10 noches</a></p>
 ```
 
 ## Así se ve la noche
