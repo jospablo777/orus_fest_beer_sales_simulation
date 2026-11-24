@@ -132,13 +132,21 @@ The bad night is the 90th percentile across nights.
 Stress cases of the candidate crews (nights that meet the target, of 64; the chosen crew of each level in bold; Holm-adjusted McNemar p against the chosen crew in brackets when below 0.05).
 
 ```{python}
+#| output: asis
 import os
 mpath = "../output/tables/crew_mixes.csv"
 if os.path.exists(mpath):
     mx = pd.read_csv(mpath)
-    case_order = ["base"] + [c for c in mx["case"].unique() if c != "base"]
-    head = ["Tickets", "Level", "Crew (stations + sellers)", "Staff hours", "Counter per station (m)"] + \
-           [c.replace("_", " ") for c in case_order]
+    case_names = {"base": "Base", "two_bar_absent": "2 bar workers absent",
+                  "three_sellers_absent": "3 sellers absent", "sellers_from_19": "Sellers from 19:00",
+                  "sellers_slower": "Sellers 30% less productive", "demand_plus_30": "Demand +30%",
+                  "tickets_plus_25": "Tickets +25%", "payment_25s": "Payment 25 s"}
+    case_order = [c for c in case_names if c in set(mx["case"])]
+    level_order = {"minimum": 0, "recommended": 1, "complete": 2}
+    mx = mx.assign(k=mx["level"].map(level_order)).sort_values(
+        ["n_total", "k", "staff_hours", "n_pour"])
+    head = ["Tickets", "Level", "Crew (stations + sellers)", "Staff hours",
+            "Counter per station (m)"] + [case_names[c] for c in case_order]
     rows = []
     for (n, lv, tp, sl), d in mx.groupby(["n_total", "level", "n_pour", "sellers"], sort=False):
         d = d.set_index("case")
