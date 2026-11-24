@@ -1,0 +1,129 @@
+# Interventions evaluated on every accepted calibration draw.
+# Overrides are dotted paths into config/base.yaml. A string starting with "=" is an
+# expression evaluated against the calibrated draw, with these names available:
+#   n_pour, n_cashiers, bundle_mean, s_cash_mean_s, s_pour_mean_s, n_total, rate_mean_per_h,
+#   min, max, round, and plan_taps, plan_sellers (the crew chosen by scripts/run_staffing.py
+#   for the ticket level `plan_tickets` in config/report.yaml).
+# "Same staff" scenarios move the cashiers to the serving stations: n_pour = n_pour + n_cashiers.
+
+scenarios:
+  baseline:
+    label: "2026 setup (ticket window + exchange)"
+    overrides: {}
+
+  more_cashiers:
+    label: "4 ticket windows"
+    overrides:
+      bar.n_cashiers: 4
+
+  presale_bundles:
+    label: "Tickets sold with entry + 5-packs"
+    overrides:
+      bar.presale_fraction: 0.4
+      bar.presale_tickets: 4
+      bar.bundle_mean: "= min(bundle_mean + 1.5, 5.0)"
+
+  pay_at_tap:
+    label: "Pay at the station (card/cash), same staff"
+    overrides:
+      bar.mode: direct
+      bar.n_pour: "= n_pour + n_cashiers"
+      bar.s_pay_direct_s: 15
+
+  cashless:
+    label: "Cashless wristband at the station, same staff"
+    overrides:
+      bar.mode: direct
+      bar.n_pour: "= n_pour + n_cashiers"
+      bar.s_pay_direct_s: 6
+
+  sellers_6:
+    label: "2026 setup + 6 roaming sellers"
+    overrides:
+      sellers.n: 6
+
+  satellite:
+    label: "2026 setup + 2-station satellite bar"
+    overrides:
+      bar.satellite_bar: true
+      bar.satellite_n_pour: 2
+
+  full_setup:
+    label: "Wristbands + satellite bar + 4 sellers (2026 staff + 6)"
+    overrides:
+      bar.mode: direct
+      bar.n_pour: "= n_pour + n_cashiers"
+      bar.s_pay_direct_s: 6
+      bar.satellite_bar: true
+      bar.satellite_n_pour: 2
+      sellers.n: 4
+      sellers.start: "18:00"
+      sellers.end: "02:30"
+
+  peak_shift:
+    label: "Cashless stations + 3 extra stations 19:30–01:30"
+    overrides:
+      bar.mode: direct
+      bar.n_pour: "= n_pour + n_cashiers"
+      bar.s_pay_direct_s: 6
+      bar.extra_pour: 3
+      bar.extra_from: "19:30"
+      bar.extra_to: "01:30"
+
+  # The recommended setup: card or cash at the serving station, with the crew that meets the service
+  # target in the required share of simulated nights (config/staffing.yaml: reliability).
+  plan:
+    label: "Plan (pay at the station, recommended crew)"
+    overrides:
+      bar.mode: direct
+      bar.n_pour: "= plan_taps"
+      bar.s_pay_direct_s: 15
+      sellers.n: "= plan_sellers"
+      sellers.start: "18:00"
+      sellers.end: "02:30"
+
+# What-if conditions outside the organizer's control. Each entry copies the overrides of
+# the scenario named in `based_on` (if any) and adds its own. They test whether a setup still
+# works when the night is different from 2026.
+# The key is `based_on` because YAML 1.1 reads a bare `on` as the boolean true.
+what_if:
+  baseline_sold_out:
+    label: "2026 setup, 2,500 tickets"
+    based_on: baseline
+    overrides:
+      crowd.n_total: 2500
+  plan_sold_out:
+    label: "Plan, 2,500 tickets, same crew"
+    based_on: plan
+    overrides:
+      crowd.n_total: 2500
+  plan_thirsty:
+    label: "Plan, demand +30%"
+    based_on: plan
+    overrides:
+      crowd.rate_mean_per_h: "= rate_mean_per_h * 1.3"
+  plan_slow_pay:
+    label: "Plan, payment takes 25 s"
+    based_on: plan
+    overrides:
+      bar.s_pay_direct_s: 25
+  plan_two_absent:
+    label: "Plan, two bartenders absent"
+    based_on: plan
+    overrides:
+      bar.n_pour: "= plan_taps - 2"
+  plan_late_sellers:
+    label: "Plan, sellers start at 19:00"
+    based_on: plan
+    overrides:
+      sellers.start: "19:00"
+  plan_slow_refill:
+    label: "Plan, a seller refill takes 4 min"
+    based_on: plan
+    overrides:
+      sellers.restock_s: 240
+  plan_big_tray:
+    label: "Plan, sellers carry 12 beers per trip"
+    based_on: plan
+    overrides:
+      sellers.capacity: 12

@@ -1,0 +1,5 @@
+---
+title: "Assumptions"
+---
+
+{{< include _generated/assumptions.md >}}

@@ -1,0 +1,190 @@
+# Text of the organizer pages (site/index.qmd in Spanish, site/en.qmd in English).
+# Placeholders in braces are filled by site/_organizer.py from the simulation outputs.
+
+lede:
+  es: "En Orus Fest 2026, entre las {obs_from} y las {obs_to}, la fila para canjear una cerveza tomó más de 40 minutos con las fichas ya compradas. Quien no tenía fichas hacía antes la fila de la caja. Con un cambio en la forma de cobrar y el personal indicado abajo, 9 de cada 10 compradores reciben su cerveza en {plan_p90} minutos o menos."
+  en: "At Orus Fest 2026, between {obs_from} and {obs_to}, the line to exchange tickets for a beer took more than 40 minutes with the tickets already bought. A person without tickets stood in the ticket line first. With one change in how drinks are paid for and the crew listed below, 9 of 10 buyers get their beer in {plan_p90} minutes or less."
+
+h_old:
+  es: "Cómo se compraba en 2026"
+  en: "How a beer was bought in 2026"
+old_text:
+  es: "Una sola ventanilla vendía las fichas de todas las bebidas. Con las fichas en la mano había que formarse otra vez para canjearlas. Reconstruimos esa noche en una simulación por computadora que reproduce lo que vimos. A las 15:30 comprar era relativamente rápido, y entre las {obs_from} y las {obs_to} la fila de canje tomaba más de 40 minutos. Eso solo se reproduce cuando hay entre {pour_lo} y {pour_hi} personas sirviendo cerveza. En ese lapso la simulación tiene unas {q1} personas en la fila de fichas y {q2} en las filas de canje, y quien llegaba sin fichas tardaba unos {base_buyer} minutos en total. Después de las 20:00 ya no intentamos comprar, así que de esa hora en adelante solo hay estimaciones. Para las 22:00 la simulación estima {night_wait} minutos en la fila de canje (entre {night_wait_lo} y {night_wait_hi})."
+  en: "One window sold the tickets for every drink. With the tickets in hand, people stood in line again to exchange them. We rebuilt that night in a computer simulation that reproduces what we saw. At 15:30 buying was relatively quick, and between {obs_from} and {obs_to} the exchange line took more than 40 minutes. That is reproduced only with {pour_lo} to {pour_hi} people serving beer. In that window the simulation has about {q1} people in the ticket line and {q2} in the exchange lines, and a person without tickets needed about {base_buyer} minutes in total. After 20:00 we stopped trying to buy, so later hours are estimates only. For 22:00 the simulation estimates {night_wait} minutes in the exchange line (between {night_wait_lo} and {night_wait_hi})."
+
+h_new:
+  es: "Cómo se compra con el plan"
+  en: "How a beer is bought under the plan"
+new_text:
+  es: "La caja de fichas desaparece. Cada puesto de la barra cobra con tarjeta o efectivo y entrega la cerveza en el mismo momento. Todo el personal de la barra cobra y sirve."
+  en: "The ticket window is removed. Every serving station at the bar takes card or cash and hands over the beer in the same visit. Everyone at the bar takes payment and serves."
+
+h_gain:
+  es: "Qué gana cada quien"
+  en: "What each group gains"
+tile_audience_v: {es: "{base_p90} → {plan_p90} min", en: "{base_p90} → {plan_p90} min"}
+tile_audience:
+  es: "<strong>Un público más contento.</strong> Espera máxima para 9 de cada 10 compradores entre las {svc_from} y las {svc_to}. Entre las {obs_from} y las {obs_to} la fila de canje tomaba {base_exchange} min, y con el plan la fila toma {plan_wait}."
+  en: "<strong>A happier audience.</strong> Longest wait for 9 of 10 buyers between {svc_from} and {svc_to}. Between {obs_from} and {obs_to} the exchange line took {base_exchange} min, and under the plan the line takes {plan_wait}."
+tile_staff_v: {es: "{base_maxq} → {plan_maxq}", en: "{base_maxq} → {plan_maxq}"}
+tile_staff:
+  es: "<strong>Menos presión para el personal.</strong> Máximo de personas formadas al mismo tiempo. Las compras abandonadas en la noche bajan de {base_lost} a {plan_lost}."
+  en: "<strong>Less stress for the staff.</strong> Most people standing in line at the same time. Purchases abandoned during the night drop from {base_lost} to {plan_lost}."
+tile_sales_v: {es: "+{d_beers}", en: "+{d_beers}"}
+tile_sales:
+  es: "<strong>Más bebidas vendidas.</strong> Cervezas adicionales por noche (entre {d_beers_lo} y {d_beers_hi}). A {price} pesos la cerveza son cerca de {d_mxn} pesos más en ventas."
+  en: "<strong>More drinks sold.</strong> Extra beers per night (between {d_beers_lo} and {d_beers_hi}). At MXN {price} a beer that is about MXN {d_mxn} more in sales."
+tile_reputation_v: {es: "{base_hours} → {plan_hours} h", en: "{base_hours} → {plan_hours} h"}
+tile_reputation:
+  es: "<strong>Mejor reputación para Orus Producciones.</strong> Horas que el público pasa en filas y pierde del show, sumando a todas las personas. La noche mejora en {improved_n} de {nights} noches simuladas."
+  en: "<strong>A better reputation for Orus Producciones.</strong> Hours the audience spends in lines and loses from the show, adding everyone up. The night improves in {improved_n} of {nights} simulated nights."
+
+h_plan:
+  es: "El plan en seis acciones"
+  en: "The plan in six actions"
+plan_alt:
+  es: "Plano del salón con el plan: puestos de la barra con carriles, vendedores en pista y pasillo central libre"
+  en: "Floor plan of the hall under the plan: bar stations with lanes, sellers on the floor and an open central walkway"
+a1_t: {es: "Cobrar y servir en el mismo puesto.", en: "Take payment where the beer is served."}
+a1:
+  es: "Tarjeta o efectivo en cada puesto de la barra. Sin caja de fichas y sin segunda fila."
+  en: "Card or cash at every station of the bar. No ticket window and no second line."
+a2_t: {es: "{crew_es} para {tickets} boletos.", en: "{crew_en} for {tickets} tickets."}
+a2:
+  es: "Con ese personal la meta de espera se cumple en {met} de {crew_nights} noches simuladas. Todos en su puesto antes de las 18:00, que es cuando empezaron las filas en 2026."
+  en: "With that crew the waiting target is met in {met} of {crew_nights} simulated nights. Everyone in place before 18:00, when the 2026 lines started."
+a3_t_sellers: {es: "Vendedores en pista de {sellers_from} a {sellers_to}.", en: "Sellers on the floor from {sellers_from} to {sellers_to}."}
+a3_sellers:
+  es: "Llevan cerveza a quienes guardan su lugar frente al escenario durante las bandas principales. {alt_es}"
+  en: "They take beer to the people holding a place in front of the stage during the main bands. {alt_en}"
+a3_t_none: {es: "Vendedores en pista solo si faltan puestos en la barra.", en: "Sellers on the floor only if the bar is short of stations."}
+a3_none:
+  es: "Con los puestos indicados la barra alcanza. Si el mostrador no da para tantos puestos, los vendedores cubren la diferencia."
+  en: "With the stations listed the bar is enough. If the counter cannot fit that many stations, sellers cover the difference."
+a4_t: {es: "Un carril con vallas o unifilas por puesto.", en: "One lane with barriers per station."}
+a4:
+  es: "Las filas avanzan derechas hacia la barra y dejan libre la pista. Esta acción viene de las guías de manejo de multitudes; la simulación no la mide."
+  en: "Lines run straight to the bar and leave the floor free. This action comes from crowd-management guidance; the simulation does not measure it."
+a5_t: {es: "Pista central libre y venta de boletos dentro del aforo autorizado.", en: "Open central floor and ticket sales within the licensed capacity."}
+a5:
+  es: "Con {tickets} boletos hay unas {inside_peak} personas dentro en el momento más lleno. {cap_sentence_es}"
+  en: "With {tickets} tickets about {inside_peak} people are inside at the fullest moment. {cap_sentence_en}"
+a6_t: {es: "Límite de bebidas por compra, agua gratis y seguridad junto a la barra.", en: "A limit of drinks per purchase, free water and security next to the bar."}
+a6:
+  es: "Con un servicio más rápido la gente bebe más. Quienes toman 6 cervezas o más pasan del {heavy_base} al {heavy_plan} del público. El personal no debe servir a personas visiblemente ebrias."
+  en: "With faster service people drink more. Attendees with 6 beers or more go from {heavy_base} to {heavy_plan} of the audience. Staff should refuse service to visibly intoxicated people."
+
+h_video:
+  es: "Así se ve la noche"
+  en: "Watch the night"
+video_night:
+  es: "La misma noche con las dos formas de vender, de {clip_from} a {clip_to}. Cada punto es una persona. A la izquierda, 2026. A la derecha, el plan."
+  en: "The same night under both ways of selling, {clip_from} to {clip_to}. Each dot is one person. On the left, 2026. On the right, the plan."
+video_change:
+  es: "Cámara lenta del momento más pesado de la noche. Funker Vogt termina a las 21:25 y el público va por cerveza antes de Peter Heppner."
+  en: "Slow motion of the heaviest moment of the night. Funker Vogt ends at 21:25 and the audience goes for beer before Peter Heppner."
+
+h_staff:
+  es: "Personal y ventas por hora"
+  en: "Staff and sales by the hour"
+staff_text:
+  es: "La meta es que 9 de cada 10 compradores esperen {target_wait} minutos o menos entre las {svc_from} y las {svc_to}. Cada barra de la gráfica es una opción de personal y muestra en cuántas noches simuladas se cumple la meta. Recomendamos la opción con menos horas de trabajo que la cumple en al menos el {reliability} de las noches. La gráfica incluye esa opción, todas las que usan menos horas y la más chica que cumple la meta sin vendedores."
+  en: "The target is that 9 of 10 buyers wait {target_wait} minutes or less between {svc_from} and {svc_to}. Each bar of the chart is a crew option and shows in how many simulated nights the target is met. We recommend the option with the fewest working hours that meets it in at least {reliability} of the nights. The chart includes that option, every option with fewer hours and the smallest one that meets the target without sellers."
+staff_table_head:
+  es: ["Boletos", "Puestos en la barra", "Vendedores en pista", "Noches que cumplen la meta", "Personas dentro en el pico"]
+  en: ["Tickets", "Stations at the bar", "Sellers on the floor", "Nights that meet the target", "People inside at the peak"]
+staff_none:
+  es: "ninguna opción probada cumple la meta"
+  en: "no option tested meets the target"
+sales_text:
+  es: "La venta sigue al horario de las bandas. Antes de las 18:00 se venden menos de {low_hour} cervezas por hora. La hora más fuerte llega a unas {peak_hour} cervezas (entre {peak_hour_lo} y {peak_hour_hi}). En 2026 la barra no pasó de {base_peak_hour} por hora."
+  en: "Sales follow the running order. Before 18:00 fewer than {low_hour} beers are sold per hour. The busiest hour reaches about {peak_hour} beers (between {peak_hour_lo} and {peak_hour_hi}). In 2026 the bar did not pass {base_peak_hour} per hour."
+whatif_text:
+  es: "Probamos el mismo plan en cuatro noches distintas. En una faltan dos personas en la barra, en otra se venden 2,500 boletos, en otra el público bebe 30% más y en la última cobrar toma 25 segundos. En la noche típica de los cuatro casos, 9 de cada 10 compradores esperan {wi_max} minutos o menos. En las noches más pesadas (1 de cada 20) esa espera llega a {wi_worst} minutos cuando {wi_worst_case}."
+  en: "We tried the same plan on four different nights. In one, two bartenders are absent. In another, 2,500 tickets are sold. In another, the audience drinks 30% more. In the last, payment takes 25 seconds. On the typical night of all four cases, 9 of 10 buyers wait {wi_max} minutes or less. On the heaviest nights (1 in 20) that wait reaches {wi_worst} minutes when {wi_worst_case}."
+
+wi_case:
+  plan_two_absent: {es: "faltan dos personas en la barra", en: "two bartenders are absent"}
+  plan_sold_out: {es: "se venden 2,500 boletos", en: "2,500 tickets are sold"}
+  plan_thirsty: {es: "el público bebe 30% más", en: "the audience drinks 30% more"}
+  plan_slow_pay: {es: "cobrar toma 25 segundos", en: "payment takes 25 seconds"}
+
+h_conf:
+  es: "Qué tan firme es cada resultado"
+  en: "How firm each result is"
+conf_firm_t: {es: "Firme", en: "Firm"}
+conf_firm:
+  es: "Quitar la caja de fichas y cobrar en la barra mejora la noche en {improved_n} de {nights} noches simuladas."
+  en: "Removing the ticket window and taking payment at the bar improves the night in {improved_n} of {nights} simulated nights."
+conf_prob_t: {es: "Probable", en: "Probable"}
+conf_prob:
+  es: "El número de puestos y vendedores depende de cuánto tarda servir una cerveza, y ese tiempo no se midió en 2026. {seller_note_es}Conviene tener una persona de reserva y cronometrar la venta en la próxima edición."
+  en: "The number of stations and sellers depends on how long serving a beer takes, and that time was not measured in 2026. {seller_note_en}Keep one person in reserve and time the sales at the next edition."
+conf_check_t: {es: "Por revisar", en: "To be checked"}
+conf_check:
+  es: "El tamaño del salón se estimó de una imagen satelital con un margen de {hall_side} por lado, así que el límite de boletos por espacio también es aproximado. El aforo autorizado es el límite legal. La evacuación y la fila de cocteles quedaron fuera del estudio."
+  en: "The hall size was estimated from a satellite image with a margin of {hall_side} per side, so the ticket limit by floor space is approximate as well. The licensed capacity is the legal limit. Evacuation and the cocktail line were left out of the study."
+
+seller_note:
+  es: "En el plan los vendedores en pista venden cerca del {seller_share} de la cerveza. En 2026 no hubo vendedores, así que su rendimiento es un supuesto. {seller_fallback}"
+  en: "Under the plan the floor sellers sell about {seller_share} of the beer. There were no sellers in 2026, so their output is an assumption. {seller_fallback}"
+seller_fallback:
+  es: "Si rinden menos, la barra necesita más puestos ({k} sin vendedores). "
+  en: "If they deliver less, the bar needs more stations ({k} without sellers). "
+
+h_need:
+  es: "Lo que necesitamos de ustedes"
+  en: "What we need from you"
+need_text:
+  es: "Con estos datos de 2026 los rangos de este reporte se reducen mucho."
+  en: "With these records from 2026 the ranges in this report become much narrower."
+needs:
+  es:
+    - "Cervezas vendidas en la noche (compradas menos sobrantes)."
+    - "Boletos vendidos y hora de entrada de cada boleto, de la plataforma de boletos."
+    - "Personas en la barra por hora, precios y cuánto se cobró en efectivo y con tarjeta."
+    - "Aforo autorizado del salón, y ubicación y ancho de cada salida."
+    - "Fotos o videos de la barra con hora."
+  en:
+    - "Beers sold during the night (bought minus left over)."
+    - "Tickets sold and the entry time of each ticket, from the ticketing platform."
+    - "People at the bar by hour, prices, and the split between cash and card."
+    - "Licensed capacity of the hall, and the position and width of every exit."
+    - "Photos or videos of the bar with a time."
+
+h_how:
+  es: "Cómo se hizo"
+  en: "How this was done"
+how_text:
+  es: "Un modelo por computadora mueve a {tickets} asistentes por el salón de las 13:00 a las 03:00 con el horario oficial de las bandas. Cada persona llega, ve a sus bandas, tiene sed, elige fila y se cansa de esperar. Lo que nadie midió (cuánto bebe la gente, cuánto tarda servir) se probó en {sims} noches simuladas, y se conservaron las que reproducen lo que vimos en 2026: compra relativamente rápida a las 15:30, más de 40 minutos en la fila de canje entre las {obs_from} y las {obs_to}, filas largas tanto en fichas como en canje, y mucha gente que se daba por vencida. Cada cambio se evaluó en {nights} de esas noches. El detalle está en las páginas técnicas, en inglés."
+  en: "A computer model moves {tickets} attendees through the hall from 13:00 to 03:00 on the official running order. Each person arrives, watches their bands, gets thirsty, picks a line and gives up after waiting too long. What nobody measured (how much people drink, how long serving takes) was tried in {sims} simulated nights, and the ones that reproduce what we saw in 2026 were kept: a relatively quick purchase at 15:30, more than 40 minutes in the exchange line between {obs_from} and {obs_to}, long lines at both the ticket window and the exchange, and a lot of people giving up. Each change was evaluated on {nights} of those nights. The details are in the technical pages."
+links:
+  es: "[Reporte técnico](technical.qmd) · [Métodos](methods.qmd) · [Supuestos](assumptions.qmd) · [Literatura](literature.qmd)"
+  en: "[Technical report](technical.qmd) · [Methods](methods.qmd) · [Assumptions](assumptions.qmd) · [Literature](literature.qmd)"
+
+preview_note:
+  es: "El reporte técnico, los métodos, los supuestos y la literatura están en el sitio completo del estudio."
+  en: "The technical report, methods, assumptions and literature are on the full site of the study."
+
+cap_sentence_known:
+  es: "La pista libre llega a la carga de referencia de {lim} personas por m² cerca de {cap_tickets} boletos{cap_range}."
+  en: "The free floor reaches the reference load of {lim} people per m² near {cap_tickets} tickets{cap_range}."
+cap_range:
+  es: " (entre {cap_lo} y {cap_hi} según la medida real del salón)"
+  en: " (between {cap_lo} and {cap_hi} depending on the true size of the hall)"
+cap_sentence_none:
+  es: "La pista libre queda por debajo de la carga de referencia de {lim} personas por m² en todos los niveles probados."
+  en: "The free floor stays below the reference load of {lim} people per m² at every level tested."
+
+fig_wait_alt:
+  es: "Minutos en fila según la hora, 2026 y el plan"
+  en: "Minutes in line by hour, 2026 and the plan"
+fig_sales_alt:
+  es: "Cervezas vendidas por hora, 2026 y el plan"
+  en: "Beers sold per hour, 2026 and the plan"
+fig_crews_alt:
+  es: "Opciones de personal y porcentaje de noches en que cada una cumple la meta"
+  en: "Crew options and the share of nights in which each one meets the target"
+wait_caption:
+  es: "La línea es la noche típica y la franja el rango entre noches simuladas. El tiempo cuenta hasta recibir la cerveza o hasta salirse de la fila. En 2026 la espera sube desde las 18:00 y sigue alta hasta el cierre."
+  en: "The line is the typical night and the band the range across simulated nights. Time counts until the beer is received or the person leaves the line. In 2026 the wait rises from 18:00 and stays high until closing."

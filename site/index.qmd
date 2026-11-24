@@ -1,0 +1,8 @@
+---
+title: "Cerveza sin filas en [Orus Fest]{.red}"
+subtitle: "Propuesta para la próxima edición · simulación de Orus Fest 2026, Salón Olímpico Pantitlán"
+lang: es
+toc-title: "En esta página"
+---
+
+{{< include _generated/organizer_es.md >}}

@@ -1,0 +1,44 @@
+# Python and uv
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# R and rv (rv.lock, .Rprofile and rv/scripts/ are committed)
+rv/library/
+rv/staging/
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+
+# Quarto (site/.gitignore covers site/_site, site/.quarto and site/assets)
+.quarto/
+*.quarto_ipynb
+
+# Simulation runs: large and rebuilt by the pipeline. output/tables, output/figures,
+# output/animations, site/_generated and site/_freeze are committed.
+output/runs/*.csv
+output/runs/*.log
+output/runs/parts_*/
+output/sensitivity/*/runs/
+output/preview/
+*.log
+
+# Archives of earlier versions
+*.zip
+
+# Local settings and secrets
+.env
+.Renviron
+.vscode/
+.idea/
+*.swp
+
+# macOS
+.DS_Store
+._*

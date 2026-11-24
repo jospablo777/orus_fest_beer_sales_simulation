@@ -1,0 +1,293 @@
+"""Process diagrams for the organizer pages: how a beer was bought in 2026 and how it is
+bought under the plan. Each function returns an inline SVG string.
+
+The drawings use currentColor for text and outlines, so they follow the page theme. Red marks
+the 2026 lines and bronze the plan. The time bars of both diagrams share one scale. Each
+diagram has a left-to-right layout for wide screens and a top-to-bottom one for phones
+(narrow=True); the page shows one of them according to its width.
+"""
+
+from __future__ import annotations
+
+import math
+import textwrap
+from html import escape
+
+from . import theme
+
+W = 960
+NARROW_W = 360
+TEXT = {
+    "en": {
+        "old_title": "In 2026 one beer took two lines",
+        "new_title": "Under the plan there is one line, and the beer is paid for where it is served",
+        "want": ["Wants", "a beer"], "back": ["Back to", "the show"],
+        "window": ["Ticket window"], "window_sub": ["one window", "for every drink"],
+        "exchange": ["Exchange", "at the bar"], "exchange_sub": ["2 beer lines,", "1 for cocktails"],
+        "line1": "Line 1", "line2": "Line 2", "people": "{n} people",
+        "station": ["Any serving station", "takes card or cash", "and hands over the beer"],
+        "stations": "{n} stations open", "sellers": "and {n} sellers walk the floor",
+        "one_line": "One short line",
+        "old_exchange": "{wait} min in the exchange line, with the tickets already bought",
+        "old_total": "{wait} min in total for a person who also stood in the ticket line",
+        "new_time": "{wait} min in line (people who joined between {a} and {b})",
+        "old_note": ("Times of the people who joined a line between {a} and {b}. "
+                     "{gave_up} of every 10 purchase attempts were abandoned."),
+        "new_note": "9 of 10 buyers wait {p90} min or less between {a} and {b}",
+        "cocktails": "cocktails and shots (outside this study)",
+        "old_aria": "In 2026 a buyer stood in the ticket line and then in an exchange line.",
+        "new_aria": "Under the plan a buyer stands in one line and pays where the beer is served.",
+    },
+    "es": {
+        "old_title": "En 2026 había que hacer dos filas para una cerveza",
+        "new_title": "Con el plan hay una sola fila y la cerveza se paga donde se sirve",
+        "want": ["Quiere una", "cerveza"], "back": ["Vuelve", "al show"],
+        "window": ["Caja de fichas"], "window_sub": ["una sola ventanilla", "para todas las bebidas"],
+        "exchange": ["Canje", "en la barra"], "exchange_sub": ["2 filas de cerveza,", "1 de cocteles"],
+        "line1": "Fila 1", "line2": "Fila 2", "people": "{n} personas",
+        "station": ["Cualquier puesto de la barra", "cobra con tarjeta o efectivo", "y entrega la cerveza"],
+        "stations": "{n} puestos abiertos", "sellers": "y {n} vendedores recorren la pista",
+        "one_line": "Una fila corta",
+        "old_exchange": "{wait} min en la fila de canje, con las fichas ya compradas",
+        "old_total": "{wait} min en total para quien además hacía la fila de la caja",
+        "new_time": "{wait} min en la fila (quienes se formaron entre las {a} y las {b})",
+        "old_note": ("Tiempos de quienes se formaron entre las {a} y las {b}. "
+                     "{gave_up} de cada 10 intentos de compra se abandonaron."),
+        "new_note": "9 de cada 10 compradores esperan {p90} min o menos entre las {a} y las {b}",
+        "cocktails": "cocteles y shots (fuera de este estudio)",
+        "old_aria": "En 2026 la persona hacía la fila de fichas y luego una fila de canje.",
+        "new_aria": "Con el plan la persona hace una sola fila y paga donde le sirven la cerveza.",
+    },
+}
+
+
+def _text(x, y, lines, size=15, weight=400, anchor="middle", fill="currentColor", opacity=1.0):
+    spans = "".join(f'<tspan x="{x}" dy="{0 if k == 0 else size * 1.25:.0f}">{escape(line)}</tspan>'
+                    for k, line in enumerate(lines))
+    return (f'<text x="{x}" y="{y}" font-size="{size}" font-weight="{weight}" '
+            f'text-anchor="{anchor}" fill="{fill}" opacity="{opacity}">{spans}</text>')
+
+
+def _box(x, y, w, h, title, sub=None, stroke="currentColor"):
+    out = [f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="10" fill="none" '
+           f'stroke="{stroke}" stroke-opacity="0.55" stroke-width="1.5"/>']
+    n = len(title) + (len(sub) if sub else 0)
+    top = y + h / 2 - (n - 1) * 10 + 3
+    out.append(_text(x + w / 2, top, title, size=18, weight=700))
+    if sub:
+        out.append(_text(x + w / 2, top + len(title) * 22 + 3, sub, size=14.5, opacity=0.8))
+    return "".join(out)
+
+
+def _arrow(x0, x1, y):
+    return (f'<line x1="{x0}" y1="{y}" x2="{x1 - 7}" y2="{y}" stroke="currentColor" '
+            f'stroke-opacity="0.6" stroke-width="1.5"/>'
+            f'<polygon points="{x1},{y} {x1 - 9},{y - 5} {x1 - 9},{y + 5}" fill="currentColor" '
+            f'fill-opacity="0.6"/>')
+
+
+def _people(x0, y, n, fill, step=11, r=4):
+    return "".join(f'<circle cx="{x0 + k * step}" cy="{y}" r="{r}" fill="{fill}"/>'
+                   for k in range(n))
+
+
+def _arrow_down(x, y0, y1):
+    return (f'<line x1="{x}" y1="{y0}" x2="{x}" y2="{y1 - 7}" stroke="currentColor" '
+            f'stroke-opacity="0.6" stroke-width="1.5"/>'
+            f'<polygon points="{x},{y1} {x - 5},{y1 - 9} {x + 5},{y1 - 9}" fill="currentColor" '
+            f'fill-opacity="0.6"/>')
+
+
+def _svg(height, label, body, width=W):
+    return (f'<svg viewBox="0 0 {width} {height:.0f}" role="img" aria-label="{escape(label)}" '
+            f'style="max-width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg">'
+            f'{body}</svg>')
+
+
+def _one(lines):
+    return [" ".join(lines)]
+
+
+def _centered_people(y, n, fill, step=14, r=4.5):
+    return _people(NARROW_W / 2 - (n - 1) * step / 2, y, n, fill, step=step, r=r)
+
+
+def _footer(parts, y, bars, note):
+    """Time bars with their headlines and a note at the bottom of a narrow diagram.
+    bars: (share of the scale, color, opacity, headline). Returns the height."""
+    left, width = 16, NARROW_W - 32
+    for share, color, opacity, headline in bars:
+        parts.append(f'<rect x="{left}" y="{y}" width="{max(width * share, 10):.0f}" '
+                     f'height="20" rx="4" fill="{color}" fill-opacity="{opacity}"/>')
+        head = textwrap.wrap(headline, 36)
+        parts.append(_text(left, y + 44, head, size=16.5, weight=700, anchor="start"))
+        y += 44 + 21 * (len(head) - 1) + 18
+    body = textwrap.wrap(note, 44)
+    parts.append(_text(left, y + 8, body, size=14, anchor="start", opacity=0.85))
+    return y + 8 + 18 * (len(body) - 1) + 14
+
+
+def _old_narrow(t, exchange_min, total_min, ticket_line, exchange_line, gave_up_of_10,
+                scale_min, observed):
+    left, width, mid = 16, NARROW_W - 32, NARROW_W / 2
+    title = textwrap.wrap(t["old_title"], 30)
+    parts = [_text(left, 28, title, size=20, weight=700, anchor="start")]
+    y = 28 + 25 * (len(title) - 1) + 20
+    parts.append(_box(left, y, width, 54, _one(t["want"])))
+    y += 54
+    parts.append(_text(mid, y + 24, [f'{t["line1"]} · ' + t["people"].format(n=round(ticket_line))],
+                       size=15, fill=theme.DOT_TICKET, weight=700))
+    parts.append(_centered_people(y + 42, 11, theme.DOT_TICKET))
+    y += 58
+    parts.append(_box(left, y, width, 74, t["window"], _one(t["window_sub"])))
+    y += 74
+    parts.append(_text(mid, y + 24, [f'{t["line2"]} · ' + t["people"].format(n=round(exchange_line))],
+                       size=15, fill=theme.DOT_TICKET, weight=700))
+    parts.append(_centered_people(y + 42, 11, theme.DOT_TICKET))
+    parts.append(_centered_people(y + 58, 11, theme.DOT_TICKET))
+    parts.append(_centered_people(y + 74, 11, theme.SILVER))
+    parts.append(_text(mid, y + 97, [t["cocktails"]], size=13, opacity=0.7))
+    y += 110
+    parts.append(_box(left, y, width, 74, _one(t["exchange"]), _one(t["exchange_sub"])))
+    y += 74
+    parts.append(_arrow_down(mid, y + 6, y + 26))
+    y += 32
+    parts.append(_box(left, y, width, 54, _one(t["back"])))
+    y += 54 + 24
+    bars = [(min(exchange_min / scale_min, 1.0), theme.RED, 1.0,
+             t["old_exchange"].format(wait=round(exchange_min))),
+            (min(total_min / scale_min, 1.0), theme.RED, 0.55,
+             t["old_total"].format(wait=round(total_min)))]
+    height = _footer(parts, y, bars, t["old_note"].format(
+        gave_up=f"{gave_up_of_10:.0f}", a=observed[0], b=observed[1]))
+    return _svg(height, t["old_aria"], "".join(parts), NARROW_W)
+
+
+def _new_narrow(t, wait_min, p90_min, stations, sellers, scale_min, observed, service):
+    left, width, mid = 16, NARROW_W - 32, NARROW_W / 2
+    title = textwrap.wrap(t["new_title"], 30)
+    parts = [_text(left, 28, title, size=20, weight=700, anchor="start")]
+    y = 28 + 25 * (len(title) - 1) + 20
+    parts.append(_box(left, y, width, 54, _one(t["want"])))
+    y += 54
+    parts.append(_text(mid, y + 24, [t["one_line"]], size=15, fill=theme.BRONZE, weight=700))
+    parts.append(_centered_people(y + 42, 3, theme.BRONZE))
+    parts.append(_arrow_down(mid, y + 52, y + 72))
+    y += 78
+    shown = min(stations, 12)
+    per_row = shown if shown <= 6 else math.ceil(shown / 2)
+    rows = math.ceil(shown / per_row)
+    box_h = 92 + rows * 32 + 26
+    parts.append(f'<rect x="{left}" y="{y}" width="{width}" height="{box_h}" rx="10" fill="none" '
+                 f'stroke="{theme.BRONZE}" stroke-width="2"/>')
+    parts.append(_text(mid, y + 30, t["station"], size=16.5, weight=700))
+    first = mid - (per_row * 32 - 8) / 2
+    for k in range(shown):
+        col, row = k % per_row, k // per_row
+        parts.append(f'<rect x="{first + col * 32:.0f}" y="{y + 92 + row * 32}" width="24" '
+                     f'height="24" rx="5" fill="{theme.BRONZE}"/>')
+    parts.append(_text(mid, y + 92 + rows * 32 + 12, [t["stations"].format(n=stations)],
+                       size=13.5, opacity=0.85))
+    y += box_h
+    if sellers:
+        parts.append(_text(mid, y + 24, [t["sellers"].format(n=sellers)], size=14.5,
+                           opacity=0.85))
+        y += 30
+    parts.append(_arrow_down(mid, y + 6, y + 26))
+    y += 32
+    parts.append(_box(left, y, width, 54, _one(t["back"])))
+    y += 54 + 24
+    bars = [(min(wait_min / scale_min, 1.0), theme.BRONZE, 1.0,
+             t["new_time"].format(wait=math.ceil(wait_min - 1e-9), a=observed[0], b=observed[1]))]
+    height = _footer(parts, y, bars, t["new_note"].format(
+        p90=math.ceil(p90_min - 1e-9), a=service[0], b=service[1]))
+    return _svg(height, t["new_aria"], "".join(parts), NARROW_W)
+
+
+def old_process(lang: str, exchange_min: float, total_min: float, ticket_line: float,
+                exchange_line: float, gave_up_of_10: float, scale_min: float,
+                observed: tuple[str, str], narrow: bool = False) -> str:
+    """The 2026 purchase: ticket window, then exchange at the bar. exchange_min is the wait
+    in the exchange line and total_min the wait of a person who starts without tickets,
+    both for people who joined a line in the clock window `observed`."""
+    t = TEXT[lang]
+    if narrow:
+        return _old_narrow(t, exchange_min, total_min, ticket_line, exchange_line,
+                           gave_up_of_10, scale_min, observed)
+    top, h = 70, 112
+    mid = top + h / 2
+    parts = [_text(20, 34, [t["old_title"]], size=22, weight=700, anchor="start")]
+    parts.append(_box(20, top, 150, h, t["want"]))
+    parts.append(_text(245, top - 6, [f'{t["line1"]} · ' + t["people"].format(n=round(ticket_line))],
+                       size=15, fill=theme.DOT_TICKET, weight=700))
+    parts.append(_people(184, mid, 11, theme.DOT_TICKET))
+    parts.append(_box(310, top, 180, h, t["window"], t["window_sub"]))
+    parts.append(_text(565, top - 6, [f'{t["line2"]} · ' + t["people"].format(n=round(exchange_line))],
+                       size=15, fill=theme.DOT_TICKET, weight=700))
+    parts.append(_people(504, mid - 22, 11, theme.DOT_TICKET))
+    parts.append(_people(504, mid, 11, theme.DOT_TICKET))
+    parts.append(_people(504, mid + 22, 11, theme.SILVER))
+    parts.append(_box(630, top, 170, h, t["exchange"], t["exchange_sub"]))
+    parts.append(_arrow(806, 826, mid))
+    parts.append(_box(830, top, 110, h, t["back"]))
+    parts.append(_text(504, top + h + 22, [t["cocktails"]], size=13.5, anchor="start", opacity=0.7))
+    bar_y = top + h + 44
+    for minutes, opacity, key in ((exchange_min, 1.0, "old_exchange"), (total_min, 0.55, "old_total")):
+        width = (W - 40) * min(minutes / scale_min, 1.0)
+        parts.append(f'<rect x="20" y="{bar_y}" width="{width:.0f}" height="22" rx="4" '
+                     f'fill="{theme.RED}" fill-opacity="{opacity}"/>')
+        parts.append(_text(20, bar_y + 46, [t[key].format(wait=round(minutes))], size=17,
+                           weight=700, anchor="start"))
+        bar_y += 66
+    parts.append(_text(20, bar_y + 6, [t["old_note"].format(gave_up=f"{gave_up_of_10:.0f}",
+                                                            a=observed[0], b=observed[1])],
+                       size=15.5, anchor="start", opacity=0.85))
+    return _svg(bar_y + 22, t["old_aria"], "".join(parts))
+
+
+def new_process(lang: str, wait_min: float, p90_min: float, stations: int, sellers: int,
+                scale_min: float, observed: tuple[str, str], service: tuple[str, str],
+                narrow: bool = False) -> str:
+    """The purchase under the plan: one line per station, payment and beer at the same place.
+    `observed` is the clock window of wait_min and `service` the one of p90_min."""
+    t = TEXT[lang]
+    if narrow:
+        return _new_narrow(t, wait_min, p90_min, stations, sellers, scale_min, observed, service)
+    top, h = 70, 112
+    mid = top + h / 2
+    parts = [_text(20, 34, [t["new_title"]], size=22, weight=700, anchor="start")]
+    parts.append(_box(20, top, 150, h, t["want"]))
+    parts.append(_text(245, top - 6, [t["one_line"]], size=15, fill=theme.BRONZE, weight=700))
+    parts.append(_people(228, mid, 3, theme.BRONZE))
+    parts.append(_arrow(266, 300, mid))
+    bx, bw = 310, 490
+    parts.append(f'<rect x="{bx}" y="{top}" width="{bw}" height="{h}" rx="10" fill="none" '
+                 f'stroke="{theme.BRONZE}" stroke-width="2"/>')
+    parts.append(_text(bx + 152, mid - 20, t["station"], size=16.5, weight=700))
+    gx = bx + 310
+    shown = min(stations, 12)
+    per_row = shown if shown <= 5 else math.ceil(shown / 2)
+    rows = math.ceil(shown / per_row)
+    left = gx + 76 - (per_row * 32 - 8) / 2
+    for k in range(shown):
+        col, row = k % per_row, k // per_row
+        parts.append(f'<rect x="{left + col * 32:.0f}" y="{mid - 14 - 16 * rows + row * 32:.0f}" '
+                     f'width="24" height="24" rx="5" fill="{theme.BRONZE}"/>')
+    label = t["stations"].format(n=stations)
+    parts.append(_text(gx + 76, top + h - 9, [label], size=13.5, opacity=0.85))
+    parts.append(_arrow(806, 826, mid))
+    parts.append(_box(830, top, 110, h, t["back"]))
+    if sellers:
+        parts.append(_text(bx, top + h + 22, [t["sellers"].format(n=sellers)], size=14.5,
+                           anchor="start", opacity=0.85))
+    bar_y = top + h + 44
+    width = max((W - 40) * min(wait_min / scale_min, 1.0), 10)
+    parts.append(f'<rect x="20" y="{bar_y}" width="{width:.0f}" height="22" rx="4" '
+                 f'fill="{theme.BRONZE}"/>')
+    parts.append(_text(20, bar_y + 46, [t["new_time"].format(wait=math.ceil(wait_min - 1e-9),
+                                                             a=observed[0], b=observed[1])],
+                       size=17, weight=700, anchor="start"))
+    parts.append(_text(20, bar_y + 68, [t["new_note"].format(p90=math.ceil(p90_min - 1e-9),
+                                                             a=service[0], b=service[1])],
+                       size=14, anchor="start", opacity=0.8))
+    return _svg(bar_y + 82, t["new_aria"], "".join(parts))

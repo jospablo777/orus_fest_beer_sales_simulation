@@ -1,0 +1,26 @@
+# R environment for the analysis and zoning scripts, managed with rv (https://a2-ai.github.io/rv-docs/).
+# `rv sync` resolves these against the dated Posit Package Manager snapshot, installs them
+# into rv/library and writes rv.lock. Set r_version to the major.minor of your local R.
+[project]
+name = "orus_sim"
+r_version = "4.6"
+
+repositories = [
+    {alias = "PPM", url = "https://packagemanager.posit.co/cran/2026-11-20"},
+]
+
+dependencies = [
+    # analysis/figures.R
+    "data.table",
+    "ggplot2",
+    "patchwork",
+    "scales",
+    "jsonlite",
+    "yaml",
+    # analysis/salon_olimpico_zoning.R
+    "sf",
+    "leaflet",
+    "htmlwidgets",
+    "osmdata",
+    "mapedit",
+]

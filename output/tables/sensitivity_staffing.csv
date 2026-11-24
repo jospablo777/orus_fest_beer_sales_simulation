@@ -1,0 +1,4 @@
+n_total,n_pour,sellers,reference_met,reference_nights,reference_recommended,current_met,current_nights,current_recommended,p_fisher
+1500,6,9,31,32,True,31,32,True,1.0
+2000,8,9,29,32,True,29,32,True,1.0
+2500,12,9,29,32,True,29,32,True,1.0

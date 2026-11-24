@@ -1,0 +1,11 @@
+# Settings for the analysis and the report.
+beer_price_mxn: 80          # assumed price per beer, used only for sales figures in MXN
+headline_scenario: plan     # the setup compared with 2026 in the headline figures
+plan_tickets: 2000          # ticket level of the plan (a level of the staffing grid)
+hall_side_uncertainty: 0.10 # relative error of each side of the hall, measured on a satellite image
+
+# Video clips of scripts/make_animation.py. "night" starts when the 2026 lines formed.
+# "changeover" covers the end of Funker Vogt and the start of Peter Heppner.
+clips:
+  night:      {from: "18:00", to: "01:30", every_s: 60, fps: 12}
+  changeover: {from: "21:20", to: "22:10", every_s: 5, fps: 15}

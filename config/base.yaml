@@ -1,0 +1,153 @@
+# Baseline configuration: Orus Fest 2026, Salón Olímpico Pantitlán, 1 August 2026.
+# Clock times are "HH:MM"; times after midnight belong to the next day ("01:30" > "23:00").
+# Values marked "observed" come from attendee reports; everything else is an assumption
+# and is swept in config/calibration.yaml.
+
+event:
+  doors_open: "13:00"
+  close: "03:00"
+  dt_s: 5
+
+# Local frame of the hall in meters, from analysis/salon_olimpico_zoning.R (layout_zones):
+# y runs from the stage wall (0, south) to the bar wall (length, north); x runs from the east
+# wall (0) to the west wall (width). Plan views put the stage at the top, so they show the
+# hall as on the map after a half turn: east on the left, west on the right.
+venue:
+  length_m: 52.2
+  width_m: 30.1
+  stage:          {x0: 0.0,  x1: 30.1, y0: 0.0,  y1: 9.0}
+  bar_zone:       {x0: 0.0,  x1: 30.1, y0: 43.2, y1: 52.2}
+  tables:         {x0: 21.1, x1: 30.1, y0: 34.2, y1: 43.2}   # west corner in front of the bar
+  vendors_west:   {x0: 25.1, x1: 30.1, y0: 11.0, y1: 33.0}   # ends before the tables
+  vendors_east:   {x0: 0.0,  x1: 5.0,  y0: 12.5, y1: 43.2}   # runs to the bar
+  entrance:       {x: 29.6, y: 10.5}       # assumed door on the west wall next to the stage
+  counter_y: 43.6                          # y of the service line in front of the bar
+  floor_cap_ppm2: 3.0                      # density above which people stop choosing a cell
+  front_scale_m: 5.0                       # followers: preference decays over this distance from the stage
+  back_scale_m: 10.0                       # others: preference decays over this distance from the bar
+  side_cap_ppm2: 1.0                       # cap in vendor aisles and table area
+
+# Service points. Each point is one server with its own line.
+# Cashiers stand next to the tables (east end of the counter); serving stations fill the counter west of them.
+# The counter behind the tables (x > 21.1) has no service point. All lines run south into the floor.
+bar:
+  mode: ticket                  # ticket: cashier line then exchange line (observed)
+                                # direct: pay and pour at the same station
+  n_cashiers: 1                 # observed: one ticket window, shared with cocktails and shots
+  cashier_x: [19.6, 18.1, 16.6, 15.1]   # first n_cashiers are used
+  n_pour: 5                     # people serving beer. Observed: 5 to 8 people serving in total,
+                                # two beer lines and one line for cocktails and shots
+  pour_x_min: 2.0               # ticket mode: serving stations stop 2 m short of the nearest cashier
+  pour_x_max: 17.6              # direct mode: serving stations span pour_x_min..cashier_x[0]
+  s_cash_mean_s: 45             # ticket window, seconds per beer buyer. Buyers of other drinks
+                                # used the same window, so this is an effective time.
+  s_pour_mean_s: 25             # exchange and pour, seconds for the first beer of a visit
+  extra_beer_factor: 0.8        # each further beer in the same visit, as a share of the first
+  s_pay_direct_s: 18            # payment at the station in direct mode (card or cash)
+  service_cv: 0.45              # coefficient of variation of service times (lognormal)
+  bundle_mean: 2.0              # tickets per cashier visit beyond the current round, plus 1
+  presale_fraction: 0.0         # share of attendees who arrive holding tickets
+  presale_tickets: 5
+  satellite_bar: false          # extra pay-at-the-station bar on a vendor strip
+  satellite_n_pour: 2
+  satellite_y: 24.0
+
+sellers:
+  n: 0                          # observed: no roaming sellers at Orus Fest 2026
+  start: "17:00"
+  end: "02:30"
+  capacity: 6                   # beers per trip (a tray of cups, as festival sellers carry)
+  s_sale_s: 30
+  restock_s: 120                # refill at either end of the bar; assumed
+  see_radius_m: 8.0             # a thirsty attendee waits if a seller is this close
+  detect_radius_m: 14.0         # a seller notices raised hands within this radius
+  wait_max_min: 6.0             # attendee gives up on sellers after this and walks to the bar
+  speed_factor: 0.85
+
+crowd:
+  # Unique attendees over the whole day. Source: 2,000 reported in a video about Orus Fest 2026,
+  # https://www.facebook.com/watch/?v=1338140721641943. Read as people who entered during the
+  # day; with arrivals from 13:00 and departures without re-entry, the number inside at the
+  # peak is lower and comes out of the model (docs/ASSUMPTIONS.md, "Attendance").
+  n_total: 2000
+  whole_event_share: 0.3       # attendees who stay through the last band whatever their core band
+  afternoon_thirst_mult: 0.7    # thirst multiplier before afternoon_end (people pace drinking early)
+  afternoon_end: "18:00"
+  close_stay_share: 0.3         # of those whose window ends with the last band, share who stay for the closing DJs
+  core_power: 2.0               # core act drawn with weight fans^core_power (headliners dominate)
+  acts_before_mean: 1.5         # Poisson mean of acts attended before the core act
+  acts_after_mean: 1.0          # Poisson mean of acts attended after the core act
+  arrival_lead_min: [10, 60]    # arrive this long before the first act of the window
+  leave_lag_min: [0, 25]        # leave this long after the last act of the window
+  drinker_share: 0.75
+  rate_mean_per_h: 0.8          # beers per hour for drinkers, before schedule modulation
+  rate_cv: 0.5
+  # Thirst multipliers on the personal rate, by what is happening and whether the person
+  # follows the act on stage (or, during a changeover, the next act).
+  fan_thirst_mult: 0.35         # watching an act they follow
+  nonfan_thirst_mult: 1.15      # an act they do not follow is playing
+  changeover_boost: 1.6         # changeover, next act is not one they follow
+  holder_thirst_mult: 0.6       # changeover, they follow the next act and hold a spot up front
+  fan_patience_mult: 0.6        # patience while an act they follow is playing
+  # Crowd movement when a set starts or a changeover begins
+  front_zone_m: 12              # distance from the stage edge counted as "up front"
+  fan_move_share: 0.85          # followers of the focus act who are not up front move there
+  nonfan_leave_share: 0.6       # others who are up front step back toward the bar and vendors
+  shuffle_share: 0.1            # anyone else picks a new spot
+  drink_min: 14                 # minimum minutes between beers for one person
+  double_share: 0.3             # share of bar trips where the buyer takes two beers for themself
+  # Friends (observed: people bought several beers per visit for friends).
+  group_size_mean: 2.2          # mean size of a group of friends (1 + Poisson, at most 6)
+  round_join_share: 0.7         # share of friends who accept a beer when one of the group goes
+  round_max_beers: 6            # beers one person carries back, buyer included
+  patience_median_min: 40
+  patience_sd_log: 0.45
+  renege_factor: 1.5            # leaves a line after patience * renege_factor in it
+  defer_min: [8, 20]            # retry window after balking
+  walk_speed_ms: 1.34
+
+# Official running order: "Horarios Orus Fest 2026", Orus Producciones (poster in
+# docs/sources/orus_fest_2026_schedule.jpg). kind "band" is a live set; kind "dj" covers the
+# DJ sets, performances and the short Remembransas segment between bands, which the model
+# treats as changeovers. fans: share of attendees who follow the band; replaced by the
+# follower-based value when the band has ig_followers (all bands do; Heppner's 0.75 anchors).
+# Followers arrive before their first followed band, leave after their last one, pack the
+# stage front while it plays, and hold their spot through the DJ set before it.
+# Follower shares from Instagram followers (screenshots of the official accounts taken
+# 23 Nov 2026, docs/sources/instagram_*.jpg). For bands with a count
+#   fans = fans of the anchor band * (followers / followers of the anchor) ** elasticity
+# Bands without a count keep the `fans` value written here. Global follower counts are a
+# weak proxy for a Mexico City audience; set use_followers: false to ignore them.
+# DJ Scorpio's count (25.7K) is recorded but not used: DJ sets are modelled as changeovers,
+# and a personal account with thousands of posts measures social reach more than draw.
+popularity:
+  use_followers: true
+  anchor_band: "Peter Heppner"
+  elasticity: 0.5
+
+schedule:
+  - {act: "DJ Diabel",              kind: dj,   start: "13:00", end: "13:30"}
+  - {act: "Tracción Omega",         kind: band, start: "13:30", end: "14:15", fans: 0.15, ig_followers: 326}
+  - {act: "DJ Traxbeat",            kind: dj,   start: "14:15", end: "14:30"}
+  - {act: "La Danza de las Ánimas", kind: band, start: "14:30", end: "15:10", fans: 0.18, ig_followers: 1231}
+  - {act: "DJ Laudano",             kind: dj,   start: "15:10", end: "15:25"}
+  - {act: "Clekktor",               kind: band, start: "15:25", end: "16:05", fans: 0.25, ig_followers: 3258}
+  - {act: "DJ Psyklon",             kind: dj,   start: "16:05", end: "16:20"}
+  - {act: "Eisfabrik",              kind: band, start: "16:20", end: "17:05", fans: 0.35, ig_followers: 6473}
+  - {act: "DJ Traxbeat",            kind: dj,   start: "17:05", end: "17:30"}
+  - {act: "God Module",             kind: band, start: "17:30", end: "18:15", fans: 0.30, ig_followers: 7469}
+  - {act: "DJ Noirshell",           kind: dj,   start: "18:15", end: "18:30"}
+  - {act: "Das Ich",                kind: band, start: "18:30", end: "19:15", fans: 0.40, ig_followers: 7288}
+  - {act: "DJ Laudano",             kind: dj,   start: "19:15", end: "19:35"}
+  - {act: "Rotersand",              kind: band, start: "19:35", end: "20:20", fans: 0.55, ig_followers: 5433}
+  - {act: "DJ Psyklon",             kind: dj,   start: "20:20", end: "20:40"}
+  - {act: "Funker Vogt",            kind: band, start: "20:40", end: "21:25", fans: 0.50, ig_followers: 5299}
+  - {act: "DJ Noirshell",           kind: dj,   start: "21:25", end: "21:55"}
+  - {act: "Remembransas",           kind: dj,   start: "21:55", end: "22:00"}
+  - {act: "Peter Heppner",          kind: band, start: "22:00", end: "23:30", fans: 0.75, ig_followers: 10700}
+  - {act: "DJ Scorpio",             kind: dj,   start: "23:30", end: "00:00", ig_followers: 25700}
+  - {act: "Solitary Experiments",   kind: band, start: "00:00", end: "01:15", fans: 0.65, ig_followers: 8921}
+  - {act: "DJ Laudano",             kind: dj,   start: "01:15", end: "01:35"}
+  - {act: "DJ Scorpio",             kind: dj,   start: "01:35", end: "01:55"}
+  - {act: "DJ Psyklon",             kind: dj,   start: "01:55", end: "02:15"}
+  - {act: "DJ Traxbeat",            kind: dj,   start: "02:15", end: "03:00"}

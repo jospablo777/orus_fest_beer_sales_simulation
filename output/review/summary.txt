@@ -1,0 +1,71 @@
+1. Which stage limits sales, before and after calibration
+   all prior draws  n=360  ticket booth  221 beers/h [88, 620]   pourers  856 [518, 1546]   booth is the lower one in 99%
+   accepted draws   n= 43  ticket booth  250 beers/h [141, 472]   pourers 1006 [580, 1485]   booth is the lower one in 100%
+   busiest hour with payment at the tap: 594 beers [434, 889] across 24 nights
+
+2. Second reading of the crew (2-4 cashiers, 3-5 pourers), 96 draws
+   accepted 19 of 96
+   limit = pourers      n= 9  wait 2026 46 min, with payment at the tap 26 min (worst 47);  improves in 9/9;  extra beers 1323 (min 1113);  longer line at 22:00: {'exchange line': 8, 'ticket line': 1}
+   limit = ticket booth n=10  wait 2026 52 min, with payment at the tap 28 min (worst 48);  improves in 10/10;  extra beers 1825 (min 1251);  longer line at 22:00: {'ticket line': 10}
+   current calibration at 22:00: ticket line 109 people [58, 201], exchange line 0.3 [0.1, 1.8]
+
+3. Scenario effects against the 2026 setup, same night (median, 95% bootstrap CI of the median)
+       scenario  wait_med  wait_lo  wait_hi wait_better  wait_p  beers_med  beers_lo  beers_hi beers_better  beers_p
+  more_cashiers   -43.817  -50.633  -33.992       24/24     0.0     1531.0    1317.0  1741.000        24/24      0.0
+presale_bundles   -34.846  -42.000  -24.483       24/24     0.0     1704.5    1344.0  1871.537        24/24      0.0
+      sellers_6   -39.021  -45.083  -32.500       24/24     0.0     1835.0    1501.0  2041.000        24/24      0.0
+      satellite   -29.425  -32.138  -22.367       24/24     0.0     1209.0    1084.0  1413.000        24/24      0.0
+     pay_at_tap   -54.650  -58.425  -45.417       24/24     0.0     2246.5    1836.0  2536.000        24/24      0.0
+       cashless   -56.192  -61.467  -46.000       24/24     0.0     2191.5    1676.0  2704.000        24/24      0.0
+     peak_shift   -56.650  -61.758  -46.833       24/24     0.0     2262.5    1712.0  2738.000        24/24      0.0
+       proposal   -55.400  -60.717  -47.917       24/24     0.0     2221.5    1710.0  2768.000        24/24      0.0
+   24/24 nights improved: exact 95% interval for the share [0.86, 1.00]
+
+4. Is the more expensive setup better than payment at the tap (same night differences)
+   cashless minus pay_at_tap: evening_p90_min     -0.73  [-1.33, -0.42]  Wilcoxon p = 0.000
+   cashless minus pay_at_tap: beers_total        +20.00  [-5.00, +80.00]  Wilcoxon p = 0.065
+   cashless minus pay_at_tap: staff +0
+   proposal minus pay_at_tap: evening_p90_min     -0.35  [-1.92, +0.25]  Wilcoxon p = 0.067
+   proposal minus pay_at_tap: beers_total        -19.50  [-45.00, +39.00]  Wilcoxon p = 0.977
+   proposal minus pay_at_tap: staff +6
+   peak_shift minus cashless: evening_p90_min     -0.12  [-0.46, -0.08]  Wilcoxon p = 0.000
+   peak_shift minus cashless: beers_total         +9.00  [-9.00, +36.00]  Wilcoxon p = 0.137
+   peak_shift minus cashless: staff +3
+
+5. Crews at 2,000 tickets: nights (of 6) that meet the target
+ taps  sellers  met  nights  wait_median  wait_worst  share_lo  share_hi
+    2        0    0       6        62.04       86.93      0.00      0.46
+    2        3    0       6        45.62       72.13      0.00      0.46
+    2        6    2       6        22.67       57.27      0.04      0.78
+    3        0    0       6        44.09       74.92      0.00      0.46
+    3        3    3       6        19.62       61.22      0.12      0.88
+    3        6    4       6         5.50       45.11      0.22      0.96
+    4        0    2       6        30.00       62.78      0.04      0.78
+    4        3    3       6        10.17       51.26      0.12      0.88
+    4        6    5       6         2.25       30.31      0.36      1.00
+    5        0    3       6        15.46       54.09      0.12      0.88
+    5        3    4       6         4.27       40.17      0.22      0.96
+    5        6    5       6         2.08       15.25      0.36      1.00
+    6        0    3       6         7.89       45.75      0.12      0.88
+    6        3    5       6         3.04       26.67      0.36      1.00
+    6        6    6       6         1.96        5.08      0.54      1.00
+    8        0    5       6         2.29       29.08      0.36      1.00
+    8        3    6       6         2.42        6.75      0.54      1.00
+    8        6    6       6         2.00        3.17      0.54      1.00
+
+6. Same inputs, four random seeds (run-to-run noise)
+                evening_p90_min                  peak_median_min                  beers_total                   
+                           mean  std   min   max            mean  std   min   max        mean    std   min   max
+draw scenario                                                                                                   
+15   baseline              85.2  1.5  83.7  86.5            77.5  7.9  69.0  87.8      1274.2   35.8  1221  1298
+     pay_at_tap             1.5  0.1   1.4   1.6             0.8  0.0   0.8   0.8      3498.2   42.5  3461  3537
+52   baseline              58.8  1.9  57.2  60.7            51.4  3.3  47.6  54.2      2171.8   51.5  2146  2249
+     pay_at_tap             1.2  0.0   1.2   1.2             0.8  0.0   0.8   0.8      3654.2  138.3  3477  3800
+56   baseline              56.0  1.6  54.0  57.8             2.3  0.4   2.0   2.9      4520.5  143.1  4421  4733
+     pay_at_tap            10.7  2.9   7.9  14.0             7.9  3.2   4.5  11.5      6510.0  174.6  6370  6763
+   share of variance from run-to-run noise: {'evening_p90_min': 0.023, 'beers_total': 0.01}
+   accepted draws that pass the acceptance tests again with another seed: 21/24; largest change in the peak median wait: 43 min
+
+7. One representative night (the animated draw)
+   baseline   hours in line, everyone added up:   705;  purchases served within 5 min: 45%;  beers by hour: {13: 42, 14: 101, 15: 130, 16: 137, 17: 139, 18: 204, 19: 200, 20: 210, 21: 186, 22: 178, 23: 194, 0: 179, 1: 177, 2: 46}
+   pay_at_tap hours in line, everyone added up:    37;  purchases served within 5 min: 100%;  beers by hour: {13: 44, 14: 110, 15: 124, 16: 125, 17: 167, 18: 341, 19: 463, 20: 484, 21: 490, 22: 344, 23: 373, 0: 337, 1: 176, 2: 39}

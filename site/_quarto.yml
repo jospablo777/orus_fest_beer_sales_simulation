@@ -1,0 +1,48 @@
+project:
+  type: website
+  output-dir: _site
+  pre-render: _sync_assets.py     # figures, videos, docs pages and organizer pages (site/_generated, committed)
+  resources:
+    - assets/**
+
+website:
+  title: "Orus Fest · cerveza sin filas"
+  description: "Simulation study of beer sales and crowd flow at Orus Fest 2026, Salón Olímpico Pantitlán"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Resumen
+      - href: en.qmd
+        text: Summary (EN)
+      - href: technical.qmd
+        text: Technical report
+      - href: methods.qmd
+        text: Methods
+      - href: assumptions.qmd
+        text: Assumptions
+      - href: literature.qmd
+        text: Literature
+  page-footer:
+    left: "Estudio de simulación para Orus Producciones · Orus Fest 2026, Salón Olímpico Pantitlán"
+    right: "Los números se leen de los resultados de la simulación · Numbers are read from the simulation outputs"
+
+lang: en
+
+format:
+  html:
+    theme: [darkly, orus.scss]
+    toc: true
+    toc-depth: 2
+    toc-expand: true
+    toc-title: "On this page"
+    smooth-scroll: true
+    link-external-newwindow: true
+    fig-cap-location: bottom
+    anchor-sections: true
+    grid:
+      body-width: 940px
+
+execute:
+  echo: false
+  warning: false
+  freeze: auto                    # CI reuses site/_freeze and does not need the simulation outputs

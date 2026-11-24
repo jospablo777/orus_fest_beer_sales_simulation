@@ -1,0 +1,66 @@
+# Calibration: inputs nobody measured at Orus Fest 2026 get the ranges below. The sampler
+# keeps the inputs under which the simulated 2026 setup reproduces the observations.
+# Keys are dotted paths into config/base.yaml.
+
+seed: 2026
+
+# Sequential sampler (scripts/run_calibration.py). Stage 0 draws from the ranges below.
+sampler:
+  prior_draws: 320          # stage 0
+  keep_share: 0.25          # share of stage 0 closest to the observations that seeds stage 1
+  particles: 64             # nights kept per later stage
+  shrink: 0.5               # next distance limit: this quantile of the distances kept
+  min_distance: 0.08        # below this the limit is set to 0 (every test must pass)
+  max_stages: 6
+  batch: 96                 # proposals simulated at a time
+  # The exchange-line test passes in about 2% of the proposals of the last stage, so the
+  # limit is high. Check the effective sample size in output/tables/calibration_summary.csv
+  # and add simulations with run_calibration.py --more N when it is below about 50.
+  max_simulations: 12000
+  posterior_draws: 64       # weighted resample written to posterior_draws.csv
+
+priors:
+  crowd.drinker_share:       {type: float,  low: 0.60,    high: 0.90}
+  crowd.rate_mean_per_h:     {type: float,  low: 0.50,    high: 1.30}   # beers per hour, drinkers
+  # The observers stayed more than 40 min in one line, so the range reaches well above that.
+  crowd.patience_median_min: {type: float,  low: 25.0,    high: 110.0}
+  crowd.changeover_boost:    {type: float,  low: 1.2,     high: 2.4}    # thirst between sets
+  crowd.acts_before_mean:    {type: float,  low: 1.0,     high: 4.0}    # shapes the arrival curve
+  crowd.acts_after_mean:     {type: float,  low: 1.0,     high: 3.5}    # shapes the departure curve
+  crowd.whole_event_share:   {type: float,  low: 0.10,    high: 0.50}   # "most came for several bands or all"
+  crowd.afternoon_thirst_mult: {type: float, low: 0.30,   high: 1.00}   # drinking pace before 18:00
+  # Crew. Observed: one ticket window, two beer lines and one line for cocktails and shots,
+  # 5 to 8 people serving in total. With one person at the window and at least one on
+  # cocktails, 2 to 6 people served beer. The window also sold tickets for the other drinks,
+  # so its time per beer buyer has a wide range.
+  bar.n_pour:                {type: choice, values: [2, 3, 4, 5, 6]}
+  bar.s_cash_mean_s:         {type: float,  low: 8.0,     high: 60.0}
+  bar.s_pour_mean_s:         {type: float,  low: 15.0,    high: 75.0}
+  bar.extra_beer_factor:     {type: float,  low: 0.5,     high: 1.0}    # further beers in a visit
+  crowd.group_size_mean:     {type: float,  low: 1.5,     high: 3.5}    # friends buying together
+  # The observers bought several tickets in one visit and used them over the afternoon.
+  bar.bundle_mean:           {type: float,  low: 1.0,     high: 5.0}    # 1 + spare tickets per visit
+
+# Observations (report of the attendees who ran this study).
+observations:
+  # Arrived at 15:30. Buying was "relatively quick, although it still took its time". Median
+  # time in line of the people who joined between 15:00 and 16:00, people who gave up included.
+  early_wait:   {from: "15:00", to: "16:00", max_median_min: 10.0}
+  # "Over 40 min" in the beer exchange line alone, with tickets bought earlier in hand,
+  # during God Module and Das Ich (18:00 to 20:00); 5 min of tolerance. The statistic is the
+  # median time until service of the people who joined an exchange line in that window
+  # (Kaplan-Meier: a person who gave up waited at least until leaving). A person without
+  # tickets stood in the ticket line first, so the whole purchase took longer. After 20:00
+  # the observers stopped trying to buy, and later waits are predictions of the model.
+  long_wait:    {from: "18:00", to: "20:00", min_median_min: 35.0}
+  # "Big lines in both": in that window the ticket line and the beer exchange lines (added
+  # up) each hold at least this many people on average. 20 means at least 10 people in each
+  # of the two beer lines. The first calibration used 30 and kept 33 nights with an
+  # effective sample size of 17; with 20 those nights remain and the sample doubles.
+  both_lines:   {min_people: 20}
+  # "Peak around 22:00": people inside at 22:00 are at least 90% of the night's maximum.
+  # A share is used here: the hall stays near its maximum from about 22:00 through the
+  # Heppner set, and the exact minute of the maximum within that plateau is noise.
+  peak_occupancy: {at: "22:00", min_share_of_max: 0.90}
+  # Window reported as "the headliner hour". Nothing was observed in it.
+  headliner_window: {from: "21:30", to: "22:30"}

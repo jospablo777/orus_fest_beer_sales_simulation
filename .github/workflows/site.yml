@@ -1,0 +1,48 @@
+# Builds the Quarto site in site/ and publishes it to GitHub Pages.
+# The technical report is frozen (site/_freeze) and the organizer pages are stored in
+# site/_generated, both committed, so this job does not rerun the simulation or need
+# output/runs. Render locally with ./scripts/render_site.sh after new results, commit
+# site/_freeze and site/_generated, then push.
+name: Publish site
+
+on:
+  push:
+    branches: [main]
+    paths: ["site/**", "docs/**", "output/figures/**", "output/animations/**", ".github/workflows/site.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Install Python and Quarto
+        run: uv sync --group site
+      - name: Render
+        run: |
+          uv run python site/_sync_assets.py
+          export QUARTO_PYTHON="$(uv run --group site python -c 'import sys; print(sys.executable)')"
+          uv run --group site quarto render site
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/_site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

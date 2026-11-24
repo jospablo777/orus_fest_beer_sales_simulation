@@ -1,0 +1,8 @@
+---
+title: "Beer without the lines at [Orus Fest]{.red}"
+subtitle: "Proposal for the next edition · simulation of Orus Fest 2026, Salón Olímpico Pantitlán"
+lang: en
+toc-title: "On this page"
+---
+
+{{< include _generated/organizer_en.md >}}

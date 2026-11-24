@@ -1,0 +1,228 @@
+/*-- scss:defaults --*/
+// Palette from the Orus Fest 2026 promotion art: black, blood red, bronze, bone white, steel blue.
+// Same values as sim/theme.py, analysis/figures.R and site/_preview.css.
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Cinzel:wght@600&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+$paper: #0a0807;
+$surface: #15110f;
+$chart: #100d0c;
+$ink: #ece4d6;
+$muted: #a69c8c;
+$rule: #2e2723;
+$gold: #d9a441;
+$bronze: #bd8a35;
+$alert: #e0393e;
+$blood: #c42a3c;
+$steel: #4aa3df;
+
+$body-bg: $paper;
+$body-color: $ink;
+$text-muted: $muted;
+$link-color: $gold;
+$primary: $blood;
+$secondary: $muted;
+$border-color: $rule;
+$font-family-sans-serif: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+$headings-font-family: "Orbitron", "Eurostile", "Arial Black", sans-serif;
+$font-size-base: 1.05rem;
+$navbar-bg: $paper;
+$navbar-fg: $ink;
+$navbar-hl: $alert;
+$footer-bg: $paper;
+$footer-fg: $muted;
+$table-color: $ink;
+$table-bg: $surface;
+$table-border-color: $rule;
+$code-color: $gold;
+
+/*-- scss:rules --*/
+body {
+  background-image: radial-gradient(ellipse at 50% -10%, rgba(196, 42, 60, 0.22), transparent 55%);
+  background-repeat: no-repeat;
+}
+main.content h1, main.content h2, main.content h3, .title {
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+h1.title { font-weight: 800; }
+main.content h2 {
+  font-weight: 800;
+  font-size: 1.6rem;
+  padding-bottom: 10px;
+  border-bottom: 1px solid $rule;
+  margin-top: 2.6rem;
+}
+main.content h2::before { content: "+"; color: $alert; margin-right: 0.5em; font-weight: 600; }
+.red { color: $alert; }
+.subtitle, .kicker {
+  color: $alert;
+  font-family: "Cinzel", "Trajan Pro", Georgia, serif;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.95rem;
+}
+.lede { font-size: 1.2rem; }
+
+// figures and captions
+.quarto-figure, figure, .video-figure {
+  background: $chart;
+  border: 1px solid $rule;
+  border-radius: 8px;
+  padding: 10px;
+}
+figure img, .quarto-figure img, .video-figure video { width: 100%; height: auto; border-radius: 4px; }
+figcaption, .figure-caption, .video-figure .caption { color: $muted !important; font-size: 0.92rem; padding-top: 8px; }
+
+// tiles
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 14px;
+  margin: 1rem 0;
+}
+.tile {
+  background: $surface;
+  border: 1px solid $rule;
+  border-radius: 8px;
+  padding: 14px 16px;
+  p { margin: 0; }
+  .v { display: block; font: 800 1.8rem/1.15 "Orbitron", sans-serif; font-variant-numeric: tabular-nums; margin-bottom: 6px; }
+  .l { display: block; color: $muted; font-size: 0.93rem; }
+  .l strong { color: $ink; }
+}
+.tile.good { border-left: 4px solid $gold; .v { color: $gold; } }
+.tile.bad { border-left: 4px solid $alert; .v { color: $alert; } }
+
+// TL;DR block
+.tldr {
+  background: $surface;
+  border: 1px solid $rule;
+  border-top: 3px solid $alert;
+  border-radius: 8px;
+  padding: 6px 22px 22px;
+  margin-top: 1.5rem;
+  h2 { margin-top: 1rem; }
+}
+.plan {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) 1.2fr;
+  gap: 22px;
+  align-items: start;
+  margin: 1rem 0;
+  img { width: 100%; border: 1px solid $rule; border-radius: 8px; background: $chart; padding: 6px; }
+  @media (max-width: 760px) { grid-template-columns: 1fr; }
+}
+.actions ol {
+  list-style: none;
+  counter-reset: a;
+  padding: 0;
+  margin: 0;
+  li { counter-increment: a; position: relative; padding: 2px 0 10px 46px; }
+  li::before {
+    content: counter(a);
+    position: absolute; left: 0; top: 2px;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: $bronze; color: $chart;
+    font: 800 1rem/32px "Orbitron", sans-serif; text-align: center;
+  }
+  li p { margin: 0; }
+  .note-line { color: $muted; font-size: 0.97rem; }
+}
+.confidence {
+  color: $muted;
+  font-size: 0.95rem;
+  border-left: 3px solid $steel;
+  padding-left: 12px;
+  margin-top: 1rem;
+}
+
+// numbered recommendations
+.recs ol {
+  list-style: none;
+  counter-reset: r;
+  padding: 0;
+  li {
+    counter-increment: r;
+    position: relative;
+    background: $surface;
+    border: 1px solid $rule;
+    border-radius: 8px;
+    padding: 14px 18px 14px 64px;
+    margin-bottom: 12px;
+  }
+  li::before {
+    content: counter(r);
+    position: absolute; left: 18px; top: 12px;
+    font: 800 1.6rem/1 "Orbitron", sans-serif; color: $gold;
+  }
+  li strong { display: block; }
+}
+
+table { font-variant-numeric: tabular-nums; }
+.table { --bs-table-bg: #{$surface}; --bs-table-color: #{$ink}; border-color: $rule; }
+.sidebar nav[role="doc-toc"] ul > li > a.active { color: $gold !important; border-left-color: $gold !important; }
+
+#TOC > ul.collapse { display: block; }
+#TOC .nav-link { color: $muted; }
+#TOC .nav-link.active { color: $gold; }
+#toc-title { font-family: "Orbitron", sans-serif; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: $ink; }
+
+// organizer pages
+p.lede { font-size: 1.25rem; }
+.plain-figure {
+  background: $chart;
+  border: 1px solid $rule;
+  border-radius: 8px;
+  padding: 14px;
+  margin: 1rem 0;
+  img, video, svg { width: 100%; height: auto; display: block; border-radius: 4px; }
+  figcaption { color: $muted; font-size: 0.95rem; padding-top: 10px; }
+}
+.diagram.narrow { display: none; }
+@media (max-width: 640px) {
+  .diagram.wide { display: none; }
+  .diagram.narrow { display: block; }
+}
+.plan ol.actions {
+  list-style: none;
+  counter-reset: a;
+  padding: 0;
+  margin: 0;
+  li { counter-increment: a; position: relative; padding: 2px 0 12px 46px; }
+  li::before {
+    content: counter(a);
+    position: absolute; left: 0; top: 2px;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: $bronze; color: $chart;
+    font: 800 1rem/32px "Orbitron", sans-serif; text-align: center;
+  }
+  strong { display: block; }
+  span { color: $muted; font-size: 0.97rem; }
+}
+.confs { display: grid; gap: 12px; margin: 1rem 0; }
+.conf {
+  background: $surface;
+  border: 1px solid $rule;
+  border-left: 4px solid $steel;
+  border-radius: 8px;
+  padding: 12px 16px;
+  strong { display: block; font-family: "Orbitron", sans-serif; letter-spacing: 0.05em; text-transform: uppercase; font-size: 0.9rem; }
+  span { color: $ink; }
+}
+.conf.firm { border-left-color: $gold; }
+.conf.check { border-left-color: $alert; }
+.needs {
+  background: $surface;
+  border: 1px solid $rule;
+  border-top: 3px solid $alert;
+  border-radius: 8px;
+  padding: 14px 20px;
+  ol { margin: 0.4rem 0 0; padding-left: 1.3rem; }
+  li { padding: 3px 0; }
+}
+.tablewrap { overflow-x: auto; margin: 1rem 0; }
+@media (max-width: 640px) {
+  .tablewrap table { font-size: 0.85rem; }
+  .tablewrap th, .tablewrap td { padding: 6px; }
+}

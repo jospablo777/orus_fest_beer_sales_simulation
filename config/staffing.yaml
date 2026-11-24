@@ -1,0 +1,36 @@
+# Staffing and capacity grid. Every combination of the grid values runs on `draws`
+# accepted calibration draws, on top of `setup`. The grid values replace the calibrated
+# ones (the calibrated draws still set demand, patience and service times).
+
+draws: 32
+
+setup:                         # pay at the serving station (card or cash, 15 s), main bar only
+  bar.mode: direct
+  bar.s_pay_direct_s: 15
+  sellers.start: "18:00"
+  sellers.end: "02:30"
+
+grid:
+  crowd.n_total: [1500, 2000, 2500]
+  bar.n_pour: [4, 6, 8, 10, 12]
+  sellers.n: [0, 3, 6, 9]
+
+# Extra combinations outside the grid, run for the capacity chart only.
+extra_cells:
+  - {crowd.n_total: 3000, bar.n_pour: 12, sellers.n: 9}
+
+# A night meets the service target when both hold:
+service_target:
+  window: {from: "18:00", to: "02:00"}   # lines formed at 18:00 in 2026
+  evening_p90_min: 10          # 9 of 10 people who join a line in the window wait at most 10 min
+  abandon_share: 0.05          # at most 5% of purchase attempts abandoned
+
+# A crew is recommended when it meets the target in at least this share of simulated nights.
+reliability: 0.9
+
+# Crowd safety reference for capacity planning (people per m² of free floor at the peak).
+safety:
+  # NFPA 101 (2018 ed., 12.1.7.1) caps assembly areas of up to 930 m² at one person per 0.46 m², and
+  # larger areas at one per 0.65 m². The free floor is below 930 m².
+  floor_density_limit: 2.2
+  floor_density_limit_large_area: 1.54
