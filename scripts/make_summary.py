@@ -114,9 +114,10 @@ def wait_figure(waits: pd.DataFrame, head: str, lang: str, narrow: bool = False)
     for scn, color, name in (("baseline", theme.RED, t["y2026"]), (head, theme.BRONZE, t["plan"])):
         w = waits[waits["scenario"] == scn].groupby("clock_min")["median"].quantile(
             [0.05, 0.5, 0.95]).unstack()
-        ax.fill_between(w.index, w[0.05], w[0.95], color=color, alpha=0.22, lw=0)
+        ax.fill_between(w.index, w[0.05], w[0.95], color=color, alpha=0.32, lw=0)
         lines += ax.plot(w.index, w[0.5], color=color, lw=3)
-    band = patches.Patch(color=theme.MUTED, alpha=0.35, lw=0)
+    # the swatch has the colour of the 2026 band, the one that is wide enough to see
+    band = patches.Patch(color=theme.RED, alpha=0.32, lw=0)
     title = t["wait_title_short"] if narrow else t["wait_title"]
     ax.set_title(title, loc="left", pad=52 if narrow else 34,
                  fontsize=size + 1 if narrow else 15)
