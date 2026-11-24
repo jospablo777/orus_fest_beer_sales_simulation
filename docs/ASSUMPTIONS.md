@@ -15,6 +15,7 @@ Every number the model uses, where it comes from, and where to change it. Source
 | Arrival of the observers | 15:30 | Observed | `calibration.yaml: observations.early_wait` |
 | Waiting at 15:00 to 16:00 | relatively quick, although it still took a while; median time in line at most 10 min | Observed; the 10 is assumed | `calibration.yaml: observations.early_wait` |
 | Waiting between 18:00 and 20:00 (God Module, Das Ich) | over 40 min in the beer exchange line alone, with tickets bought earlier in the afternoon. Matched when the median time until service in the exchange lines is 35 min or more for people who join them in that window. A person without tickets stood in the ticket line first | Observed; the 5 min of tolerance is assumed | `calibration.yaml: observations.long_wait` |
+| Longest wait between 18:00 and 20:00 | not measured. Matched when the median time until service in the exchange lines is 70 min or less; a night whose median is not reached by 21:20 fails | Assumed by the study author, not observed | `calibration.yaml: observations.long_wait.max_median_min` |
 | Lines between 18:00 and 20:00 | long lines at the ticket window and at the beer exchange; matched when each holds at least 20 people on average (10 in each of the two beer lines) | Observed; the 20 is assumed | `calibration.yaml: observations.both_lines` |
 | Giving up between 18:00 and 20:00 | "a lot of people gave up"; matched when at least 20% of the purchase attempts at the bar that start in that window are given up, either by not joining the line a person sees or by leaving a line before service. People still in line at 21:00 count as not having given up | Observed; the 20% is assumed | `calibration.yaml: observations.gave_up` |
 | After 20:00 | the observers stopped trying to buy; every later wait is a prediction of the model | Observed | `calibration.yaml: observations.headliner_window` |
@@ -48,7 +49,7 @@ Why 2,000 is read as unique attendees and the peak is lower:
 
 1. A published attendance figure for a festival counts tickets or entries over the whole day.
 2. The event ran from 13:00 to 03:00. People who came for the national acts in the afternoon left before the night, and many who came for the headliners arrived after 19:00. With no re-entry each person enters once, so the 2,000 is spread over the day.
-3. The free floor is about 710 m² and the vendor strips and tables hold about 350 people. With 2,000 inside at once the free floor would stay near 2.3 people/m² for hours, above the NFPA 101 limit for assembly areas of about 2.2 people/m².
+3. The free floor is about 660 m² and the vendor strips and tables hold about 350 people. With 2,000 inside at once the free floor would stay near 2.5 people/m² for hours, above the NFPA 101 limit for assembly areas of about 2.2 people/m².
 4. VICE México cites a capacity of 2,500 for the hall (<https://www.vice.com/es/article/el-lugar-mas-punk-de-la-cdmx-en-los-90-ex-balneario-olimpico-pantitlan/>). A peak below 2,000 sits under that figure with margin.
 
 The what-if scenarios `baseline_sold_out` and `plan_sold_out` rerun the night with 2,500 attendees, and the staffing grid covers 1,500 to 2,500.
@@ -112,9 +113,12 @@ DJ sets: 13:00 to 13:30, then between every pair of bands (15 to 35 min), and fr
 | Ticket window, time per beer buyer | mean 8 to 60 s, lognormal CV 0.45. The window also served buyers of other drinks, so this is an effective time | Calibrated | `calibration.yaml`, `base.yaml: bar.service_cv` |
 | Tickets per window visit | the tickets for the current round plus Poisson(mean − 1) spare ones, mean 1.0 to 8.0, at most 10 | Calibrated | `calibration.yaml: bar.bundle_mean` |
 | Serving a beer | mean 15 to 75 s for the first beer of a visit; each further beer takes 0.5 to 1.0 of that. All beer was bottled or canned: each one was opened and poured into a cup, and a large beer took two | Calibrated; the bottles and cans were observed | `calibration.yaml: bar.s_pour_mean_s`, `bar.extra_beer_factor` |
+| Serving options (comparison only) | unopened cans save 12 s per beer (8 and 20 s as low and high cases); draft beer saves 6 s per beer after keg changes; faster payment takes 6 s in place of 15; the saving is capped at three quarters of the serving time | Assumed, not measured | `config/serving.yaml`, `base.yaml: bar.pour_saving_s` |
 | Service clock | a service ends at its exact time and the next one starts then if its customer was waiting | Design choice | `sim/model.py: _serve` |
 | Payment at the serving station (scenarios) | 15 s card or cash (the plan), 6 s cashless wristband, 25 s in the slow-payment what-if | Assumed | `scenarios.yaml` |
-| Bar layout | counter along the north wall at y = 43.6 m. In the model frame x starts at the east wall: tables in the north-west corner in front of the counter (x 21.1 to 30.1 m), ticket window at x 19.6 m next to the tables, serving stations spread east of it to x 2.0 m; one line per server, lines run south into the floor | Assumed | `base.yaml: bar`, `sim/venue.py` |
+| Bar layout, 2026 | counter along the north wall at y = 43.6 m. From east to west: ticket line at x 7.1 m, cocktail line at x 12.4 m, beer exchange lines at x 15.7 and 18.9 m; the lines ran south toward the stage and the ones that reached the crew area ended at its back | Observed (study authors' sketch, positions read to about 1 m) | `base.yaml: bar.cashier_x`, `bar.exchange_x`, `venue.cocktail_line` |
+| People serving beer per exchange line | the people serving beer split between the two lines (3 and 2 when 5 serve) | Observed two lines; split assumed | `sim/venue.py: build_service_points` |
+| Bar layout, plan | one station per person serving, spread from x 5.6 m (past the east vendor strip) to x 20 m (1 m short of the tables), with a gap at the cocktail line, which stays where it was | Design choice | `base.yaml: bar.pour_x_min`, `pour_x_max` |
 | Satellite taps (scenarios) | on the inner edge of a vendor strip, pay at the tap; position and side set per scenario | Assumed | `base.yaml: bar.satellite_*`, `scenarios.yaml` |
 | Shift taps (scenarios) | extra taps that take customers only inside a time window | Assumed | `base.yaml: bar.extra_*` |
 
@@ -135,7 +139,9 @@ DJ sets: 13:00 to 13:30, then between every pair of bands (15 to 35 min), and fr
 |---|---|---|---|
 | Hall | 52.2 × 30.1 m, read from a satellite screenshot without a scale bar, with vehicles as size references (about ±10% per side). Zones follow the study author's annotated screenshot: stage at the south end, bar at the north end, tables in the north-west corner, a short vendor strip on the west side and a long one on the east side | Estimated | `base.yaml: venue`, `analysis/salon_olimpico_zoning.R` |
 | Plan views | stage at the top; the hall appears as on the map after a half turn (east on the left) | Design choice | `base.yaml: venue` |
-| Entrance | west wall next to the stage | Assumed | `base.yaml: venue.entrance` |
+| Entrance | entry and exit on the east wall next to the stage | Observed (study authors' sketch) | `base.yaml: venue.entrance` |
+| Lighting and drone crew area | about 6 × 5 m in the middle of the floor (x 12.3 to 18.3 m, y 22.2 to 27.2 m), with the lighting equipment, its engineers and the drone operators; nobody stands there | Observed (study authors' sketch); size read to about 1 m | `base.yaml: venue.booth` |
+| Cocktail line | a 1 m strip at x 12.4 m from the counter to the crew area, removed from the standing floor in every setup; cocktail buyers are outside the model | Observed position; width assumed | `base.yaml: venue.cocktail_line` |
 | Where followers stand | preference decays with distance from the stage edge over 5 m; vendor aisles and tables almost never chosen | Assumed | `base.yaml: venue.front_scale_m`, `sim/venue.py: front_weights` |
 | Where everyone else stands | preference rises toward the bar over 10 m, with vendor aisles and tables included | Assumed | `base.yaml: venue.back_scale_m`, `sim/venue.py: back_weights` |
 | Crowd shift at a set start or changeover | 85% of followers of the focus act who are not within 12 m of the stage move up; 60% of non-followers within 12 m step back; 10% of the rest pick a new spot | Assumed | `base.yaml: crowd.front_zone_m`, `fan_move_share`, `nonfan_leave_share`, `shuffle_share` |
@@ -146,9 +152,9 @@ DJ sets: 13:00 to 13:30, then between every pair of bands (15 to 35 min), and fr
 
 | Item | Value | Source | File |
 |---|---|---|---|
-| Grid | 1,500 to 2,500 tickets × 4 to 12 serving stations × 0 to 9 sellers, payment at the station (15 s); 3,000 tickets for the capacity chart | Design choice | `config/staffing.yaml` |
+| Grid | 1,500 to 2,500 tickets × 4 to 12 serving stations × 0 to 12 sellers, payment at the station (15 s), 64 nights per crew; 3,000 tickets for the capacity chart | Design choice | `config/staffing.yaml` |
 | Service target | 9 of 10 buyers who join a line between 18:00 and 02:00 wait at most 10 min; at most 5% of purchase attempts abandoned | Assumed | `config/staffing.yaml: service_target` |
-| Reliability | a crew is recommended when it meets the target in at least 90% of the simulated nights; among those, the one with the fewest staff hours | Assumed | `config/staffing.yaml: reliability`, `sim/staffing.py` |
+| Reliability | minimum crew: meets the target in at least 90% of the simulated nights; recommended crew: at least 95%; in each case the one with the fewest staff hours. Without a crew at 95% the recommended crew is the minimum crew | Assumed | `config/staffing.yaml: reliability`, `sim/staffing.py` |
 | Safety reference | 2.2 people/m² (NFPA 101 limit for assembly areas of up to 930 m², 0.46 m² per person), compared with the people standing on the free floor. NFPA 101 caps larger areas at 0.65 m² per person (1.54 people/m²); the free floor is about 710 m² and the whole audience area, with vendor strips and tables, about 1,050 m². The technical report gives the ticket level for both values. The licensed capacity of the hall is the legal limit | Literature | `config/staffing.yaml: safety` |
 
 ## Analysis
@@ -156,7 +162,7 @@ DJ sets: 13:00 to 13:30, then between every pair of bands (15 to 35 min), and fr
 | Item | Value | Source | File |
 |---|---|---|---|
 | Beer price used for revenue figures | MXN 80 | Assumed | `config/report.yaml` |
-| Nights used | 64 nights resampled by weight from the nights that match 2026; 48 of them for the scenarios and 32 for the staffing grid | Design choice (runtime) | `calibration.yaml: sampler`, `scripts/run_scenarios.py --max-draws`, `staffing.yaml: draws` |
+| Nights used | 64 nights resampled by weight from the nights that match 2026; 48 of them for the scenarios and all 64 for the staffing grid | Design choice (runtime) | `calibration.yaml: sampler`, `scripts/run_scenarios.py --max-draws`, `staffing.yaml: draws` |
 | Random seeds | calibration draw d uses seed 10000 + d; scenarios of draw d share seed 50000 + d; staffing grid 90000 + d | Design choice | `scripts/` |
 
 ## References

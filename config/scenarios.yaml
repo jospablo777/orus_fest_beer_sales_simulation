@@ -70,8 +70,8 @@ scenarios:
       bar.extra_from: "19:30"
       bar.extra_to: "01:30"
 
-  # The recommended setup: card or cash at the serving station, with the crew that meets the service
-  # target in the required share of simulated nights (config/staffing.yaml: reliability).
+  # The recommended setup: card or cash at the serving station, with the recommended crew
+  # (config/staffing.yaml: reliability_recommended, or the minimum crew when none reaches it).
   plan:
     label: "Plan (pay at the station, recommended crew)"
     overrides:
@@ -127,3 +127,23 @@ what_if:
     based_on: plan
     overrides:
       sellers.capacity: 12
+  plan_minimum:
+    label: "Plan with the minimum crew"
+    based_on: plan
+    overrides:
+      bar.n_pour: "= plan_min_taps"
+      sellers.n: "= plan_min_sellers"
+  plan_minimum_two_absent:
+    label: "Plan with the minimum crew, two bartenders absent"
+    based_on: plan_minimum
+    overrides:
+      bar.n_pour: "= plan_min_taps - 2"
+  no_sellers:
+    label: "No sellers: 12 stations + a second bar with 4"
+    based_on: plan
+    overrides:
+      bar.n_pour: 12
+      bar.satellite_bar: true
+      bar.satellite_n_pour: 4
+      bar.satellite_y: 29.0
+      sellers.n: 0

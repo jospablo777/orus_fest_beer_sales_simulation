@@ -56,7 +56,10 @@ observations:
   # (Kaplan-Meier: a person who gave up waited at least until leaving). A person without
   # tickets stood in the ticket line first, so the whole purchase took longer. After 20:00
   # the observers stopped trying to buy, and later waits are predictions of the model.
-  long_wait:    {from: "18:00", to: "20:00", min_median_min: 35.0}
+  # The longest wait was not measured. 70 min is the upper limit the study author set for
+  # this median, an assumption without an observation behind it; it has no tolerance. A
+  # night whose median is not reached by the end of the shortened run fails the limit.
+  long_wait:    {from: "18:00", to: "20:00", min_median_min: 35.0, max_median_min: 70.0}
   # "Big lines in both": in that window the ticket line and the beer exchange lines (added
   # up) each hold at least this many people on average. 20 means at least 10 people in each
   # of the two beer lines. The first calibration used 30 and kept 33 nights with an

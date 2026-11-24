@@ -2,7 +2,7 @@
 # accepted calibration draws, on top of `setup`. The grid values replace the calibrated
 # ones (the calibrated draws still set demand, patience and service times).
 
-draws: 32
+draws: 64
 
 setup:                         # pay at the serving station (card or cash, 15 s), main bar only
   bar.mode: direct
@@ -13,7 +13,7 @@ setup:                         # pay at the serving station (card or cash, 15 s)
 grid:
   crowd.n_total: [1500, 2000, 2500]
   bar.n_pour: [4, 6, 8, 10, 12]
-  sellers.n: [0, 3, 6, 9]
+  sellers.n: [0, 3, 6, 9, 12]
 
 # Extra combinations outside the grid, run for the capacity chart only.
 extra_cells:
@@ -25,8 +25,11 @@ service_target:
   evening_p90_min: 10          # 9 of 10 people who join a line in the window wait at most 10 min
   abandon_share: 0.05          # at most 5% of purchase attempts abandoned
 
-# A crew is recommended when it meets the target in at least this share of simulated nights.
-reliability: 0.9
+# Two crews per ticket level, each the one with the fewest staff hours among the crews that
+# meet the target in at least this share of simulated nights. The plan uses the recommended
+# crew; when no crew reaches its share, the plan falls back to the minimum crew.
+reliability: 0.9                  # minimum crew
+reliability_recommended: 0.95     # recommended crew
 
 # Crowd safety reference for capacity planning (people per m² of free floor at the peak).
 safety:

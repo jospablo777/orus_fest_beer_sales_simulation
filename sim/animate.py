@@ -16,6 +16,7 @@ from matplotlib.colors import LinearSegmentedColormap  # noqa: E402
 
 from .model import (QUEUED, SERVICE, S_OFF, TO_QUEUE, WAIT_SELLER)  # noqa: E402
 from .params import min_to_clock  # noqa: E402
+from .venue import Venue  # noqa: E402
 from . import theme  # noqa: E402
 from .i18n import labels as i18n_labels  # noqa: E402
 
@@ -30,6 +31,8 @@ C_SELLER = theme.DOT_SELLER
 C_BG = theme.FLOOR
 INK = theme.INK
 C_COUNTER = "#2a9fbf"
+C_BOOTH = theme.BLUE
+C_COCKTAIL = "#8a7a3a"
 
 DENSITY_CMAP = LinearSegmentedColormap.from_list("density", theme.DENSITY_STEPS)
 
@@ -52,14 +55,33 @@ def draw_venue(ax, cfg, points, labels=True, lang="en"):
                                                                         else 0),
                     names[key], ha="center", va="center", fontsize=8, color=col,
                     rotation=rot, alpha=0.9, fontweight="bold")
+    venue = Venue(cfg)
+    if v.get("booth"):
+        r = v["booth"]
+        ax.add_patch(patches.Rectangle((r["x0"], r["y0"]), r["x1"] - r["x0"], r["y1"] - r["y0"],
+                                       fc=C_BOOTH, alpha=0.35, ec=C_BOOTH, lw=0.8, zorder=2))
+        if labels:
+            ax.text((r["x0"] + r["x1"]) / 2, (r["y0"] + r["y1"]) / 2,
+                    textwrap.fill(L["booth"], 10), ha="center", va="center", fontsize=6.5,
+                    color=INK, zorder=2)
+    if v.get("cocktail_line"):
+        r = venue.cocktail_strip()
+        ax.add_patch(patches.Rectangle((r["x0"], r["y0"]), r["x1"] - r["x0"], r["y1"] - r["y0"],
+                                       fc=C_COCKTAIL, alpha=0.45, ec="none", zorder=2))
+        if labels:
+            ax.text((r["x0"] + r["x1"]) / 2, (r["y0"] + r["y1"]) / 2, L["cocktail_line"],
+                    ha="center", va="center", fontsize=6, color=INK, rotation=90, zorder=2)
     ax.plot([0, v["width_m"]], [v["counter_y"]] * 2, color=C_COUNTER, lw=2.2, alpha=0.9)
     for kind, x, y in points:
         style = {"cash": ("s", C_CASH), "pour": ("v", C_COUNTER), "direct": ("v", C_COUNTER)}
         m, c = style[kind]
         ax.plot(x, y + 0.2, marker=m, ms=6, color=c, mec=theme.PAPER, mew=0.6, zorder=5)
     e = v["entrance"]
-    ax.annotate(L["entrance"], (e["x"], e["y"]), (e["x"] - 1, e["y"] - 1.2), fontsize=7,
-                color=INK, ha="right")
+    left = e["x"] < v["width_m"] / 2
+    ax.plot([0 if left else v["width_m"]] * 2, [e["y"] - 1.0, e["y"] + 1.0], color=C_SELLER,
+            lw=3, solid_capstyle="butt", zorder=4)
+    ax.annotate(L["entrance"], (e["x"], e["y"]), (e["x"] + (1 if left else -1), e["y"] - 1.2),
+                fontsize=7, color=INK, ha="left" if left else "right")
     ax.set_xlim(-0.5, v["width_m"] + 0.5)
     ax.set_ylim(v["length_m"] + 0.5, -0.5)
     ax.set_aspect("equal")
@@ -96,10 +118,13 @@ def rolling_wait(txn, t_grid_clock, window_min=15):
     return out
 
 
-def side_by_side(runs, cfgs, titles, path, fps=20, dpi=120, lang="en", still_only=False):
+def side_by_side(runs, cfgs, titles, path, fps=20, dpi=120, lang="en", still_only=False,
+                 still_at=None):
     """runs: list of two result dicts with frames recorded over the same window.
-    Writes the video and a still image with the same name and the suffix .jpg. With
-    still_only the video is skipped, which is enough to check the layout."""
+    Writes the video and a still image with the same name and the suffix .jpg. The still is
+    the frame nearest the clock time still_at ("HH:MM"), or the frame with the longest 2026
+    lines when still_at is None. With still_only the video is skipped, which is enough to
+    check the layout."""
     L = i18n_labels(lang)
     fa, fb = runs[0]["frames"], runs[1]["frames"]
     n = min(len(fa), len(fb))
@@ -192,9 +217,12 @@ def side_by_side(runs, cfgs, titles, path, fps=20, dpi=120, lang="en", still_onl
         writer = animation.FFMpegWriter(fps=fps, codec="libx264", bitrate=4000,
                                         extra_args=["-preset", "veryfast", "-pix_fmt", "yuv420p"])
         anim.save(path, writer=writer, dpi=dpi)
-    # still image shown before the video plays: the frame with the longest 2026 lines
-    in_line = [int(np.isin(f["state"], [QUEUED, SERVICE]).sum()) for f in fa[:n]]
-    update(int(np.argmax(in_line)))
+    if still_at:
+        from .params import clock_to_min
+        update(int(np.argmin(np.abs(clocks - clock_to_min(still_at)))))
+    else:
+        in_line = [int(np.isin(f["state"], [QUEUED, SERVICE]).sum()) for f in fa[:n]]
+        update(int(np.argmax(in_line)))
     fig.savefig(Path(path).with_suffix(".jpg"), dpi=dpi, pil_kwargs={"quality": 85})
     plt.close(fig)
 
@@ -261,7 +289,7 @@ def render_clip(job) -> str:
     (out / "figures").mkdir(parents=True, exist_ok=True)
     side_by_side(runs, [cfg_a, cfg_b], titles,
                  out / "animations" / f"{clip_name}_2026_vs_{scenario}_{lang}.mp4",
-                 fps=clip["fps"], lang=lang, still_only=still)
+                 fps=clip["fps"], lang=lang, still_only=still, still_at=clip.get("still"))
     if clip_name == "night" and not still:
         density_views(runs, [cfg_a, cfg_b], titles,
                       out / "figures" / f"density_2026_vs_{scenario}_{lang}.png", lang=lang)

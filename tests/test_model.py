@@ -144,3 +144,71 @@ def test_worker_gives_the_same_night_in_a_spawned_process():
         there = workers.map(ex._task, [task])[0]
     pd.testing.assert_series_equal(pd.Series(here[0]), pd.Series(there[0]))
     pd.testing.assert_frame_equal(here[1], there[1])
+
+
+def test_shared_lines_serve_in_parallel_within_their_staff():
+    cfg = params.with_overrides(params.load(), {"crowd.n_total": 800, "bar.n_pour": 4})
+    sim = Simulation(cfg, seed=5)
+    sim.start()
+    pour = [p for p in sim.points if p.kind == "pour"]
+    assert [p.servers for p in pour] == [2, 2]
+    most = 0
+    for t in np.arange(4 * 3600.0, 9 * 3600.0, 300.0):
+        sim.advance(t)
+        for p in pour:
+            assert len(p.serving) <= p.servers
+            most = max(most, len(p.serving))
+    assert most == 2
+
+
+def test_nobody_stands_in_the_booth_or_the_cocktail_line():
+    from sim.venue import Venue, _inside
+    v = Venue(params.load())
+    x, y = v.cell_x[v.spot_cells], v.cell_y[v.spot_cells]
+    assert not _inside(x, y, v.cfg["booth"]).any()
+    assert not _inside(x, y, v.cocktail_strip()).any()
+
+
+def _passing_night(**change):
+    """Calibration statistics of a night that passes every test, with some values changed."""
+    m = {"early_median_min": 5.0, "obs_exchange_median_min": 50.0, "obs_exchange_reached": True,
+         "occupancy_at_peak_obs_share": 0.95, "queue_cash_obs": 40.0, "queue_pour_obs": 90.0,
+         "obs_left_share": 0.4}
+    m.update(change)
+    return pd.DataFrame([m])
+
+
+def test_exchange_wait_between_the_limits_passes():
+    from sim import experiments as ex
+    obs = ex.load_calibration()["observations"]
+    assert ex.distance(_passing_night(), obs).iloc[0] == 0
+
+
+def test_exchange_wait_above_the_upper_limit_fails():
+    from sim import experiments as ex
+    obs = ex.load_calibration()["observations"]
+    assert ex.distance(_passing_night(obs_exchange_median_min=80.0), obs).iloc[0] > 0
+
+
+def test_exchange_median_not_reached_fails():
+    from sim import experiments as ex
+    obs = ex.load_calibration()["observations"]
+    night = _passing_night(obs_exchange_median_min=50.0, obs_exchange_reached=False)
+    assert ex.distance(night, obs).iloc[0] > 0
+
+
+def test_km_median_flags_a_median_that_is_not_reached():
+    from sim.experiments import km_median_reached
+    assert km_median_reached([10, 20, 30, 40], [True, True, True, False]) == (20.0, True)
+    assert km_median_reached([10, 20, 30, 40], [True, False, False, False]) == (40.0, False)
+
+
+def test_pour_saving_takes_the_saving_off_each_beer():
+    cfg = params.with_overrides(params.load(), {"crowd.n_total": 50, "bar.mode": "direct"})
+    slow = Simulation(cfg, seed=1)
+    fast = Simulation(params.with_overrides(cfg, {"bar.pour_saving_s": 12}), seed=1)
+    slow.start()
+    fast.start()
+    t_slow = np.mean([slow._service_time("direct", 2) for _ in range(4000)])
+    t_fast = np.mean([fast._service_time("direct", 2) for _ in range(4000)])
+    assert abs((t_slow - t_fast) - 24.0) < 3.0

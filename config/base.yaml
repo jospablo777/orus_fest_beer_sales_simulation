@@ -20,29 +20,40 @@ venue:
   tables:         {x0: 21.1, x1: 30.1, y0: 34.2, y1: 43.2}   # west corner in front of the bar
   vendors_west:   {x0: 25.1, x1: 30.1, y0: 11.0, y1: 33.0}   # ends before the tables
   vendors_east:   {x0: 0.0,  x1: 5.0,  y0: 12.5, y1: 43.2}   # runs to the bar
-  entrance:       {x: 29.6, y: 10.5}       # assumed door on the west wall next to the stage
+  entrance:       {x: 0.5,  y: 10.5}       # observed: entry and exit on the east wall next to the stage
+  # Observed: lighting and drone crew area in the middle of the floor, about 6 x 5 m (size and
+  # position read from an attendee sketch). Nobody stands there and lines stop at its back.
+  booth:          {x0: 12.3, x1: 18.3, y0: 22.2, y1: 27.2}
+  # Observed: the cocktail and shot line, between the ticket line and the beer lines. Cocktails
+  # are outside the model; the strip the line occupies is taken from the floor in every setup.
+  cocktail_line:  {x: 12.4, half_width: 0.5, length_m: 22.0}
   counter_y: 43.6                          # y of the service line in front of the bar
   floor_cap_ppm2: 3.0                      # density above which people stop choosing a cell
   front_scale_m: 5.0                       # followers: preference decays over this distance from the stage
   back_scale_m: 10.0                       # others: preference decays over this distance from the bar
   side_cap_ppm2: 1.0                       # cap in vendor aisles and table area
 
-# Service points. Each point is one server with its own line.
-# Cashiers stand next to the tables (east end of the counter); serving stations fill the counter west of them.
-# The counter behind the tables (x > 21.1) has no service point. All lines run south into the floor.
+# Service points. All lines run from the counter toward the stage.
+# Ticket mode (2026, observed from east to west): the ticket window, the cocktail line, and two
+# beer exchange lines served by the people serving beer, split between the two lines.
+# Direct mode: one station per person serving, each with its own line, spread over the counter
+# from pour_x_min to pour_x_max with a gap at the cocktail line. The counter behind the tables
+# (x > 21.1) has no service point.
 bar:
   mode: ticket                  # ticket: cashier line then exchange line (observed)
                                 # direct: pay and pour at the same station
   n_cashiers: 1                 # observed: one ticket window, shared with cocktails and shots
-  cashier_x: [19.6, 18.1, 16.6, 15.1]   # first n_cashiers are used
+  cashier_x: [7.1, 8.6, 10.1, 5.6]      # first n_cashiers are used; observed position of the first
+  exchange_x: [15.7, 18.9]      # observed: two beer exchange lines
   n_pour: 5                     # people serving beer. Observed: 5 to 8 people serving in total,
                                 # two beer lines and one line for cocktails and shots
-  pour_x_min: 2.0               # ticket mode: serving stations stop 2 m short of the nearest cashier
-  pour_x_max: 17.6              # direct mode: serving stations span pour_x_min..cashier_x[0]
+  pour_x_min: 5.6               # direct mode: first station, past the east vendor strip
+  pour_x_max: 20.0              # direct mode: last station, 1 m short of the tables
   s_cash_mean_s: 45             # ticket window, seconds per beer buyer. Buyers of other drinks
                                 # used the same window, so this is an effective time.
   s_pour_mean_s: 25             # exchange and pour, seconds for the first beer of a visit
   extra_beer_factor: 0.8        # each further beer in the same visit, as a share of the first
+  pour_saving_s: 0.0            # seconds saved per beer by a serving option (config/serving.yaml)
   s_pay_direct_s: 18            # payment at the station in direct mode (card or cash)
   service_cv: 0.45              # coefficient of variation of service times (lognormal)
   bundle_mean: 2.0              # tickets per cashier visit beyond the current round, plus 1

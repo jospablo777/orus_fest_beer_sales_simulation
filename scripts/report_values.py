@@ -12,7 +12,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from sim import params  # noqa: E402
+from sim import params, staffing  # noqa: E402
 from sim.venue import Venue  # noqa: E402
 
 ROOT = params.ROOT
@@ -48,6 +48,50 @@ def hourly_sales(series: pd.DataFrame, scenario: str) -> pd.DataFrame:
     out["clock"] = [f"{h % 24:02d}:00" for h in out.index]
     out = out.reset_index()
     return out[out["hour"] < 27]            # the event closes at 03:00
+
+
+def crew_rows(plan: pd.DataFrame, levels) -> list[dict]:
+    """Minimum and recommended crew per ticket level, as dicts for the page tables. A level
+    without any crew gets one row with crew None."""
+    rows = []
+    for level in sorted(levels):
+        got = plan[plan["n_total"] == level]
+        if got.empty:
+            rows.append({"tickets": level, "crew": None, "level": None})
+            continue
+        for kind in ("minimum", "recommended"):
+            r = got[got["level"] == kind].iloc[0]
+            rows.append({
+                "tickets": level, "crew": kind, "level": kind, "taps": int(r["n_pour"]),
+                "sellers": int(r["sellers"]), "met": int(r["nights_met"]),
+                "nights": int(r["nights"]), "share_lo": float(r["share_lo"]),
+                "share_hi": float(r["share_hi"]), "wait_median": float(r["wait_median"]),
+                "wait_bad": float(r["wait_bad_night"]), "inside": float(r["inside_peak"]),
+                "density": float(r["floor_density"]), "staff_hours": float(r["staff_hours"]),
+                "fallback": bool(r["fallback"])})
+    return rows
+
+
+def reference_values(name: str, stf_cfg: dict, tickets: int) -> dict | None:
+    """2026 estimates and the recommended crew of a reference run in output/sensitivity."""
+    ref = ROOT / "output" / "sensitivity" / name / "runs"
+    if not ref.is_dir():
+        return None
+    m = pd.read_csv(ref / "scenario_metrics.csv")
+    base = m[m["scenario"] == "baseline"]
+    out = {}
+    for col in ("obs_exchange_median_min", "obs_buyer_median_min"):
+        out[col] = (float(base[col].median()), float(base[col].quantile(0.05)),
+                    float(base[col].quantile(0.95)))
+    summ = staffing.summarize(pd.read_csv(ref / "staffing_grid.csv"), stf_cfg["service_target"])
+    summ = summ[summ["n_total"].isin(stf_cfg["grid"]["crowd.n_total"])]
+    pt = staffing.plan_table(summ, stf_cfg["reliability"],
+                             stf_cfg.get("reliability_recommended", stf_cfg["reliability"]))
+    rec = pt[(pt["n_total"] == tickets) & (pt["level"] == "recommended")]
+    out["crew"] = (None if rec.empty else
+                   (int(rec["n_pour"].iloc[0]), int(rec["sellers"].iloc[0]),
+                    int(rec["nights_met"].iloc[0]), int(rec["nights"].iloc[0])))
+    return out
 
 
 def compute() -> dict:
@@ -88,9 +132,20 @@ def compute() -> dict:
         return cmp_[(cmp_["first"] == first) & (cmp_["second"] == second)
                     & (cmp_["outcome"] == outcome)].iloc[0]
 
-    crew = plan[plan["n_total"] == tickets].iloc[0]
+    at_level = plan[plan["n_total"] == tickets].set_index("level")
+    crew, low = at_level.loc["recommended"], at_level.loc["minimum"]
     raw = {"price": price, "tickets": tickets, "plan_taps": int(crew["n_pour"]),
            "plan_sellers": int(crew["sellers"]), "target_wait": target["evening_p90_min"],
+           "min_taps": int(low["n_pour"]), "min_sellers": int(low["sellers"]),
+           "fallback": bool(crew["fallback"]),
+           "rec_met": int(crew["nights_met"]), "rec_nights": int(crew["nights"]),
+           "rec_share_lo": float(crew["share_lo"]), "rec_share_hi": float(crew["share_hi"]),
+           "rec_wait_bad": float(crew["wait_bad_night"]),
+           "min_met": int(low["nights_met"]), "min_nights": int(low["nights"]),
+           "min_share_lo": float(low["share_lo"]), "min_share_hi": float(low["share_hi"]),
+           "min_wait_bad": float(low["wait_bad_night"]),
+           "inside_plan": float(crew["inside_peak"]),
+           "reliability_rec": stf_cfg.get("reliability_recommended", stf_cfg["reliability"]),
            "target_abandon": target["abandon_share"], "reliability": stf_cfg["reliability"],
            "density_limit": stf_cfg["safety"]["floor_density_limit"],
            "min_line": cal_cfg["observations"]["both_lines"]["min_people"]}
@@ -130,6 +185,20 @@ def compute() -> dict:
     for scn in wi.index:
         raw[f"wi_{scn}"] = float(wi.loc[scn, "p90"])
         raw[f"wi_{scn}_hi"] = float(wi.loc[scn, "p90_hi"])
+        raw[f"wi_{scn}_met"] = int(wi.loc[scn, "nights_met"])
+        raw[f"wi_{scn}_nights"] = int(wi.loc[scn, "nights"])
+        raw[f"wi_{scn}_met_lo"] = float(wi.loc[scn, "met_lo"])
+        raw[f"wi_{scn}_met_hi"] = float(wi.loc[scn, "met_hi"])
+    stf_sales = table("staff_sales.csv").iloc[0]
+    for k in ("staff_2026", "staff_2026_lo", "staff_2026_hi", "staff_plan", "hours_2026",
+              "hours_plan", "extra_hours", "beers_per_extra_hour", "med_lo", "med_hi", "p05",
+              "p95"):
+        raw[f"ss_{k}"] = float(stf_sales[k])
+    raw["base_exchange_reached_share"] = float(
+        met.loc[met["scenario"] == "baseline", "obs_exchange_reached"].astype(bool).mean())
+    raw["long_wait_max"] = cal_cfg["observations"]["long_wait"].get("max_median_min")
+    raw["long_wait_min"] = cal_cfg["observations"]["long_wait"]["min_median_min"]
+    raw["ref_no_limit"] = reference_values("no_upper_limit", stf_cfg, tickets)
 
     lim = raw["density_limit"]
 
@@ -153,21 +222,11 @@ def compute() -> dict:
     raw["floor_m2"] = int(Venue(params.load()).floor_cells.size)
 
     crews = rel[rel["n_total"] == tickets].sort_values(["staff_hours", "staff"])
-    staffing_rows = []
-    for level in sorted(stf_cfg["grid"]["crowd.n_total"]):
-        row = plan[plan["n_total"] == level]
-        if row.empty:
-            staffing_rows.append({"tickets": level, "crew": None})
-            continue
-        r = row.iloc[0]
-        staffing_rows.append({
-            "tickets": level, "taps": int(r["n_pour"]), "sellers": int(r["sellers"]),
-            "met": int(r["nights_met"]), "nights": int(r["nights"]),
-            "wait_median": float(r["wait_median"]), "wait_bad": float(r["wait_bad_night"]),
-            "inside": float(r["inside_peak"]), "density": float(r["floor_density"]),
-            "staff_hours": float(r["staff_hours"])})
+    staffing_rows = crew_rows(plan, stf_cfg["grid"]["crowd.n_total"])
 
+    serving_path = TAB / "serving_options.csv"
     v = {"raw": raw, "crews": crews, "staffing_rows": staffing_rows,
+         "serving": pd.read_csv(serving_path) if serving_path.exists() else None,
          "threshold_check": table("threshold_check.csv"),
          "hourly_plan": hourly_sales(series, head), "hourly_2026": hourly_sales(series, "baseline"),
          "comparisons": cmp_, "effects": eff, "what_if": wi.reset_index()}
@@ -201,7 +260,21 @@ def compute() -> dict:
         "plan_staff": n0(raw["plan_staff"]), "plan_taps": str(raw["plan_taps"]),
         "plan_sellers": str(raw["plan_sellers"]),
         "plan_met": f"{int(crew['nights_met'])} of {int(crew['nights'])}",
-        "plan_share_lo": pct(crew["share_lo"]),
+        "plan_share_lo": pct(crew["share_lo"]), "plan_share_hi": pct(crew["share_hi"]),
+        "min_taps": str(raw["min_taps"]), "min_sellers": str(raw["min_sellers"]),
+        "min_met": f"{raw['min_met']} of {raw['min_nights']}",
+        "min_share_lo": pct(raw["min_share_lo"]), "min_share_hi": pct(raw["min_share_hi"]),
+        "reliability_rec": pct(raw["reliability_rec"]),
+        "staff_2026": n0(raw["ss_staff_2026"]),
+        "staff_2026_range": f"{raw['ss_staff_2026_lo']:.0f} to {raw['ss_staff_2026_hi']:.0f}",
+        "staff_plan": n0(raw["ss_staff_plan"]), "extra_hours": n0(raw["ss_extra_hours"]),
+        "per_hour": n0(raw["ss_beers_per_extra_hour"]),
+        "per_hour_lo": n0(raw["ss_med_lo"]), "per_hour_hi": n0(raw["ss_med_hi"]),
+        "per_hour_p05": n0(raw["ss_p05"]), "per_hour_p95": n0(raw["ss_p95"]),
+        "per_hour_mxn": n0(round(raw["ss_beers_per_extra_hour"] * price, -1)),
+        "per_hour_mxn_lo": n0(round(raw["ss_med_lo"] * price, -1)),
+        "per_hour_mxn_hi": n0(round(raw["ss_med_hi"] * price, -1)),
+        "exchange_reached": pct(raw["base_exchange_reached_share"]),
         "d_wait": n1(-raw["d_wait_med"]), "d_wait_lo": n1(-raw["d_wait_med_hi"]),
         "d_wait_hi": n1(-raw["d_wait_med_lo"]),
         "d_beers": n0(raw["d_beers_med"]), "d_beers_lo": n0(raw["d_beers_med_lo"]),
@@ -231,8 +304,16 @@ def compute() -> dict:
                            else "above the grid"),
         "hall_side": pct(side),
         "lim_large": str(raw["density_limit_large"]),
-        "cap_tickets_large": (n0(round(raw["cap_tickets_large"], -2)) if raw["cap_tickets_large"]
-                              else "outside the simulated levels"),
+        "cap_tickets_large": (f"near {n0(round(raw['cap_tickets_large'], -2))} tickets"
+                              if raw["cap_tickets_large"] else
+                              f"below {n0(cap['n_total'].min())} tickets, the lowest level simulated"
+                              if raw["density_limit_large"] < cap["density"].min() else
+                              "above the highest level simulated"),
+        "wait_min": n0(raw["long_wait_min"]),
+        "wait_max": n0(raw["long_wait_max"]) if raw["long_wait_max"] else "no",
+        "crew_nights": str(raw["rec_nights"]),
+        "base_p90_lo": n0(raw["base_evening_p90_min_lo"]),
+        "base_p90_hi": n0(raw["base_evening_p90_min_hi"]),
         "density_at_plan": f"{raw['density_at_plan']:.2f}",
     }
     for first, second, tag in (("pay_at_tap", head, "plan_vs_tap"), (head, "full_setup", "full_vs_plan"),

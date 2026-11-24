@@ -9,6 +9,8 @@ toc: true
 import sys
 from pathlib import Path
 
+import pandas as pd
+
 ROOT = Path.cwd().resolve().parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -30,13 +32,13 @@ Two kinds of interval appear. An interval "of the median" is a 95% bootstrap int
 
 ## What was observed and what matches it
 
-The 2026 observations come from the attendees who ran this study. At 15:30 buying was relatively quick, although it still took a while. Between 18:00 and 20:00 (God Module and Das Ich) the beer exchange line alone took more than 40 minutes for a person who already held tickets, both the ticket line and the exchange lines were long, and a lot of people gave up. After 20:00 they stopped trying to buy, so every wait after that hour is a prediction of the model. The hall was near its fullest around 22:00. One window sold tickets for every drink, two lines exchanged beer and one exchanged cocktails and shots, and people bought several beers per visit for friends.
+The 2026 observations come from the attendees who ran this study. At 15:30 buying was relatively quick, although it still took a while. Between 18:00 and 20:00 (God Module and Das Ich) the beer exchange line alone took more than 40 minutes for a person who already held tickets, both the ticket line and the exchange lines were long, and a lot of people gave up. The longest wait was not measured. The calibration test on the exchange line is two-sided: the median wait of the people who joined it between 18:00 and 20:00 is at least `{python} v["wait_min"]` min (over 40 observed, 5 min of tolerance) and at most `{python} v["wait_max"]` min. The upper limit is an assumption of the study author, without an observation behind it. A night whose median is not reached by the end of the shortened run fails the upper limit. In the scenario runs of the 2026 setup the median was reached in `{python} v["exchange_reached"]` of the nights. After 20:00 they stopped trying to buy, so every wait after that hour is a prediction of the model. The hall was near its fullest around 22:00. One window sold tickets for every drink, two lines exchanged beer and one exchanged cocktails and shots, and people bought several beers per visit for friends.
 
 Waits are reported as the median time until service, estimated with the Kaplan-Meier method. A person who gave up waited at least until leaving the line, and counting that time as a completed wait would understate lines in which many people give up.
 
 The unknown inputs (how many people drink and how fast, patience, group size, people serving beer, time per ticket sale and per beer) were sampled with a sequential approximate Bayesian computation sampler. Of `{python} v["sims"]` simulated nights in `{python} v["stages"]` stages, `{python} v["matching"]` pass every test in the last stage (effective sample size `{python} v["ess"]`). A weighted resample of `{python} v["post_n"]` nights is used for everything below. In those nights `{python} v["pour_2026"]` people serve beer, the ticket window takes a median of `{python} v["window_s"]` s per buyer and the first beer of a visit `{python} v["serve_s"]` s.
 
-In the matching nights, between 18:00 and 20:00, the ticket line holds `{python} v["ticket_line"]` people and the beer exchange lines `{python} v["exchange_line"]`. A person who joins an exchange line waits `{python} v["base_exchange_wait"]` min (range across nights `{python} v["base_exchange_wait_lo"]` to `{python} v["base_exchange_wait_hi"]`), the ticket window takes `{python} v["base_ticket_wait"]` min, and a buyer without tickets needs `{python} v["base_buyer_wait"]` min for the whole purchase (`{python} v["base_buyer_wait_lo"]` to `{python} v["base_buyer_wait_hi"]`). The predicted wait in the exchange line at 21:30 to 22:30 is `{python} v["base_night_wait"]` min (`{python} v["base_night_wait_lo"]` to `{python} v["base_night_wait_hi"]`). The hall holds `{python} v["occ_med"]` people at its fullest (range across nights `{python} v["occ_lo"]` to `{python} v["occ_hi"]`), and the bar sells `{python} v["base_beers"]` beers (`{python} v["base_beers_lo"]` to `{python} v["base_beers_hi"]`). The width of that last range is the reason the number of beers sold in 2026 is the first record requested from the organizers.
+In the matching nights, between 18:00 and 20:00, the ticket line holds `{python} v["ticket_line"]` people and the beer exchange lines `{python} v["exchange_line"]`. A person who joins an exchange line waits `{python} v["base_exchange_wait"]` min (range across nights `{python} v["base_exchange_wait_lo"]` to `{python} v["base_exchange_wait_hi"]`), the ticket window takes `{python} v["base_ticket_wait"]` min, and a buyer without tickets needs `{python} v["base_buyer_wait"]` min for the whole purchase (`{python} v["base_buyer_wait_lo"]` to `{python} v["base_buyer_wait_hi"]`). Between `{python} v["svc_window"]` 9 of 10 buyers in the 2026 setup wait at most `{python} v["base_p90"]` min (`{python} v["base_p90_lo"]` to `{python} v["base_p90_hi"]`). The predicted wait in the exchange line at 21:30 to 22:30 is `{python} v["base_night_wait"]` min (`{python} v["base_night_wait_lo"]` to `{python} v["base_night_wait_hi"]`). The hall holds `{python} v["occ_med"]` people at its fullest (range across nights `{python} v["occ_lo"]` to `{python} v["occ_hi"]`), and the bar sells `{python} v["base_beers"]` beers (`{python} v["base_beers_lo"]` to `{python} v["base_beers_hi"]`). The width of that last range is the reason the number of beers sold in 2026 is the first record requested from the organizers.
 
 ![](assets/figures/01_calibration_posterior.png){fig-alt="Range tried and matching values for each unknown input"}
 
@@ -106,7 +108,7 @@ Payment at the station with the same head count as 2026 leaves a wait of `{pytho
 
 ## Staffing reliability
 
-A night meets the target when 9 of 10 buyers who join a line between `{python} v["svc_window"]` wait at most `{python} v["tgt_wait"]` min and at most `{python} v["tgt_ab"]` of purchase attempts are abandoned. A crew is recommended when it meets the target in at least `{python} v["reliability"]` of the nights, and among those the one with the fewest staff hours is chosen. For `{python} v["tickets"]` tickets that crew meets the target in `{python} v["plan_met"]` nights (exact 95% lower bound `{python} v["plan_share_lo"]`).
+A night meets the target when 9 of 10 buyers who join a line between `{python} v["svc_window"]` wait at most `{python} v["tgt_wait"]` min and at most `{python} v["tgt_ab"]` of purchase attempts are abandoned. Each crew runs on `{python} v["crew_nights"]` nights. Two crews are chosen per ticket level, each the one with the fewest staff hours among the crews that meet the target in a required share of the nights: the minimum crew (`{python} v["reliability"]`) and the recommended crew (`{python} v["reliability_rec"]`). The plan uses the recommended crew. For `{python} v["tickets"]` tickets the recommended crew (`{python} v["plan_taps"]` stations, `{python} v["plan_sellers"]` sellers) meets the target in `{python} v["plan_met"]` nights (exact 95% interval `{python} v["plan_share_lo"]` to `{python} v["plan_share_hi"]`), and the minimum crew (`{python} v["min_taps"]` stations, `{python} v["min_sellers"]` sellers) in `{python} v["min_met"]` (`{python} v["min_share_lo"]` to `{python} v["min_share_hi"]`).
 
 ![](assets/figures/12_staffing_reliability.png){fig-alt="Share of nights in which each crew meets the waiting target, by ticket level"}
 
@@ -114,20 +116,24 @@ A night meets the target when 9 of 10 buyers who join a line between `{python} v
 #| output: asis
 rows = []
 for row in v["staffing_rows"]:
-    if row.get("taps") is None:
-        rows.append((f"{row['tickets']:,}", "no crew in the grid reaches the reliability", "", "", "", ""))
+    if row["crew"] is None:
+        rows.append((f"{row['tickets']:,}", "no crew in the grid reaches the reliability", "", "", "", "", ""))
     else:
-        rows.append((f"{row['tickets']:,}", row["taps"], row["sellers"], f"{row['met']} of {row['nights']}",
+        level = row["level"] + (" (same as minimum)" if row["fallback"] else "")
+        rows.append((f"{row['tickets']:,}", level, row["taps"], row["sellers"],
+                     f"{row['met']} of {row['nights']} ({100 * row['share_lo']:.0f}% to {100 * row['share_hi']:.0f}%)",
                      f"{row['wait_median']:.1f} / {row['wait_bad']:.1f}", f"{row['staff_hours']:.0f}"))
-print(md_table(["Tickets", "Stations", "Sellers", "Nights that meet the target",
+print(md_table(["Tickets", "Crew", "Stations", "Sellers", "Nights that meet the target (exact 95% interval)",
                 "Wait of 1 in 10 buyers, median night / bad night (min)", "Staff hours"], rows))
 ```
 
 The bad night is the 90th percentile across nights.
 
+In 2026 about `{python} v["staff_2026"]` people handled beer, counting the ticket window (`{python} v["staff_2026_range"]` across nights). The plan uses `{python} v["staff_plan"]` and `{python} v["extra_hours"]` more staff hours. On the same night, each extra staff hour sells `{python} v["per_hour"]` more beers (95% interval of the median `{python} v["per_hour_lo"]` to `{python} v["per_hour_hi"]`; range across nights `{python} v["per_hour_p05"]` to `{python} v["per_hour_p95"]`), or MXN `{python} v["per_hour_mxn"]` in sales at the assumed price (`{python} v["per_hour_mxn_lo"]` to `{python} v["per_hour_mxn_hi"]`). Staff, card fees and equipment costs are not included.
+
 ## Capacity
 
-The free floor (audience area without vendor strips and tables) is `{python} v["floor_m2"]` m². At `{python} v["tickets"]` tickets the people standing on it at the fullest moment amount to `{python} v["density_at_plan"]` per m². NFPA 101 caps assembly areas of up to 930 m² at `{python} v["lim"]` people/m², and the free floor reaches that value near `{python} v["cap_tickets"]` tickets. For larger areas the cap is `{python} v["lim_large"]` people/m², which the free floor reaches near `{python} v["cap_tickets_large"]` tickets. The free floor is below 930 m² and the whole audience area, with vendor strips and tables, is above it. The hall size comes from a satellite image without a scale bar, with an uncertainty near `{python} v["hall_side"]` per side. A hall that much smaller or larger reaches the first value at `{python} v["cap_tickets_lo"]` or `{python} v["cap_tickets_hi"]` tickets. That range comes from rescaling the floor area, without new simulations. The licensed capacity is the legal limit.
+The free floor (audience area without vendor strips and tables) is `{python} v["floor_m2"]` m². At `{python} v["tickets"]` tickets the people standing on it at the fullest moment amount to `{python} v["density_at_plan"]` per m². NFPA 101 caps assembly areas of up to 930 m² at `{python} v["lim"]` people/m², and the free floor reaches that value near `{python} v["cap_tickets"]` tickets. For larger areas the cap is `{python} v["lim_large"]` people/m², which the free floor reaches `{python} v["cap_tickets_large"]`. The free floor is below 930 m² and the whole audience area, with vendor strips and tables, is above it. The hall size comes from a satellite image without a scale bar, with an uncertainty near `{python} v["hall_side"]` per side. A hall that much smaller or larger reaches the first value at `{python} v["cap_tickets_lo"]` or `{python} v["cap_tickets_hi"]` tickets. That range comes from rescaling the floor area, without new simulations. The licensed capacity is the legal limit.
 
 ![](assets/figures/13_capacity.png){fig-alt="People per m² of free floor at the fullest moment against tickets sold"}
 
@@ -137,9 +143,11 @@ The free floor (audience area without vendor strips and tables) is `{python} v["
 #| output: asis
 wi = v["what_if"]
 rows = [(x.label, f"{x.p90:.1f}", f"{x.p90_lo:.1f} to {x.p90_hi:.1f}", f"{x.beers:,.0f}",
-         f"{100 * x.abandon:.1f}%") for x in wi.itertuples()]
+         f"{100 * x.abandon:.1f}%",
+         f"{x.nights_met} of {x.nights} ({100 * x.met_lo:.0f}% to {100 * x.met_hi:.0f}%)")
+        for x in wi.itertuples()]
 print(md_table(["Condition", "Wait of 1 in 10 buyers (min)", "Range across nights", "Beers sold",
-                "Attempts abandoned"], rows))
+                "Attempts abandoned", "Nights that meet the target (exact 95% interval)"], rows))
 ```
 
 ![](assets/figures/08_what_if.png){fig-alt="Wait of 1 in 10 buyers under what-if conditions"}
@@ -147,6 +155,31 @@ print(md_table(["Condition", "Wait of 1 in 10 buyers (min)", "Range across night
 With sellers who start at 19:00 the wait of 1 in 10 buyers is `{python} v["wi_plan_late_sellers"]` min on the median night and `{python} v["wi_plan_late_sellers_hi"]` min in the worst 5% of nights, against `{python} v["plan_p90"]` and `{python} v["plan_p90_hi"]` min for the plan. Demand rises at 18:00, the hour in which the 2026 lines formed, and in that variant the bar serves it alone for one hour.
 
 ![](assets/figures/06_heterogeneous_effects.png){fig-alt="Regression of the extra beers under the plan on the unknown inputs"}
+
+## Serving options
+
+In 2026 every beer was opened and poured into a cup, and the calibrated serving time per beer includes that work. Each option below removes an assumed number of seconds per beer or per payment (`config/serving.yaml`; none of them was measured). Each option runs the whole crew grid at `{python} v["tickets"]` tickets on the `{python} v["crew_nights"]` staffing nights with the staffing seeds, so the options differ only in the serving time (`scripts/run_serving.py`). The saving per beer is capped at three quarters of the serving time. Sellers keep their own sale time in every option.
+
+```{python}
+#| output: asis
+sv = v["serving"]
+if sv is not None:
+    def crew(x, level):
+        if pd.isna(getattr(x, f"{level}_taps")):
+            return "none in the grid"
+        return (f"{int(getattr(x, f'{level}_taps'))} + {int(getattr(x, f'{level}_sellers'))}: "
+                f"{int(getattr(x, f'{level}_met'))} of {int(x.nights)} "
+                f"({100 * getattr(x, f'{level}_share_lo'):.0f}% to {100 * getattr(x, f'{level}_share_hi'):.0f}%), "
+                f"{getattr(x, f'{level}_staff_hours'):.0f} h")
+    rows = [(x.label, x.assumption, crew(x, "minimum"), crew(x, "recommended"),
+             f"{int(x.plan_crew_met)} of {int(x.nights)}; {x.plan_crew_wait:.1f} / {x.plan_crew_wait_bad:.1f}"
+             if not pd.isna(x.plan_crew_wait) else "")
+            for x in sv.itertuples()]
+    print(md_table(["Option", "Assumption", "Minimum crew (stations + sellers): nights met (exact 95% interval), staff hours",
+                    "Recommended crew, same", "Plan crew: nights met; wait of 1 in 10 buyers, median / bad night (min)"], rows))
+```
+
+The plan on the other pages uses the 2026 practice (opening and pouring). The savings come from our judgement of the time it takes to open a bottle and pour it into a cup; timing a few sales at the next edition would replace them.
 
 ## Time-series models
 
@@ -158,69 +191,74 @@ A regression of beers sold per 5 minutes on people inside and a changeover indic
 
 With faster service the share of attendees who drink 6 beers or more rises from `{python} v["heavy_base"]` to `{python} v["heavy_plan"]` (range across nights `{python} v["heavy_plan_lo"]` to `{python} v["heavy_plan_hi"]`). Abbott and Abbott (2000) recommend purchase limits and refusing service to intoxicated patrons, and alcohol was the most common arrest reason in the stadium survey of Ammon and Fried (1999).
 
-## Sensitivity to the calibration ranges
+## Sensitivity to the calibration settings
+
+The current calibration is compared with two earlier runs on the same hall layout. Each comparison gives the median night and, in brackets, the range across nights (5% to 95%). The runs simulate different nights, so outcomes are compared with a Mann-Whitney U test and shares of nights with Fisher's exact test. The crew table lists every minimum and recommended crew of either run with the nights in which it meets the service target under each calibration. The staffing grid of every run was run with the current settings (`{python} v["crew_nights"]` nights per crew, 0 to 12 sellers). The plan rows of an earlier run use the crew that run recommended under the rule of its time (90% of 32 nights, at most 9 sellers).
 
 ```{python}
 #| include: false
 import pandas as pd
 
-sens_path =ROOT / "output" / "tables" / "sensitivity_ranges.csv"
-stf_path = ROOT / "output" / "tables" / "sensitivity_staffing.csv"
-has_sens = sens_path.exists() and stf_path.exists()
-```
+TAB = ROOT / "output" / "tables"
+REFERENCES = {
+    "no_upper_limit": ("Without the upper limit on the exchange-line wait",
+                       "The same ranges and tests without the upper limit of "
+                       f"{v['wait_max']} min on the median wait in the exchange line.",
+                       "No upper limit"),
+    "narrow_ranges": ("Narrower ranges",
+                      "Patience 25 to 110 min, drinking pace before 18:00 from 0.3 to 1.0 of the "
+                      "evening pace and 1 to 5 tickets per visit, without the upper limit and "
+                      "without the test on purchase attempts given up. Its matching nights "
+                      "gathered near the upper limit of patience and the lower limit of the "
+                      "afternoon pace, which led to the wider ranges.",
+                      "Narrow ranges"),
+}
 
-A first calibration used narrower ranges: patience 25 to 110 min, drinking pace before 18:00 from 0.3 to 1.0 of the evening pace, and 1 to 5 tickets per visit to the ticket window. Its matching nights gathered near the upper limit of patience and the lower limit of the afternoon pace, so part of the result came from where those limits were set. The current calibration widens the three ranges (25 to 180 min, 0.1 to 1.0, 1 to 8) and adds the test on purchase attempts given up between 18:00 and 20:00. The table compares the two runs. The values are the median night and, in brackets, the range across nights (5% to 95%). The two runs simulate different nights, so the p-value is from a Mann-Whitney U test.
+
+def p_text(p):
+    return "" if pd.isna(p) else ("< 0.001" if p < 0.001 else f"{p:.3f}")
+
+
+def cell(x, k):
+    if "share of purchase" in x["quantity"]:
+        fmt = "{:.0%}"
+    elif abs(x[f"{k}_med"]) >= 100:
+        fmt = "{:,.0f}"
+    else:
+        fmt = "{:.2f}" if abs(x[f"{k}_med"]) < 1 else "{:.1f}"
+    return f"{fmt.format(x[f'{k}_med'])} ({fmt.format(x[f'{k}_lo'])} to {fmt.format(x[f'{k}_hi'])})"
+```
 
 ```{python}
 #| output: asis
-if has_sens:
-    sens = pd.read_csv(sens_path)
-
-    def cell(x, k):
-        if "share of purchase" in x["quantity"]:
-            fmt = "{:.0%}"
-        elif abs(x[f"{k}_med"]) >= 100:
-            fmt = "{:,.0f}"
-        else:
-            fmt = "{:.2f}" if abs(x[f"{k}_med"]) < 1 else "{:.1f}"
-        return f"{fmt.format(x[f'{k}_med'])} ({fmt.format(x[f'{k}_lo'])} to {fmt.format(x[f'{k}_hi'])})"
-
-    def p_text(p):
-        return "" if pd.isna(p) else ("< 0.001" if p < 0.001 else f"{p:.3f}")
-
+for name, (title, about, short) in REFERENCES.items():
+    rng_path, stf_path = TAB / f"sensitivity_{name}_ranges.csv", TAB / f"sensitivity_{name}_staffing.csv"
+    if not (rng_path.exists() and stf_path.exists()):
+        continue
+    print(f"\n### {title}\n\n{about}\n")
+    sens = pd.read_csv(rng_path)
     rows = [(x.quantity, cell(x._asdict(), "reference"), cell(x._asdict(), "current"),
              p_text(x.p_mann_whitney)) for x in sens.itertuples()]
-    print(md_table(["Quantity", "Narrow ranges", "Wide ranges", "p"], rows))
-```
-
-```{python}
-#| output: asis
-if has_sens:
+    print(md_table(["Quantity", short, "Current", "p"], rows))
+    print()
     stf = pd.read_csv(stf_path)
     rows = [(f"{x.n_total:,}", x.n_pour, x.sellers,
-             f"{x.reference_met} of {x.reference_nights}" + (" (recommended)" if x.reference_recommended else ""),
-             f"{x.current_met} of {x.current_nights}" + (" (recommended)" if x.current_recommended else ""),
+             f"{x.reference_met} of {x.reference_nights}" + (" (chosen)" if x.reference_chosen else ""),
+             f"{x.current_met} of {x.current_nights}" + (" (chosen)" if x.current_chosen else ""),
              p_text(x.p_fisher)) for x in stf.itertuples()]
-    print(md_table(["Tickets", "Stations", "Sellers", "Nights that meet the target, narrow ranges",
-                    "Same, wide ranges", "p (Fisher)"], rows))
-```
-
-The second table lists every crew recommended in either run with the nights in which it meets the service target under each calibration. Fisher's exact test compares the two shares.
-
-```{python}
-#| output: asis
-if has_sens:
+    print(md_table(["Tickets", "Stations", "Sellers", f"Nights that meet the target, {short.lower()}",
+                    "Same, current", "p (Fisher)"], rows))
     need = r["reliability"]
-    lvl = stf[stf["n_total"] == r["tickets"]]
+    lvl = stf[(stf["n_total"] == r["tickets"]) & (stf["reference_nights"] > 0)]
     both = lvl[(lvl["reference_met"] >= need * lvl["reference_nights"])
                & (lvl["current_met"] >= need * lvl["current_nights"])]
     if len(both):
         names = " and ".join(f"{x.n_pour} stations with {x.sellers} sellers" for x in both.itertuples())
-        print(f"For {r['tickets']:,} tickets, {names} meet the target in at least "
-              f"{need:.0%} of the nights under both calibrations.")
+        print(f"\nFor {r['tickets']:,} tickets, {names} meet the target in at least "
+              f"{need:.0%} of the nights under both calibrations.\n")
     else:
-        print(f"For {r['tickets']:,} tickets, no crew in the table meets the target in at least "
-              f"{need:.0%} of the nights under both calibrations.")
+        print(f"\nFor {r['tickets']:,} tickets, no crew in the table meets the target in at least "
+              f"{need:.0%} of the nights under both calibrations.\n")
 ```
 
 ## Limits of the study

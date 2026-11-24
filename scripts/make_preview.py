@@ -83,6 +83,7 @@ def main():
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
 <meta name="description" content="{plain(front_matter(PAGES["es"])["subtitle"])}">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="{FONTS}">
 <style>
 {(SITE / "_preview.css").read_text(encoding="utf-8")}</style>
@@ -104,6 +105,7 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "index.html").write_text(page, encoding="utf-8")
     copy_assets(body)
+    shutil.copy2(SITE / "favicon.svg", OUT / "favicon.svg")
     print("preview written to", OUT)
 
 

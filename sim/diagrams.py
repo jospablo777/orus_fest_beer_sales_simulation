@@ -24,15 +24,16 @@ TEXT = {
         "want": ["Wants", "a beer"], "back": ["Back to", "the show"],
         "window": ["Ticket window"], "window_sub": ["one window", "for every drink"],
         "exchange": ["Exchange", "at the bar"], "exchange_sub": ["2 beer lines,", "1 for cocktails"],
-        "line1": "Line 1", "line2": "Line 2", "people": "{n} people",
+        "line1": "Line 1", "line2": "Line 2", "people": "about {n} people",
         "station": ["Any serving station", "takes card or cash", "and hands over the beer"],
         "stations": "{n} stations open", "sellers": "and {n} sellers walk the floor",
         "one_line": "One short line",
-        "old_exchange": "{wait} min in the exchange line, with the tickets already bought",
-        "old_total": "{wait} min in total for a person who also stood in the ticket line",
+        "old_seen": "Over 40 min in the exchange line with the tickets already bought. This is what we saw.",
+        "old_exchange": "{wait} min estimated in the exchange line ({lo} to {hi} across nights)",
+        "old_total": "{wait} min estimated in total for a person who also stood in the ticket line ({lo} to {hi})",
         "new_time": "{wait} min in line (people who joined between {a} and {b})",
-        "old_note": ("Times of the people who joined a line between {a} and {b}. "
-                     "{gave_up} of every 10 purchase attempts were abandoned."),
+        "old_note": ("Estimates for the people who joined a line between {a} and {b}. "
+                     "An estimated {gave_up} of every 10 purchase attempts were abandoned."),
         "new_note": "9 of 10 buyers wait {p90} min or less between {a} and {b}",
         "cocktails": "cocktails and shots (outside this study)",
         "old_aria": "In 2026 a buyer stood in the ticket line and then in an exchange line.",
@@ -44,15 +45,16 @@ TEXT = {
         "want": ["Quiere una", "cerveza"], "back": ["Vuelve", "al show"],
         "window": ["Caja de fichas"], "window_sub": ["una sola ventanilla", "para todas las bebidas"],
         "exchange": ["Canje", "en la barra"], "exchange_sub": ["2 filas de cerveza,", "1 de cocteles"],
-        "line1": "Fila 1", "line2": "Fila 2", "people": "{n} personas",
+        "line1": "Fila 1", "line2": "Fila 2", "people": "unas {n} personas",
         "station": ["Cualquier puesto de la barra", "cobra con tarjeta o efectivo", "y entrega la cerveza"],
         "stations": "{n} puestos abiertos", "sellers": "y {n} vendedores recorren la pista",
         "one_line": "Una fila corta",
-        "old_exchange": "{wait} min en la fila de canje, con las fichas ya compradas",
-        "old_total": "{wait} min en total para quien además hacía la fila de la caja",
+        "old_seen": "Más de 40 min en la fila de canje con las fichas ya compradas, que es lo que vimos.",
+        "old_exchange": "{wait} min estimados en la fila de canje (entre {lo} y {hi} según la noche)",
+        "old_total": "{wait} min estimados en total para quien además hacía la fila de la caja (entre {lo} y {hi})",
         "new_time": "{wait} min en la fila (quienes se formaron entre las {a} y las {b})",
-        "old_note": ("Tiempos de quienes se formaron entre las {a} y las {b}. "
-                     "{gave_up} de cada 10 intentos de compra se abandonaron."),
+        "old_note": ("Estimaciones para quienes se formaron entre las {a} y las {b}. "
+                     "Se estima que se abandonaron {gave_up} de cada 10 intentos de compra."),
         "new_note": "9 de cada 10 compradores esperan {p90} min o menos entre las {a} y las {b}",
         "cocktails": "cocteles y shots (fuera de este estudio)",
         "old_aria": "En 2026 la persona hacía la fila de fichas y luego una fila de canje.",
@@ -128,7 +130,7 @@ def _footer(parts, y, bars, note):
 
 
 def _old_narrow(t, exchange_min, total_min, ticket_line, exchange_line, gave_up_of_10,
-                scale_min, observed):
+                scale_min, observed, exchange_rng, total_rng):
     left, width, mid = 16, NARROW_W - 32, NARROW_W / 2
     title = textwrap.wrap(t["old_title"], 30)
     parts = [_text(left, 28, title, size=20, weight=700, anchor="start")]
@@ -153,11 +155,16 @@ def _old_narrow(t, exchange_min, total_min, ticket_line, exchange_line, gave_up_
     parts.append(_arrow_down(mid, y + 6, y + 26))
     y += 32
     parts.append(_box(left, y, width, 54, _one(t["back"])))
-    y += 54 + 24
+    y += 54 + 30
+    seen = textwrap.wrap(t["old_seen"], 34)
+    parts.append(_text(left, y, seen, size=17, weight=700, anchor="start", fill=theme.DOT_TICKET))
+    y += 21 * (len(seen) - 1) + 22
     bars = [(min(exchange_min / scale_min, 1.0), theme.RED, 1.0,
-             t["old_exchange"].format(wait=round(exchange_min))),
+             t["old_exchange"].format(wait=round(exchange_min), lo=round(exchange_rng[0]),
+                                      hi=round(exchange_rng[1]))),
             (min(total_min / scale_min, 1.0), theme.RED, 0.55,
-             t["old_total"].format(wait=round(total_min)))]
+             t["old_total"].format(wait=round(total_min), lo=round(total_rng[0]),
+                                   hi=round(total_rng[1])))]
     height = _footer(parts, y, bars, t["old_note"].format(
         gave_up=f"{gave_up_of_10:.0f}", a=observed[0], b=observed[1]))
     return _svg(height, t["old_aria"], "".join(parts), NARROW_W)
@@ -206,14 +213,18 @@ def _new_narrow(t, wait_min, p90_min, stations, sellers, scale_min, observed, se
 
 def old_process(lang: str, exchange_min: float, total_min: float, ticket_line: float,
                 exchange_line: float, gave_up_of_10: float, scale_min: float,
-                observed: tuple[str, str], narrow: bool = False) -> str:
-    """The 2026 purchase: ticket window, then exchange at the bar. exchange_min is the wait
-    in the exchange line and total_min the wait of a person who starts without tickets,
-    both for people who joined a line in the clock window `observed`."""
+                observed: tuple[str, str], narrow: bool = False,
+                exchange_rng: tuple[float, float] = (0, 0),
+                total_rng: tuple[float, float] = (0, 0)) -> str:
+    """The 2026 purchase: ticket window, then exchange at the bar. The first line under the
+    drawing is what the attendees saw. exchange_min is the estimated wait in the exchange
+    line and total_min the estimated wait of a person who starts without tickets, both for
+    people who joined a line in the clock window `observed`; the *_rng pairs are their
+    ranges across nights."""
     t = TEXT[lang]
     if narrow:
         return _old_narrow(t, exchange_min, total_min, ticket_line, exchange_line,
-                           gave_up_of_10, scale_min, observed)
+                           gave_up_of_10, scale_min, observed, exchange_rng, total_rng)
     top, h = 70, 112
     mid = top + h / 2
     parts = [_text(20, 34, [t["old_title"]], size=22, weight=700, anchor="start")]
@@ -231,12 +242,16 @@ def old_process(lang: str, exchange_min: float, total_min: float, ticket_line: f
     parts.append(_arrow(806, 826, mid))
     parts.append(_box(830, top, 110, h, t["back"]))
     parts.append(_text(504, top + h + 22, [t["cocktails"]], size=13.5, anchor="start", opacity=0.7))
-    bar_y = top + h + 44
-    for minutes, opacity, key in ((exchange_min, 1.0, "old_exchange"), (total_min, 0.55, "old_total")):
+    parts.append(_text(20, top + h + 62, [t["old_seen"]], size=18, weight=700, anchor="start",
+                       fill=theme.DOT_TICKET))
+    bar_y = top + h + 84
+    for minutes, rng, opacity, key in ((exchange_min, exchange_rng, 1.0, "old_exchange"),
+                                       (total_min, total_rng, 0.55, "old_total")):
         width = (W - 40) * min(minutes / scale_min, 1.0)
         parts.append(f'<rect x="20" y="{bar_y}" width="{width:.0f}" height="22" rx="4" '
                      f'fill="{theme.RED}" fill-opacity="{opacity}"/>')
-        parts.append(_text(20, bar_y + 46, [t[key].format(wait=round(minutes))], size=17,
+        parts.append(_text(20, bar_y + 46, [t[key].format(wait=round(minutes), lo=round(rng[0]),
+                                                          hi=round(rng[1]))], size=17,
                            weight=700, anchor="start"))
         bar_y += 66
     parts.append(_text(20, bar_y + 6, [t["old_note"].format(gave_up=f"{gave_up_of_10:.0f}",

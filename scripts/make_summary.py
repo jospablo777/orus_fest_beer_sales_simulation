@@ -43,7 +43,9 @@ TEXT = {
         "crews_title": "Crew options for {tickets} tickets, from fewer to more staff hours",
         "crews_x": "share of simulated nights in which 9 of 10 buyers wait {wait} min or less",
         "crew": "{taps} stations", "crew_s": "{taps} stations + {sellers} sellers",
-        "nights": "{k} of {n} nights", "chosen": "recommended", "needed": "minimum {r}",
+        "nights": "{k} of {n} nights", "chosen": "recommended", "minimum": "minimum",
+        "needed": "{r} of nights",
+        "seen": "fitted to what we saw", "estimate": "estimate",
     },
     "es": {
         "wait_title": "Tiempo en fila según la hora en que la persona se formó",
@@ -53,7 +55,9 @@ TEXT = {
         "crews_title": "Opciones de personal para {tickets} boletos, de menos a más horas de trabajo",
         "crews_x": "porcentaje de noches simuladas en que 9 de cada 10 esperan {wait} min o menos",
         "crew": "{taps} puestos", "crew_s": "{taps} puestos + {sellers} vendedores",
-        "nights": "{k} de {n} noches", "chosen": "recomendado", "needed": "mínimo {r}",
+        "nights": "{k} de {n} noches", "chosen": "recomendado", "minimum": "mínimo",
+        "needed": "{r} de las noches",
+        "seen": "ajustado a lo que vimos", "estimate": "estimación",
     },
 }
 
@@ -77,6 +81,14 @@ def wait_figure(waits: pd.DataFrame, head: str, lang: str):
     ax.grid(axis="y", lw=0.8)
     clock_ticks(ax, 13 * 60, 26 * 60)
     ax.set_ylim(bottom=0)
+    # The attendees stopped buying at 20:00; the 2026 curve after that hour is an estimate.
+    seen_end = 20 * 60
+    top = ax.get_ylim()[1]
+    ax.axvline(seen_end, color=theme.INK, lw=1.2, ls=(0, (4, 3)), alpha=0.8)
+    ax.text(seen_end - 8, top * 0.97, t["seen"], ha="right", va="top", fontsize=11.5,
+            color=theme.MUTED)
+    ax.text(seen_end + 8, top * 0.97, t["estimate"], ha="left", va="top", fontsize=11.5,
+            color=theme.MUTED)
     ax.legend(frameon=False, loc="upper left", ncol=2)
     fig.savefig(FIG / f"summary_wait_{lang}.png", dpi=160, bbox_inches="tight")
     plt.close(fig)
@@ -107,8 +119,9 @@ def crews_figure(v: dict, lang: str):
     t, raw = TEXT[lang], v["raw"]
     crews = v["crews"]
     chosen = (crews["n_pour"] == raw["plan_taps"]) & (crews["sellers"] == raw["plan_sellers"])
-    # the recommended crew, every crew with fewer staff hours, and the smallest crew
-    # without sellers that reaches the reliability; the technical page shows the full grid
+    # the recommended crew, every crew with fewer staff hours (the minimum crew among them),
+    # and the smallest crew without sellers that reaches the minimum reliability; the
+    # technical page shows the full grid
     limit = crews.loc[chosen, "staff_hours"].iloc[0]
     alone = crews[(crews["sellers"] == 0) & (crews["share_met"] >= raw["reliability"])]
     keep = crews["staff_hours"] <= limit
@@ -117,25 +130,36 @@ def crews_figure(v: dict, lang: str):
     crews = crews[keep].sort_values(["staff_hours", "staff"], ascending=False)
     names = [t["crew_s" if r.sellers else "crew"].format(taps=int(r.n_pour), sellers=int(r.sellers))
              for r in crews.itertuples()]
-    chosen = (crews["n_pour"] == raw["plan_taps"]) & (crews["sellers"] == raw["plan_sellers"])
-    colors = np.where(chosen, theme.BRONZE, theme.SILVER)
+    chosen = ((crews["n_pour"] == raw["plan_taps"])
+              & (crews["sellers"] == raw["plan_sellers"])).to_numpy()
+    minimum = ((crews["n_pour"] == raw["min_taps"])
+               & (crews["sellers"] == raw["min_sellers"])).to_numpy() & ~chosen
+    colors = np.where(chosen, theme.BRONZE, np.where(minimum, "#8c6a2c", theme.SILVER))
     fig, ax = plt.subplots(figsize=(10, 0.46 * len(crews) + 1.6))
     y = np.arange(len(crews))
     ax.barh(y, 100 * crews["share_met"], color=colors, edgecolor=theme.PAPER, linewidth=1.5,
             height=0.7)
-    for yi, r, c in zip(y, crews.itertuples(), chosen):
+    for yi, r, c, mn in zip(y, crews.itertuples(), chosen, minimum):
         label = t["nights"].format(k=int(r.nights_met), n=int(r.nights))
         if c:
             label += f"  ·  {t['chosen']}"
+            if raw["fallback"]:
+                label += f" = {t['minimum']}"
+        elif mn:
+            label += f"  ·  {t['minimum']}"
         ax.text(103, yi, label, va="center", fontsize=11.5,
-                fontweight="bold" if c else "normal")
-    ax.axvline(100 * raw["reliability"], color=theme.INK, lw=1.2, ls=(0, (4, 3)))
+                fontweight="bold" if (c or mn) else "normal")
+    for share, name in ((raw["reliability"], t["minimum"]), (raw["reliability_rec"], t["chosen"])):
+        ax.axvline(100 * share, color=theme.INK, lw=1.0, ls=(0, (4, 3)), alpha=0.8)
     ax.text(100 * raw["reliability"] - 1, len(crews) - 0.35,
-            t["needed"].format(r=f"{100 * raw['reliability']:.0f}%"), fontsize=10.5,
+            f"{t['minimum']} {100 * raw['reliability']:.0f}%", fontsize=10,
             color=theme.MUTED, va="bottom", ha="right")
+    ax.text(100 * raw["reliability_rec"] + 1, len(crews) - 0.35,
+            f"{t['chosen']} {100 * raw['reliability_rec']:.0f}%", fontsize=10,
+            color=theme.MUTED, va="bottom", ha="left")
     ax.set_yticks(y)
     ax.set_yticklabels(names)
-    ax.set_xlim(0, 140)
+    ax.set_xlim(0, 150)
     ax.set_xticks([0, 25, 50, 75, 100])
     ax.set_xticklabels(["0%", "25%", "50%", "75%", "100%"])
     ax.set_xlabel(t["crews_x"].format(wait=raw["target_wait"]), fontsize=11.5)
@@ -162,12 +186,16 @@ def plan_figure(v: dict, lang: str):
         for dx in (-0.55, 0.55):
             ax.plot([x + dx, x + dx], [cy - 0.4, cy - 6.4], color=theme.INK, lw=1.4,
                     solid_capstyle="round")
-    ax.add_patch(patches.FancyArrowPatch((13.0, vz["stage"]["y1"] + 3), (13.0, cy - 7.5),
+    # open walkway beside the lighting booth, from the stage front to the end of the lanes
+    walk_x = 9.5
+    ax.add_patch(patches.FancyArrowPatch((walk_x, vz["stage"]["y1"] + 3), (walk_x, cy - 7.5),
                                          arrowstyle="<|-|>", mutation_scale=16, lw=1.6,
                                          color=theme.MUTED, linestyle=(0, (4, 3))))
-    slots = [(9.0, 18.0), (19.0, 22.0), (9.5, 28.0), (18.5, 15.5), (8.0, 23.5), (19.5, 29.0)]
+    # one dot per seller of the plan, on open floor clear of the booth and the cocktail line
+    slots = [(7.5, 15.0), (21.0, 15.5), (15.5, 31.5), (7.0, 33.0), (21.5, 30.0), (15.0, 14.0),
+             (7.0, 22.0), (21.5, 22.5), (11.0, 18.0), (18.5, 19.0), (19.0, 35.5), (10.5, 37.0)]
     if raw["plan_sellers"]:
-        sx, sy = np.array(slots[:raw["plan_sellers"]]).T
+        sx, sy = np.array(slots[:min(raw["plan_sellers"], len(slots))]).T
         ax.scatter(sx, sy, s=120, c=theme.DOT_SELLER, edgecolors=theme.PAPER, linewidths=1.0,
                    zorder=6)
 
@@ -181,7 +209,7 @@ def plan_figure(v: dict, lang: str):
     badge(2, float(np.mean(xs)) + 1.0, cy + 3.2)                 # crew size
     badge(3, slots[0][0] - 3.0, slots[0][1])                     # sellers
     badge(4, xs[len(xs) // 2], cy - 8.6)                         # barrier lanes
-    badge(5, 13.0 + 2.6, (vz["stage"]["y1"] + cy) / 2 - 4.0)     # open floor and ticket cap
+    badge(5, walk_x - 2.6, (vz["stage"]["y1"] + cy) / 2 - 1.0)   # open floor and ticket cap
     badge(6, vz["tables"]["x0"] + 4.5, cy + 3.2)                 # service limits
     fig.savefig(FIG / f"summary_plan_{lang}.png", dpi=160, bbox_inches="tight")
     plt.close(fig)

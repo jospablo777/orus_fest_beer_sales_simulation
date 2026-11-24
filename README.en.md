@@ -16,8 +16,8 @@ At the 2026 edition beer was sold through a ticket system. One window sold ticke
 - **Popularity.** Each band's share of followers comes from its Instagram follower count (recorded 2026-11-23), relative to Peter Heppner.
 - **Demand and crowd.** Each attendee comes for one core band and follows some of the bands around it. Followers pack the stage front while their band plays, and everyone else is the main source of the beer rush between bands. One friend buys for the group.
 - **Selling.** One ticket window and exchange lines (2026), pay-at-the-station points, a satellite bar and roaming sellers. People skip a line that looks longer than their patience and leave a line they have been in too long.
-- **Calibration.** Approximate Bayesian computation with a sequential sampler (Beaumont et al., 2009) over the unknowns (`config/calibration.yaml`). A night matches 2026 when buying is relatively quick at 15:00 to 16:00, the exchange line takes at least 35 min for a person who joins it between 18:00 and 20:00, both lines hold at least 20 people in that window, at least 20% of the purchase attempts in that window are given up, and the hall is near its fullest at 22:00. The wait in a line is estimated with the method of Kaplan and Meier (1958), which counts a person who left the line as someone who waited at least until that moment.
-- **Staffing.** A grid of tickets × serving stations × sellers. A crew is recommended when it meets the waiting target in at least 90% of the simulated nights.
+- **Calibration.** Approximate Bayesian computation with a sequential sampler (Beaumont et al., 2009) over the unknowns (`config/calibration.yaml`). A night matches 2026 when buying is relatively quick at 15:00 to 16:00, the exchange line takes 35 to 70 min for a person who joins it between 18:00 and 20:00 (the longest wait was not measured; 70 min is an assumed limit), both lines hold at least 20 people in that window, at least 20% of the purchase attempts in that window are given up, and the hall is near its fullest at 22:00. The wait in a line is estimated with the method of Kaplan and Meier (1958), which counts a person who left the line as someone who waited at least until that moment.
+- **Staffing.** A grid of tickets × serving stations × sellers. The minimum crew meets the waiting target in at least 90% of the simulated nights and the recommended crew in at least 95%.
 - **Counterfactuals.** Every scenario reruns each night with the same random seed. The difference from the 2026 setup on the same night is that night's counterfactual effect.
 
 Every assumption, its source and the file that sets it are listed in [docs/ASSUMPTIONS.md](docs/ASSUMPTIONS.md). The study design, model logic, statistics and reproduction steps are in [docs/METHODS.md](docs/METHODS.md). The papers behind the crowd-management recommendations are in [docs/LITERATURE_REVIEW.md](docs/LITERATURE_REVIEW.md), and primary sources (schedule poster, Instagram screenshots) in `docs/sources/`.
@@ -46,6 +46,7 @@ or step by step, in this order:
 ```bash
 uv run python scripts/run_calibration.py                      # output/runs/posterior_draws.csv
 uv run python scripts/run_staffing.py                         # crew by reliability, output/tables/staffing_plan.csv
+uv run python scripts/run_serving.py                          # serving options, output/tables/serving_options.csv
 uv run python scripts/run_scenarios.py                        # output/runs/scenario_*.csv (reads the plan crew)
 uv run python scripts/make_animation.py --clip all            # output/animations/*_{en,es}.mp4, both clips
 LC_ALL=en_US.UTF-8 Rscript analysis/figures.R                 # output/figures, output/tables (any UTF-8 locale)
@@ -69,6 +70,7 @@ All inputs are YAML:
 | `config/calibration.yaml` | ranges for the unknowns, the observations of 2026 and the sampler settings |
 | `config/scenarios.yaml` | setups to compare and what-if conditions |
 | `config/staffing.yaml` | staffing grid, waiting target and required reliability |
+| `config/serving.yaml` | faster ways of serving (closed cans, draft beer, fast payment) and the time each one saves |
 | `config/report.yaml` | beer price for sales figures, headline scenario, ticket level of the plan, clock windows of the videos |
 
 To try a variant without editing the defaults, copy a file and pass it in:

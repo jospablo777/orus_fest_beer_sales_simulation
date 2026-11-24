@@ -1,15 +1,15 @@
-"""Compare the current results with a reference run made under other calibration settings.
+"""Compare the current results with reference runs made under other calibration settings.
 
-The reference folder holds copies of output/tables, the runs posterior_draws.csv,
-scenario_metrics.csv and staffing_grid.csv, and the calibration.yaml it used.
-Writes
-    output/tables/sensitivity_ranges.csv    inputs, 2026 outcomes and plan outcomes, per run
-    output/tables/sensitivity_staffing.csv  recommended crew per ticket level, and the share
-                                            of nights that meet the target for each crew
-                                            recommended in either run
+Each reference folder under output/sensitivity/ holds copies of output/tables, the runs
+posterior_draws.csv, scenario_metrics.csv and staffing_grid.csv, and the calibration.yaml it
+used. For a reference named NAME the script writes
+    output/tables/sensitivity_NAME_ranges.csv    inputs, 2026 outcomes and plan outcomes, per run
+    output/tables/sensitivity_NAME_staffing.csv  minimum and recommended crews per ticket level
+                                                 in either run, with the nights in which each
+                                                 meets the target under both runs
 The two runs simulate different nights, so outcomes are compared with the Mann-Whitney U
 test and shares of nights with Fisher's exact test.
-Usage: uv run python scripts/compare_calibrations.py [--reference output/sensitivity/narrow_ranges]
+Usage: uv run python scripts/compare_calibrations.py [--reference DIR ...]
 """
 
 import argparse
@@ -74,10 +74,10 @@ def ranges_table(ref: Path, cur: Path) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def staffing_table(ref: Path, cur: Path, target: dict, reliability: float) -> pd.DataFrame:
+def staffing_table(ref: Path, cur: Path, target: dict, levels: list[float]) -> pd.DataFrame:
     summary = {k: staffing.summarize(pd.read_csv(d / "staffing_grid.csv"), target)
                for k, d in (("reference", ref), ("current", cur))}
-    chosen = {k: staffing.choose(s, reliability) for k, s in summary.items()}
+    chosen = {k: pd.concat([staffing.choose(s, r) for r in levels]) for k, s in summary.items()}
     crews = pd.concat(chosen.values())[staffing.KEYS].drop_duplicates()
     rows = []
     for crew in crews.itertuples(index=False):
@@ -85,31 +85,43 @@ def staffing_table(ref: Path, cur: Path, target: dict, reliability: float) -> pd
         counts = {}
         for k, s in summary.items():
             hit = s[(s["n_total"] == crew.n_total) & (s["n_pour"] == crew.n_pour)
-                    & (s["sellers"] == crew.sellers)].iloc[0]
+                    & (s["sellers"] == crew.sellers)]
+            if hit.empty:                     # a crew outside the grid of the other run
+                hit = pd.Series({"nights_met": 0, "nights": 0})
+            else:
+                hit = hit.iloc[0]
             met, n = int(hit["nights_met"]), int(hit["nights"])
             counts[k] = (met, n)
             c = chosen[k]
             picked = ((c["n_total"] == crew.n_total) & (c["n_pour"] == crew.n_pour)
                       & (c["sellers"] == crew.sellers)).any()
-            row.update({f"{k}_met": met, f"{k}_nights": n, f"{k}_recommended": bool(picked)})
+            row.update({f"{k}_met": met, f"{k}_nights": n, f"{k}_chosen": bool(picked)})
         (a, n1), (b, n2) = counts["reference"], counts["current"]
-        row["p_fisher"] = stats.fisher_exact([[a, n1 - a], [b, n2 - b]])[1]
+        row["p_fisher"] = (stats.fisher_exact([[a, n1 - a], [b, n2 - b]])[1]
+                           if n1 and n2 else float("nan"))
         rows.append(row)
     return pd.DataFrame(rows).sort_values(["n_total", "n_pour", "sellers"])
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--reference", default=ROOT / "output" / "sensitivity" / "narrow_ranges",
-                    type=Path)
+    ap.add_argument("--reference", nargs="*", type=Path,
+                    default=sorted(p for p in (ROOT / "output" / "sensitivity").glob("*")
+                                   if (p / "runs").is_dir()))
     args = ap.parse_args()
-    ref_runs, cur_runs = args.reference / "runs", ROOT / "output" / "runs"
+    cur_runs = ROOT / "output" / "runs"
     stf = params.load(ROOT / "config" / "staffing.yaml")
+    levels = [stf["reliability"], stf.get("reliability_recommended", stf["reliability"])]
     tables = ROOT / "output" / "tables"
-    ranges_table(ref_runs, cur_runs).to_csv(tables / "sensitivity_ranges.csv", index=False)
-    staffing_table(ref_runs, cur_runs, stf["service_target"], stf["reliability"]).to_csv(
-        tables / "sensitivity_staffing.csv", index=False)
-    print("wrote output/tables/sensitivity_ranges.csv and sensitivity_staffing.csv")
+    for old in tables.glob("sensitivity_*.csv"):
+        old.unlink()
+    for ref in args.reference:
+        name = ref.name
+        ranges_table(ref / "runs", cur_runs).to_csv(tables / f"sensitivity_{name}_ranges.csv",
+                                                     index=False)
+        staffing_table(ref / "runs", cur_runs, stf["service_target"], levels).to_csv(
+            tables / f"sensitivity_{name}_staffing.csv", index=False)
+        print(f"wrote output/tables/sensitivity_{name}_ranges.csv and _staffing.csv")
 
 
 if __name__ == "__main__":

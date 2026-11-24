@@ -74,20 +74,26 @@ def _window(txn, a, b, col="clock_join_min"):
     return txn[(txn[col] >= lo) & (txn[col] < hi)]
 
 
-def km_median(minutes, served) -> float:
-    """Kaplan-Meier median of the minutes until service. A person who gave up or is still in
-    line is censored: the wait was at least the recorded time. When the share served never
-    reaches one half the median is not reached, and the longest recorded time is returned
-    as a lower bound. NaN without records."""
+def km_median_reached(minutes, served) -> tuple[float, bool]:
+    """Kaplan-Meier median of the minutes until service, and whether it was reached. A person
+    who gave up or is still in line is censored: the wait was at least the recorded time.
+    When the share served never reaches one half the median is not reached; the longest
+    recorded time is then returned as a lower bound with reached = False. NaN without
+    records."""
     minutes, served = np.asarray(minutes, float), np.asarray(served, bool)
     if minutes.size == 0:
-        return float("nan")
+        return float("nan"), False
     order = np.lexsort((~served, minutes))          # at equal times, served people first
     t, e = minutes[order], served[order]
     at_risk = np.arange(len(t), 0, -1)
     waiting = np.cumprod(np.where(e, 1.0 - 1.0 / at_risk, 1.0))
-    reached = np.flatnonzero(waiting <= 0.5)
-    return float(t[reached[0]]) if reached.size else float(t.max())
+    hit = np.flatnonzero(waiting <= 0.5)
+    return (float(t[hit[0]]), True) if hit.size else (float(t.max()), False)
+
+
+def km_median(minutes, served) -> float:
+    """km_median_reached without the flag."""
+    return km_median_reached(minutes, served)[0]
 
 
 def run_metrics(cfg: dict, seed: int, obs: dict) -> tuple[dict, pd.DataFrame, pd.DataFrame]:
@@ -115,7 +121,8 @@ def run_metrics(cfg: dict, seed: int, obs: dict) -> tuple[dict, pd.DataFrame, pd
         without tickets. `all` covers every visit to a bar line; with payment at the station
         nobody passes a cashier and it is the only one of the four with records."""
         w = _window(bar, spec["from"], spec["to"])
-        out = {"all": until_served(w), "buyer": np.nan, "ticket": np.nan, "exchange": np.nan}
+        out = {"all": until_served(w), "buyer": np.nan, "ticket": np.nan, "exchange": np.nan,
+               "exchange_reached": False}
         if len(w):
             via = w[w["via_cashier"]]
             out["buyer"] = until_served(via if len(via) >= 5 else w)
@@ -126,7 +133,9 @@ def run_metrics(cfg: dict, seed: int, obs: dict) -> tuple[dict, pd.DataFrame, pd
                 out["ticket"] = km_median(minutes, ~left_at_window)
             ex_line = _window(bar[bar["line_kind"] == "pour"], spec["from"], spec["to"],
                               col="clock_line_min")
-            out["exchange"] = until_served(ex_line, "last_line_min")
+            if len(ex_line):
+                out["exchange"], out["exchange_reached"] = km_median_reached(
+                    ex_line["last_line_min"], ex_line["channel"] != "renege")
         lo, hi = clock_to_min(spec["from"]), clock_to_min(spec["to"])
         in_w = s[(s["clock_min"] >= lo) & (s["clock_min"] <= hi)]
         out["queue_cash"] = float(in_w["queue_cash"].mean())
@@ -161,8 +170,8 @@ def run_metrics(cfg: dict, seed: int, obs: dict) -> tuple[dict, pd.DataFrame, pd
     for p in sim.points:
         a = max(p.open_from, 0.0) / 3600
         b = min(p.open_to, sim.t_end) / 3600
-        staff_h += max(b - a, 0.0)
-        staff += 1
+        staff_h += p.servers * max(b - a, 0.0)
+        staff += p.servers
     if sim.k:
         staff_h += sim.k * (sim.s_end - sim.s_start) / 3600
         staff += sim.k
@@ -173,6 +182,7 @@ def run_metrics(cfg: dict, seed: int, obs: dict) -> tuple[dict, pd.DataFrame, pd
         "obs_buyer_median_min": seen["buyer"],
         "obs_ticket_median_min": seen["ticket"],
         "obs_exchange_median_min": seen["exchange"],
+        "obs_exchange_reached": seen["exchange_reached"],
         "queue_cash_obs": seen["queue_cash"],
         "queue_pour_obs": seen["queue_pour"],
         "obs_left_share": gave_up / attempts if attempts else np.nan,
@@ -228,8 +238,10 @@ def calibration_metrics(cfg: dict, seed: int, obs: dict) -> dict:
 
     The occupancy test depends only on arrival and departure times and is computed without
     simulating. The run stops after the early window when the early test fails, and
-    otherwise 60 minutes after the long-wait window. People still in an exchange line at
-    that time count with the minutes they have waited so far, as a lower bound.
+    otherwise after the long-wait window plus the larger of 60 minutes and the upper limit
+    of the test plus 10, so that everyone who joined in the window is followed past that
+    limit. People still in an exchange line at that time count with the minutes they have
+    waited so far, as a lower bound.
     """
     sim = Simulation(cfg, seed=seed)
     sec = lambda clock: (clock_to_min(clock) - sim.t0_min) * 60.0  # noqa: E731
@@ -238,8 +250,8 @@ def calibration_metrics(cfg: dict, seed: int, obs: dict) -> dict:
     at = sec(obs["peak_occupancy"]["at"])
     occ_at = ((sim.arrival <= at) & (sim.leave > at)).sum()
     m = {"occupancy_at_peak_obs_share": occ_at / max(inside.max(), 1), "peak_occupancy": int(inside.max()),
-         "obs_exchange_median_min": np.nan, "queue_cash_obs": np.nan, "queue_pour_obs": np.nan,
-         "obs_left_share": np.nan}
+         "obs_exchange_median_min": np.nan, "obs_exchange_reached": False,
+         "queue_cash_obs": np.nan, "queue_pour_obs": np.nan, "obs_left_share": np.nan}
     e, lw = obs["early_wait"], obs["long_wait"]
     sim.start()
     sim.advance(sec(e["to"]) + 1200.0)
@@ -247,8 +259,9 @@ def calibration_metrics(cfg: dict, seed: int, obs: dict) -> dict:
     m["early_median_min"] = float(np.median(early)) if early.size else np.nan
     if not m["early_median_min"] <= e["max_median_min"]:
         return m
-    sim.advance(sec(lw["to"]) + 3600.0)
-    m["obs_exchange_median_min"] = km_median(
+    follow_min = max(60.0, lw.get("max_median_min", 0.0) + 10.0)
+    sim.advance(sec(lw["to"]) + 60.0 * follow_min)
+    m["obs_exchange_median_min"], m["obs_exchange_reached"] = km_median_reached(
         *sim.line_waits_so_far(sec(lw["from"]), sec(lw["to"]), "pour"))
     s = pd.DataFrame(sim._rows)
     lo, hi = clock_to_min(lw["from"]), clock_to_min(lw["to"])
@@ -345,6 +358,14 @@ def distance(metrics: pd.DataFrame, obs: dict) -> pd.Series:
          + short(metrics["obs_exchange_median_min"], pk["min_median_min"], pk["min_median_min"])
          + short(metrics["occupancy_at_peak_obs_share"],
                  obs["peak_occupancy"]["min_share_of_max"], 0.1))
+    if "max_median_min" in pk:
+        # A median that was not reached is above any limit the run could follow.
+        upper = short(metrics["obs_exchange_median_min"], pk["max_median_min"],
+                      pk["max_median_min"], above=False)
+        reached = metrics.get("obs_exchange_reached")
+        if reached is not None:
+            upper = np.where(reached.eq(True).to_numpy(), upper, np.maximum(upper, 1.0))
+        d = d + upper
     both = obs.get("both_lines")
     if both:
         d = (d + short(metrics["queue_cash_obs"], both["min_people"], both["min_people"])

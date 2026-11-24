@@ -249,7 +249,13 @@ class Simulation:
         else:
             # each beer after the first takes extra_beer_factor of the time of the first
             units = 1.0 + b.get("extra_beer_factor", 1.0) * (beers - 1)
-            out = _lognormal(self.rng, b["s_pour_mean_s"] * units, cv / np.sqrt(units))
+            mean = b["s_pour_mean_s"] * units
+            # Serving options that skip opening and pouring (cans, draft beer) save a fixed
+            # time per beer; at most three quarters of the serving time can be saved.
+            saving = b.get("pour_saving_s", 0.0) * beers
+            if saving:
+                mean = max(mean - saving, 0.25 * mean)
+            out = _lognormal(self.rng, mean, cv / np.sqrt(units))
             if kind == "direct":
                 out += _lognormal(self.rng, b["s_pay_direct_s"], cv)
         # people judge a line by how long recent visits took at that kind of station
@@ -257,7 +263,7 @@ class Simulation:
         return out
 
     def _line_estimate(self, p):
-        return (len(p.queue) + p.walking + 1) * self.visit_s[p.kind]
+        return ((len(p.queue) + p.walking) / p.servers + 1) * self.visit_s[p.kind]
 
     def _collect_round(self, i, t):
         """Friends of buyer i join the purchase: drinkers of the same group who stand in the
@@ -467,48 +473,56 @@ class Simulation:
             # A service ends at its exact time, and the next one starts at that time when its
             # customer was already waiting, so service times are not rounded to the step.
             while True:
-                if p.current >= 0:
-                    if t < p.busy_until:
-                        break
-                    i = p.current
-                    p.current = -1
-                    done = p.busy_until
-                    if p.kind == "cash":
-                        # tickets for this round plus some for later, at most 10 per visit
-                        need = max(1 + len(self.orders.get(i, ())) - self.tickets[i], 0)
-                        spare = self.rng.poisson(max(b["bundle_mean"] - 1.0, 0.0))
-                        self.tickets[i] += max(min(need + spare, 10), need)
-                        pours = [jj for jj, pp in enumerate(self.points)
-                                 if pp.kind == "pour" and pp.is_open(t)]
-                        jj = min(pours, key=lambda m: self._line_estimate(self.points[m]))
-                        self._go_to_line(i, jj)
-                    else:
-                        beers = self._pending_beers[i]
-                        if p.kind == "pour":
-                            self.tickets[i] -= beers
-                        self._finish_purchase(i, done, beers, p.label, p.kind)
-                        self._send_to_spot([i])
-                if not p.queue:
+                if p.serving:
+                    k = min(range(len(p.serving)), key=lambda m: p.serving[m][1])
+                    i, done, s = p.serving[k]
+                    if t >= done:
+                        p.serving.pop(k)
+                        p.free_at[s] = done
+                        self._end_service(p, i, done, t, b)
+                        continue
+                if not p.queue or len(p.serving) >= p.servers:
                     break
+                busy = {m for _, _, m in p.serving}
+                s = min((m for m in range(p.servers) if m not in busy),
+                        key=lambda m: p.free_at[m])
                 i = p.queue.popleft()
-                p.current = i
                 self.state[i] = SERVICE
-                self.x[i], self.y[i] = p.x, p.y + 0.4
-                start = min(t, max(p.busy_until, self.q_enter[i]))
+                self.x[i], self.y[i] = p.x + (s - (p.servers - 1) / 2) * 0.8, p.y + 0.4
+                start = min(t, max(p.free_at[s], self.q_enter[i]))
                 if p.kind == "cash":
-                    p.busy_until = start + self._service_time("cash", 1)
+                    end = start + self._service_time("cash", 1)
                 else:
                     nf = len(self.orders.get(i, ()))
                     want_two = self.rng.random() < self.cfg["crowd"]["double_share"]
                     two = want_two and (p.kind == "direct" or self.tickets[i] >= nf + 2)
                     beers = nf + (2 if two else 1)
                     self._pending_beers[i] = beers
-                    p.busy_until = start + self._service_time(p.kind, beers)
+                    end = start + self._service_time(p.kind, beers)
+                p.serving.append([i, end, s])
             n = len(p.queue)
             if n:
                 ids = np.fromiter(p.queue, int, n)
                 pos = p.slots[np.minimum(np.arange(n), len(p.slots) - 1)]
                 self.x[ids], self.y[ids] = pos[:, 0], pos[:, 1]
+
+    def _end_service(self, p, i, done, t, b):
+        """Attendee i leaves the counter of point p at time done."""
+        if p.kind == "cash":
+            # tickets for this round plus some for later, at most 10 per visit
+            need = max(1 + len(self.orders.get(i, ())) - self.tickets[i], 0)
+            spare = self.rng.poisson(max(b["bundle_mean"] - 1.0, 0.0))
+            self.tickets[i] += max(min(need + spare, 10), need)
+            pours = [jj for jj, pp in enumerate(self.points)
+                     if pp.kind == "pour" and pp.is_open(t)]
+            jj = min(pours, key=lambda m: self._line_estimate(self.points[m]))
+            self._go_to_line(i, jj)
+        else:
+            beers = self._pending_beers[i]
+            if p.kind == "pour":
+                self.tickets[i] -= beers
+            self._finish_purchase(i, done, beers, p.label, p.kind)
+            self._send_to_spot([i])
 
     def _renege(self, t):
         c = self.cfg["crowd"]
@@ -722,7 +736,7 @@ class Simulation:
         for p in self.points:
             if p.kind != kind:
                 continue
-            for i in list(p.queue) + ([p.current] if p.current >= 0 else []):
+            for i in list(p.queue) + [m for m, _, _ in p.serving]:
                 if lo <= self.q_enter[i] < hi:
                     minutes.append((self.t_now - self.q_enter[i]) / 60.0)
                     served.append(False)

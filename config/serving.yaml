@@ -1,0 +1,38 @@
+# Serving options compared at the plan ticket level (config/report.yaml: plan_tickets).
+# Each option runs the crew grid of config/staffing.yaml (stations x sellers) on the same
+# posterior nights and seeds as the staffing grid, on top of its `setup`, so the minimum and
+# recommended crews of each option can be compared with the plan.
+#
+# None of the savings was measured. In 2026 every beer came in a bottle or can that was opened
+# and poured into a cup, and a large beer took two. The calibrated serving time per beer
+# includes that work; the options below remove part of it.
+
+options:
+  bottles:
+    label: "Bottle or can opened and poured into a cup (2026 practice)"
+    assumption: "calibrated serving time"
+    overrides: {}
+  cans:
+    label: "Unopened cans handed over"
+    assumption: "12 s saved per beer: no opening and no pouring (assumed)"
+    overrides: {bar.pour_saving_s: 12}
+  cans_low:
+    label: "Unopened cans, small saving"
+    assumption: "8 s saved per beer (assumed, low case)"
+    overrides: {bar.pour_saving_s: 8}
+  cans_high:
+    label: "Unopened cans, large saving"
+    assumption: "20 s saved per beer (assumed, high case)"
+    overrides: {bar.pour_saving_s: 20}
+  tap:
+    label: "Draft beer from a tap"
+    assumption: "6 s saved per beer after keg changes (assumed); needs a cooled keg system"
+    overrides: {bar.pour_saving_s: 6}
+  fast_pay:
+    label: "Faster payment (contactless card or wristband, one round price)"
+    assumption: "payment takes 6 s in place of 15 s (assumed)"
+    overrides: {bar.s_pay_direct_s: 6}
+  cans_fast_pay:
+    label: "Unopened cans and faster payment"
+    assumption: "12 s saved per beer and payment in 6 s (assumed)"
+    overrides: {bar.pour_saving_s: 12, bar.s_pay_direct_s: 6}

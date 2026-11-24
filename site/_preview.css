@@ -76,7 +76,7 @@ a { color: var(--gold); }
 .plain-figure img, .plain-figure video, .plain-figure svg { width: 100%; height: auto; display: block; border-radius: 4px; }
 .plain-figure figcaption { color: var(--muted); font-size: 0.95rem; padding-top: 10px; }
 .diagram.narrow { display: none; }
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 14px; margin: 1rem 0; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin: 1rem 0; }
 .tile {
   background: var(--surface);
   border: 1px solid var(--rule);
@@ -84,7 +84,7 @@ a { color: var(--gold); }
   border-radius: 8px;
   padding: 14px 16px;
 }
-.tile .v { display: block; color: var(--gold); font: 800 1.8rem/1.15 var(--display); font-variant-numeric: tabular-nums; margin-bottom: 6px; }
+.tile .v { display: block; color: var(--gold); font: 800 1.8rem/1.15 var(--display); font-variant-numeric: tabular-nums; margin-bottom: 6px; white-space: nowrap; }
 .tile .l { display: block; color: var(--muted); font-size: 0.93rem; }
 .tile .l strong { color: var(--ink); }
 .plan { display: grid; grid-template-columns: minmax(220px, 0.8fr) 1.2fr; gap: 22px; align-items: start; margin: 1rem 0; }

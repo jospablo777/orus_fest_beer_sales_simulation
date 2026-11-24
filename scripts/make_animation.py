@@ -17,7 +17,8 @@ from sim import experiments as ex  # noqa: E402
 from sim import params  # noqa: E402
 from sim.animate import render_clip  # noqa: E402
 
-CLIPS = {name: {"window": (c["from"], c["to"]), "every_s": c["every_s"], "fps": c["fps"]}
+CLIPS = {name: {"window": (c["from"], c["to"]), "every_s": c["every_s"], "fps": c["fps"],
+                "still": c.get("still")}
          for name, c in params.load(params.ROOT / "config" / "report.yaml")["clips"].items()}
 
 

@@ -16,8 +16,8 @@ En 2026 la cerveza se vendió con fichas. Una ventanilla vendía las fichas de t
 - **Popularidad.** La proporción de seguidores de cada banda sale de sus seguidores en Instagram (registrados el 2026-11-23), en relación con Peter Heppner.
 - **Demanda y público.** Cada asistente viene por una banda principal y sigue a algunas de las bandas cercanas en el horario. Los seguidores llenan el frente del escenario mientras toca su banda. El resto del público es el que más compra entre banda y banda. Una persona del grupo compra para sus amigos.
 - **Venta.** Una ventanilla de fichas y filas de canje (2026), puestos donde se paga y se recibe la cerveza, una barra satélite y vendedores en pista. La gente evita una fila que se ve más larga que su paciencia y abandona una fila en la que lleva demasiado tiempo.
-- **Calibración.** Cómputo bayesiano aproximado con un muestreador secuencial (Beaumont et al., 2009) sobre lo que nadie midió (`config/calibration.yaml`). Una noche simulada coincide con 2026 cuando comprar es relativamente rápido de 15:00 a 16:00, la fila de canje toma al menos 35 min a quien se forma en ella entre las 18:00 y las 20:00, las dos filas tienen al menos 20 personas en ese lapso, se abandona al menos 20% de los intentos de compra en ese lapso y el salón está cerca de su máximo a las 22:00. La espera en una fila se estima con el método de Kaplan y Meier (1958), que cuenta a quien se salió de la fila como alguien que esperó al menos hasta ese momento.
-- **Personal.** Una cuadrícula de boletos × puestos en la barra × vendedores. Se recomienda un equipo cuando cumple la meta de espera en al menos 90% de las noches simuladas.
+- **Calibración.** Cómputo bayesiano aproximado con un muestreador secuencial (Beaumont et al., 2009) sobre lo que nadie midió (`config/calibration.yaml`). Una noche simulada coincide con 2026 cuando comprar es relativamente rápido de 15:00 a 16:00, la fila de canje toma entre 35 y 70 min a quien se forma en ella entre las 18:00 y las 20:00 (no medimos la espera más larga; 70 min es un límite supuesto), las dos filas tienen al menos 20 personas en ese lapso, se abandona al menos 20% de los intentos de compra en ese lapso y el salón está cerca de su máximo a las 22:00. La espera en una fila se estima con el método de Kaplan y Meier (1958), que cuenta a quien se salió de la fila como alguien que esperó al menos hasta ese momento.
+- **Personal.** Una cuadrícula de boletos × puestos en la barra × vendedores. El equipo mínimo cumple la meta de espera en al menos 90% de las noches simuladas y el recomendado en al menos 95%.
 - **Contrafactuales.** Cada escenario repite cada noche con la misma semilla aleatoria. La diferencia con 2026 en la misma noche es el efecto contrafactual de esa noche.
 
 Cada supuesto, su fuente y el archivo que lo define están en [docs/ASSUMPTIONS.md](docs/ASSUMPTIONS.md). El diseño del estudio, la lógica del modelo, la estadística y los pasos para reproducirlo están en [docs/METHODS.md](docs/METHODS.md). Los artículos detrás de las recomendaciones de manejo de multitudes están en [docs/LITERATURE_REVIEW.md](docs/LITERATURE_REVIEW.md) y las fuentes primarias (cartel del horario, capturas de Instagram) en `docs/sources/`. Esos documentos están en inglés.
@@ -46,6 +46,7 @@ o paso por paso, en este orden:
 ```bash
 uv run python scripts/run_calibration.py                      # output/runs/posterior_draws.csv
 uv run python scripts/run_staffing.py                         # crew by reliability, output/tables/staffing_plan.csv
+uv run python scripts/run_serving.py                          # serving options, output/tables/serving_options.csv
 uv run python scripts/run_scenarios.py                        # output/runs/scenario_*.csv (reads the plan crew)
 uv run python scripts/make_animation.py --clip all            # output/animations/*_{en,es}.mp4, both clips
 LC_ALL=en_US.UTF-8 Rscript analysis/figures.R                 # output/figures, output/tables (any UTF-8 locale)
@@ -69,6 +70,7 @@ Todas las entradas son archivos YAML:
 | `config/calibration.yaml` | rangos de lo que no se midió, observaciones de 2026 y ajustes del muestreador |
 | `config/scenarios.yaml` | formas de vender que se comparan y condiciones alternativas |
 | `config/staffing.yaml` | cuadrícula de personal, meta de espera y confiabilidad requerida |
+| `config/serving.yaml` | formas de servir más rápido (latas cerradas, barril, cobro rápido) y el tiempo que ahorra cada una |
 | `config/report.yaml` | precio de la cerveza para las cifras de venta, escenario principal, nivel de boletos del plan, horario de los videos |
 
 Para probar una variante sin tocar los valores originales, copie un archivo y páselo como argumento:

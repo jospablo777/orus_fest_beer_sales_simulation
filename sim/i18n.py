@@ -8,6 +8,7 @@ LABELS = {
     "en": {
         "stage": "STAGE", "bar_zone": "BAR", "tables": "tables", "vendors": "vendors",
         "entrance": "entrance",
+        "booth": "lights and drones", "cocktail_line": "cocktail line",
         "dot_note": "Each dot is one attendee. Stage at the top, bar at the bottom.",
         "watching": "watching / moving", "to_line": "walking to a line",
         "ticket_line": "ticket line", "tap_line": "exchange / bar line",
@@ -23,6 +24,7 @@ LABELS = {
     "es": {
         "stage": "ESCENARIO", "bar_zone": "BARRA", "tables": "mesas", "vendors": "puestos",
         "entrance": "entrada",
+        "booth": "luces y drones", "cocktail_line": "fila de cocteles",
         "dot_note": "Cada punto es una persona. Escenario arriba, barra abajo.",
         "watching": "viendo el show / caminando", "to_line": "caminando a una fila",
         "ticket_line": "fila de fichas", "tap_line": "fila de canje / barra",

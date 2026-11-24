@@ -204,7 +204,7 @@ ct[, term := lab(term)]
 fwrite(ct, file.path(tab_dir, "calibration_regressions.csv"))
 p_reg <- ggplot(ct, aes(estimate, reorder(term, abs(estimate)))) +
   geom_vline(xintercept = 0, colour = grey) +
-  geom_errorbarh(aes(xmin = lo, xmax = hi), height = 0, colour = bronze, linewidth = 1) +
+  geom_errorbar(aes(xmin = lo, xmax = hi), orientation = "y", width = 0, colour = bronze, linewidth = 1) +
   geom_point(colour = bronze, size = 2.6) +
   facet_wrap(~model, scales = "free_x", labeller = label_wrap_gen(24)) +
   labs(title = "Which unknowns drive each line in the 2026 setup",
@@ -281,9 +281,9 @@ eff_main[, label := factor(wrap(label, 34), levels = rev(wrap(lab_of[main_order]
 eff_main[, outcome := factor(outcome, levels = outcomes[1:3])]
 p_cf <- ggplot(eff_main, aes(med, label)) +
   geom_vline(xintercept = 0, colour = grey) +
-  geom_errorbarh(aes(xmin = lo, xmax = hi), height = 0, colour = bronze, linewidth = 0.7,
+  geom_errorbar(aes(xmin = lo, xmax = hi), orientation = "y", width = 0, colour = bronze, linewidth = 0.7,
                  alpha = 0.6) +
-  geom_errorbarh(aes(xmin = med_lo, xmax = med_hi), height = 0, colour = bronze,
+  geom_errorbar(aes(xmin = med_lo, xmax = med_hi), orientation = "y", width = 0, colour = bronze,
                  linewidth = 2.2) +
   geom_point(colour = ink, size = 1.8) +
   facet_wrap(~outcome, scales = "free_x", ncol = 3, labeller = label_wrap_gen(22)) +
@@ -299,6 +299,23 @@ ci <- boot_median_ci(extra)
 rev_tab <- data.table(median_extra_beers = median(extra), med_lo = ci[1], med_hi = ci[2],
                       p05 = quantile(extra, 0.05), p95 = quantile(extra, 0.95), price_mxn = price)
 fwrite(rev_tab, file.path(tab_dir, "counterfactual_2026_revenue.csv"))
+
+# Staff on beer and extra beers per extra staff hour under the plan (plan minus 2026, same
+# night). Staff hours count every person serving, the ticket window and the sellers.
+st <- merge(met[scenario == headline, .(draw, staff, staff_hours, beers_total)],
+            met[scenario == "baseline", .(draw, staff_0 = staff, staff_hours_0 = staff_hours,
+                                          beers_0 = beers_total)], by = "draw")
+st[, extra_hours := staff_hours - staff_hours_0]
+st[, per_hour := (beers_total - beers_0) / extra_hours]
+ci <- boot_median_ci(st$per_hour)
+staff_tab <- data.table(
+  staff_2026 = median(st$staff_0), staff_2026_lo = quantile(st$staff_0, 0.05),
+  staff_2026_hi = quantile(st$staff_0, 0.95), staff_plan = median(st$staff),
+  hours_2026 = median(st$staff_hours_0), hours_plan = median(st$staff_hours),
+  extra_hours = median(st$extra_hours), beers_per_extra_hour = median(st$per_hour),
+  med_lo = ci[1], med_hi = ci[2], p05 = quantile(st$per_hour, 0.05),
+  p95 = quantile(st$per_hour, 0.95), nights = nrow(st), price_mxn = price)
+fwrite(staff_tab, file.path(tab_dir, "staff_sales.csv"))
 
 # People inside and people in each line through the night.
 band <- function(d, col) d[, .(med = median(get(col)), lo = quantile(get(col), 0.05),
@@ -364,7 +381,7 @@ hett[, term := lab(term)]
 fwrite(hett, file.path(tab_dir, "heterogeneous_effects.csv"))
 p_het <- ggplot(hett, aes(estimate, reorder(term, estimate))) +
   geom_vline(xintercept = 0, colour = grey) +
-  geom_errorbarh(aes(xmin = lo, xmax = hi), height = 0, colour = blue, linewidth = 1) +
+  geom_errorbar(aes(xmin = lo, xmax = hi), orientation = "y", width = 0, colour = blue, linewidth = 1) +
   geom_point(colour = blue, size = 2.6) +
   labs(title = "In which nights the plan adds the most sales",
        subtitle = sprintf("Extra beers (plan minus 2026, same night) regressed on the unknowns.\nEffect of +1 standard deviation with 95%% CI. R² = %.2f.",
@@ -374,15 +391,21 @@ save_fig(p_het, "06_heterogeneous_effects.png", w = 10, h = 6)
 
 # What-if conditions.
 wi_keys <- c("baseline", headline, labels[family == "what_if", scenario])
-wi <- met[scenario %in% wi_keys,
-          .(p90 = median(evening_p90_min), p90_lo = quantile(evening_p90_min, 0.05),
-            p90_hi = quantile(evening_p90_min, 0.95), beers = median(beers_total),
-            abandon = median(abandon_share)), by = scenario]
+# A night meets the service target of config/staffing.yaml when both conditions hold.
+tgt <- stf_cfg$service_target
+wi <- met[scenario %in% wi_keys, {
+  ok <- evening_p90_min <= tgt$evening_p90_min & abandon_share <= tgt$abandon_share
+  ex <- exact_ci(sum(ok), .N)
+  .(p90 = median(evening_p90_min), p90_lo = quantile(evening_p90_min, 0.05),
+    p90_hi = quantile(evening_p90_min, 0.95), beers = median(beers_total),
+    abandon = median(abandon_share), nights_met = sum(ok), nights = .N,
+    met_lo = ex[1], met_hi = ex[2])
+}, by = scenario]
 wi[, label := lab_of[scenario]]
 wi[, is_2026 := grepl("^baseline", scenario)]
 fwrite(wi, file.path(tab_dir, "what_if.csv"))
 p_wi <- ggplot(wi, aes(y = reorder(wrap(label, 36), p90))) +
-  geom_errorbarh(aes(xmin = p90_lo, xmax = p90_hi, colour = is_2026), height = 0,
+  geom_errorbar(aes(xmin = p90_lo, xmax = p90_hi, colour = is_2026), orientation = "y", width = 0,
                  linewidth = 1.2, alpha = 0.6) +
   geom_point(aes(x = p90, colour = is_2026), size = 3.5) +
   scale_colour_manual(values = c(`TRUE` = red, `FALSE` = bronze), guide = "none") +
@@ -440,7 +463,7 @@ arimax_s[, label := factor(lab_of[scenario], levels = lab_of[c("baseline", headl
 fwrite(arimax_s, file.path(tab_dir, "arimax_sales.csv"))
 p_ar <- ggplot(arimax_s, aes(med, wrap(as.character(label), 28), colour = label)) +
   geom_vline(xintercept = 0, colour = grey) +
-  geom_errorbarh(aes(xmin = lo, xmax = hi), height = 0, linewidth = 1.2) +
+  geom_errorbar(aes(xmin = lo, xmax = hi), orientation = "y", width = 0, linewidth = 1.2) +
   geom_point(size = 3) +
   facet_wrap(~term, scales = "free_x") +
   scale_colour_manual(values = c(red, bronze), guide = "none") +
@@ -460,22 +483,26 @@ grid_levels <- stf_cfg$grid$crowd.n_total
 g <- rel[n_total %in% grid_levels]
 g[, att := factor(sprintf("%s tickets", comma(n_total)),
                   levels = sprintf("%s tickets", comma(sort(unique(n_total)))))]
-plan_cells <- merge(g, plan[, .(n_total, n_pour, sellers)], by = c("n_total", "n_pour", "sellers"))
+plan_cells <- merge(g, unique(plan[, .(n_total, n_pour, sellers, level)]),
+                    by = c("n_total", "n_pour", "sellers"))
 p_g <- ggplot(g, aes(factor(n_pour), factor(sellers), fill = share_met)) +
   geom_tile(colour = paper, linewidth = 1) +
-  geom_tile(data = plan_cells, fill = NA, colour = ink, linewidth = 1.4) +
+  geom_tile(data = plan_cells[level == "minimum"], fill = NA, colour = ink, linewidth = 1.2,
+            linetype = 2) +
+  geom_tile(data = plan_cells[level == "recommended"], fill = NA, colour = ink, linewidth = 1.6) +
   geom_text(aes(label = sprintf("%d/%d", nights_met, nights)), size = 4.2,
             colour = ifelse(g$share_met > 0.55, paper, ink)) +
   facet_wrap(~att, nrow = 1) +
   scale_fill_gradientn("share of nights", colours = c("#2b211f", "#5b2228", "#8c6a2c", bronze, "#e8c56a"),
                        limits = c(0, 1), labels = percent) +
   labs(title = "In how many nights each crew meets the waiting target",
-       subtitle = sprintf("The target is that 9 of 10 buyers wait at most %s min (%s) and at most %s%% of attempts are abandoned.\nThe outlined crew is the one with the fewest staff hours that meets it in at least %s%% of the nights.",
+       subtitle = sprintf("The target is that 9 of 10 buyers wait at most %s min (%s) and at most %s%% of attempts are abandoned.\nSolid outline: recommended crew, the fewest staff hours that meets it in at least %s%% of the nights.\nDashed outline: minimum crew, the same for %s%% of the nights.",
                           stf_cfg$service_target$evening_p90_min, svc_window,
-                          100 * stf_cfg$service_target$abandon_share, 100 * stf_cfg$reliability),
+                          100 * stf_cfg$service_target$abandon_share,
+                          100 * stf_cfg$reliability_recommended, 100 * stf_cfg$reliability),
        x = "serving stations at the bar", y = "roaming sellers") +
   theme(panel.grid = element_blank(), legend.key.width = unit(1.6, "cm"))
-save_fig(p_g, "12_staffing_reliability.png", w = 11, h = 5.6)
+save_fig(p_g, "12_staffing_reliability.png", w = 12, h = 6.2)
 
 lim <- stf_cfg$safety$floor_density_limit
 cap <- rel[, .(density = median(floor_density), d_lo = min(floor_density_lo),

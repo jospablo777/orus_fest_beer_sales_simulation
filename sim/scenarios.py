@@ -20,8 +20,9 @@ def _expr_names(cfg: dict) -> dict:
 
 
 def _plan_names() -> dict:
-    """plan_taps and plan_sellers: the crew chosen by the staffing grid for the ticket level
-    in config/report.yaml (plan_tickets)."""
+    """plan_taps and plan_sellers (recommended crew) and plan_min_taps and plan_min_sellers
+    (minimum crew), chosen by the staffing grid for the ticket level in config/report.yaml
+    (plan_tickets)."""
     from . import staffing
     tickets = params.load(params.ROOT / "config" / "report.yaml")["plan_tickets"]
     return staffing.plan_crew(int(tickets))

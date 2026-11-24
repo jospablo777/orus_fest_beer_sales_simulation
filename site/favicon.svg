@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Orus Fest</title>
+  <rect width="64" height="64" rx="12" fill="#1a0a0c"/>
+  <rect x="2" y="2" width="60" height="60" rx="10" fill="none" stroke="#c42a3c" stroke-width="2.5"/>
+  <g fill="none" stroke="#d9a441" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 19 Q31 11 54 17"/>
+    <path d="M10 31 Q30 19 52 29 Q31 41 10 31 Z"/>
+    <path d="M30 38 L30 52"/>
+    <path d="M40 37 Q45 47 51 49 Q56 49 55 44 Q54 40 50 42"/>
+  </g>
+  <circle cx="30" cy="30" r="5.2" fill="#d9a441"/>
+</svg>

@@ -1,0 +1,2 @@
+simulations,stages,matching,effective_sample,posterior_draws,peak_occupancy_median,peak_occupancy_p05,peak_occupancy_p95,exchange_wait_median,buyer_wait_median,night_exchange_wait_median,early_wait_median,ticket_line_median,exchange_line_median,beers_2026_median,beers_2026_p05,beers_2026_p95
+5984,5,244,152.627869284984,64,1553,1295,1776.85,50.9771954003746,99.609878680315,100.307763201532,3.70912603174303,51.8884297520661,94.0123966942149,2398.5,1369.9,3781.5

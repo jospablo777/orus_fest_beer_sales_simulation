@@ -30,12 +30,13 @@ rv activate
 
 uv run python scripts/run_calibration.py ${workers[@]+"${workers[@]}"}            # posterior_draws.csv
 uv run python scripts/run_staffing.py ${workers[@]+"${workers[@]}"}               # crew by reliability, staffing_plan.csv
+uv run python scripts/run_serving.py ${workers[@]+"${workers[@]}"}                # serving options, needs the staffing grid
 uv run python scripts/run_scenarios.py ${workers[@]+"${workers[@]}"}              # needs the plan crew from the step above
 uv run python scripts/make_animation.py --clip all ${workers[@]+"${workers[@]}"}  # videos in English and Spanish
 Rscript analysis/figures.R   # picks up rv/library through the .Rprofile written by `rv activate`
 uv run python scripts/make_summary.py               # organizer figures, needs the R tables
-if [[ -d output/sensitivity/narrow_ranges ]]; then
-  uv run python scripts/compare_calibrations.py     # against the narrow-range calibration
+if compgen -G "output/sensitivity/*/runs" > /dev/null; then
+  uv run python scripts/compare_calibrations.py     # against every run in output/sensitivity
 fi
 ./scripts/render_site.sh                            # site/_site
 uv run python scripts/make_preview.py               # output/preview, the summary as one page

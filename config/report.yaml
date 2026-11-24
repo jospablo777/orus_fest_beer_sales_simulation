@@ -5,7 +5,9 @@ plan_tickets: 2000          # ticket level of the plan (a level of the staffing 
 hall_side_uncertainty: 0.10 # relative error of each side of the hall, measured on a satellite image
 
 # Video clips of scripts/make_animation.py. "night" starts when the 2026 lines formed.
-# "changeover" covers the end of Funker Vogt and the start of Peter Heppner.
+# "changeover" covers the end of Funker Vogt and the start of Peter Heppner. `still` is the
+# clock time of the image shown before a video plays; the night clip shows a moment of the
+# window the attendees observed. Without it, the frame with the longest 2026 lines is shown.
 clips:
-  night:      {from: "18:00", to: "01:30", every_s: 60, fps: 12}
+  night:      {from: "18:00", to: "01:30", every_s: 60, fps: 12, still: "19:30"}
   changeover: {from: "21:20", to: "22:10", every_s: 5, fps: 15}

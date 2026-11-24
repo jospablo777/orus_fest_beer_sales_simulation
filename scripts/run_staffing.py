@@ -57,9 +57,9 @@ def main():
     summary = staffing.summarize(metrics, spec["service_target"])
     summary.to_csv(tables / "staffing_reliability.csv", index=False)
     in_grid = summary[summary["n_total"].isin(spec["grid"]["crowd.n_total"])]
-    plan = staffing.choose(in_grid, spec["reliability"])
+    plan = staffing.plan_table(in_grid, spec["reliability"], spec["reliability_recommended"])
     plan.to_csv(staffing.PLAN_FILE, index=False)
-    print(plan[["n_total", "n_pour", "sellers", "nights_met", "nights", "wait_median"]]
+    print(plan[["n_total", "level", "n_pour", "sellers", "nights_met", "nights", "fallback"]]
           .to_string(index=False))
     params.write_manifest("staffing", {"base": str(args.base), "staffing": str(args.staffing), "draws": len(acc), "runs": len(tasks), "seconds": round(time.time() - t0)})
     print(f"{len(tasks)} runs in {time.time() - t0:.0f} s")
