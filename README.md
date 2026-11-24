@@ -2,6 +2,8 @@
 
 [English version](README.en.md)
 
+El reporte para los organizadores está publicado en <https://jospablo777.github.io/orus_fest_beer_sales_simulation/>.
+
 Modelo basado en agentes de la asistencia y la venta de cerveza en el Salón Olímpico Pantitlán (Ciudad de México). Está calibrado con lo que vimos en nuestra asistencia al Orus Fest 2026 (1 de agosto de 2026) y sirve para comparar formas de vender en la próxima edición.
 
 En 2026 la cerveza se vendió con fichas. Una ventanilla vendía las fichas de todas las bebidas y una segunda fila las canjeaba en la barra. A las 15:30 comprar era relativamente rápido, aunque igual llevaba su tiempo. Entre las 18:00 y las 20:00 la fila de canje tomó más de 40 minutos con las fichas ya compradas, y la fila de la ventanilla también era larga. El modelo reproduce esa noche y la repite con otras formas de vender y con otro personal.
@@ -77,28 +79,6 @@ uv run python scripts/run_calibration.py --base config/base_alt.yaml
 ```
 
 Un cambio de escenario es una ruta con puntos dentro de `base.yaml`. Los valores que empiezan con `=` se calculan a partir de la noche calibrada. Por ejemplo, `bar.n_pour: "= n_pour + n_cashiers"` pasa a la persona de la ventanilla a la barra.
-
-## Sitio web
-
-El reporte está publicado en <https://jospablo777.github.io/orus_fest_beer_sales_simulation/>. Se abre en cualquier navegador, también en el celular.
-
-| Página | Contenido |
-|---|---|
-| [Resumen](https://jospablo777.github.io/orus_fest_beer_sales_simulation/) | la propuesta para los organizadores, en español |
-| [Summary (EN)](https://jospablo777.github.io/orus_fest_beer_sales_simulation/en.html) | el mismo resumen, en inglés |
-| [Technical report](https://jospablo777.github.io/orus_fest_beer_sales_simulation/technical.html) | calibración, efectos de cada cambio, personal, aforo, sensibilidad a los rangos de la calibración |
-| [Methods](https://jospablo777.github.io/orus_fest_beer_sales_simulation/methods.html), [Assumptions](https://jospablo777.github.io/orus_fest_beer_sales_simulation/assumptions.html), [Literature](https://jospablo777.github.io/orus_fest_beer_sales_simulation/literature.html) | el modelo, cada supuesto con su fuente y la revisión de literatura |
-
-Las páginas técnicas están en inglés.
-
-Cómo leer el resumen:
-
-- Las secciones siguen este orden: cómo se compraba en 2026, cómo se compra con el plan, qué gana cada quien, el plan en seis acciones, los videos de la noche, el personal y las ventas por hora, qué tan firme es cada resultado, los datos que pedimos a los organizadores y cómo se hizo el estudio.
-- Los números salen de noches simuladas. Una cifra sola es la noche típica (la mediana). Un rango "entre X y Y" incluye 9 de cada 10 noches simuladas.
-- En las gráficas la línea es la noche típica y la franja el rango entre noches.
-- En los videos cada punto es una persona. A la izquierda está la noche de 2026 y a la derecha la misma noche con el plan.
-
-El sitio se genera con Quarto a partir de `site/` y se publica con GitHub Actions (`.github/workflows/site.yml`) en cada push a `main` que cambie el sitio, los documentos, las figuras o los videos. Después de una corrida nueva, `./scripts/run_all.sh` deja el sitio al día en `site/_freeze` y `site/_generated`, y esas carpetas van en el commit.
 
 ## Resultados
 

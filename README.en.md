@@ -2,6 +2,8 @@
 
 [Versión en español](README.md)
 
+The report for the organizers is published at <https://jospablo777.github.io/orus_fest_beer_sales_simulation/>.
+
 Agent-based model of attendance and beer sales at Salón Olímpico Pantitlán (Mexico City). It is calibrated to what we saw when we attended Orus Fest 2026 (1 August 2026) and is used to compare ways of selling at the next edition.
 
 At the 2026 edition beer was sold through a ticket system. One window sold tickets for every drink, and a second line exchanged them at the bar. At 15:30 buying was relatively quick, although it still took a while. Between 18:00 and 20:00 the exchange line took over 40 minutes with the tickets already bought, and the line at the ticket window was long as well. The model reproduces that night, then reruns it with other ways of selling and other crews.
@@ -77,28 +79,6 @@ uv run python scripts/run_calibration.py --base config/base_alt.yaml
 ```
 
 A scenario override is a dotted path into `base.yaml`. Values that start with `=` are computed from the calibrated night, for example `bar.n_pour: "= n_pour + n_cashiers"` moves the ticket seller behind the bar.
-
-## Website
-
-The report is published at <https://jospablo777.github.io/orus_fest_beer_sales_simulation/>. It opens in any browser, phones included.
-
-| Page | Content |
-|---|---|
-| [Resumen](https://jospablo777.github.io/orus_fest_beer_sales_simulation/) | the proposal for the organizers, in Spanish |
-| [Summary (EN)](https://jospablo777.github.io/orus_fest_beer_sales_simulation/en.html) | the same summary, in English |
-| [Technical report](https://jospablo777.github.io/orus_fest_beer_sales_simulation/technical.html) | calibration, effect of each change, staffing, capacity, sensitivity to the calibration ranges |
-| [Methods](https://jospablo777.github.io/orus_fest_beer_sales_simulation/methods.html), [Assumptions](https://jospablo777.github.io/orus_fest_beer_sales_simulation/assumptions.html), [Literature](https://jospablo777.github.io/orus_fest_beer_sales_simulation/literature.html) | the model, every assumption with its source, and the literature review |
-
-The technical pages are in English.
-
-How to read the summary:
-
-- The sections follow this order: how a beer was bought in 2026, how it is bought under the plan, what each party gains, the plan in six actions, the videos of the night, staff and sales per hour, how firm each result is, the records requested from the organizers, and how the study was made.
-- The numbers come from simulated nights. A single figure is the typical night (the median). A range "between X and Y" holds 9 of 10 simulated nights.
-- In the charts the line is the typical night and the band the range across nights.
-- In the videos each dot is one person. The 2026 night is on the left and the same night under the plan on the right.
-
-The site is built with Quarto from `site/` and published with GitHub Actions (`.github/workflows/site.yml`) on every push to `main` that changes the site, the docs, the figures or the videos. After a new run, `./scripts/run_all.sh` leaves the site up to date in `site/_freeze` and `site/_generated`, and those folders go in the commit.
 
 ## Outputs
 
