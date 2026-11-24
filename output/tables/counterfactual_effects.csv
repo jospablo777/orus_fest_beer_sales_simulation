@@ -16,8 +16,8 @@ plan_two_absent,what_if,"Plan, two bartenders absent","Wait of 1 in 10 buyers, 1
 plan_late_sellers,what_if,"Plan, sellers start at 19:00","Wait of 1 in 10 buyers, 18:00–02:00 (min)",-104.402246763133,-122.194551251755,-93.1683681468704,-182.76183220558,-61.2317606564061,64,64,1,0.943990910613364,3.61009732770461e-12
 plan_slow_refill,what_if,"Plan, a seller refill takes 4 min","Wait of 1 in 10 buyers, 18:00–02:00 (min)",-104.508751376289,-123.659623911432,-93.3924103821393,-182.714285411921,-61.2286950877491,64,64,1,0.943990910613364,3.61009732770461e-12
 plan_big_tray,what_if,"Plan, sellers carry 12 beers per trip","Wait of 1 in 10 buyers, 18:00–02:00 (min)",-108.218551566932,-124.23757573021,-96.4454532985989,-183.141658422134,-61.1683731225614,64,64,1,0.943990910613364,3.61009732770461e-12
-plan_minimum,what_if,Plan with the minimum crew,"Wait of 1 in 10 buyers, 18:00–02:00 (min)",-106.019869422953,-123.583919748341,-93.7866731866873,-183.942004534518,-60.1851513400826,64,64,1,0.943990910613364,3.61009732770461e-12
-plan_minimum_two_absent,what_if,"Plan with the minimum crew, two bartenders absent","Wait of 1 in 10 buyers, 18:00–02:00 (min)",-72.6617908883127,-87.471941857293,-60.5384821497239,-154.098664584922,-22.7350360926839,64,64,1,0.943990910613364,3.61009732770461e-12
+plan_minimum,what_if,Plan with the minimum crew,"Wait of 1 in 10 buyers, 18:00–02:00 (min)",-105.247410924967,-123.166210669063,-94.0076131778184,-183.196096157088,-61.3509786579649,64,64,1,0.943990910613364,3.61009732770461e-12
+plan_minimum_two_absent,what_if,"Plan with the minimum crew, two bartenders absent","Wait of 1 in 10 buyers, 18:00–02:00 (min)",-104.10119298003,-123.155840399778,-91.0402498341366,-182.95234394073,-51.1971302012895,64,64,1,0.943990910613364,3.61009732770461e-12
 no_sellers,what_if,No sellers: 12 stations + a second bar with 4,"Wait of 1 in 10 buyers, 18:00–02:00 (min)",-104.095550690411,-123.709918290587,-92.4783224219058,-182.337937009388,-61.601408840158,64,64,1,0.943990910613364,3.61009732770461e-12
 more_cashiers,main,4 ticket windows,Beers sold,7,-10.0125,17,-61.7,73.3499999999999,35,64,0.546875,0.417476315316048,0.728009505961002
 presale_bundles,main,Tickets sold with entry + 5-packs,Beers sold,17,4.5,23.5,-56.1,79.3499999999999,44,64,0.6875,0.559405633182538,0.00301554569986817
@@ -36,8 +36,8 @@ plan_two_absent,what_if,"Plan, two bartenders absent",Beers sold,3254,2979.5,348
 plan_late_sellers,what_if,"Plan, sellers start at 19:00",Beers sold,3375,3087,3586,2295,4442.4,64,64,1,0.943990910613364,3.60955709766131e-12
 plan_slow_refill,what_if,"Plan, a seller refill takes 4 min",Beers sold,3379,3079,3583,2313.9,4477.25,64,64,1,0.943990910613364,3.61000118687116e-12
 plan_big_tray,what_if,"Plan, sellers carry 12 beers per trip",Beers sold,3386,3066.5,3667.5,2354.2,4568.6,64,64,1,0.943990910613364,3.60955709766131e-12
-plan_minimum,what_if,Plan with the minimum crew,Beers sold,3122,2935.6875,3420.5,2250.5,4159.75,64,64,1,0.943990910613364,3.60911300845146e-12
-plan_minimum_two_absent,what_if,"Plan with the minimum crew, two bartenders absent",Beers sold,2590.5,2404,2824,1827.45,3479.55,64,64,1,0.943990910613364,3.60955709766131e-12
+plan_minimum,what_if,Plan with the minimum crew,Beers sold,3267.5,3001.4625,3537.5,2285.9,4407.2,64,64,1,0.943990910613364,3.61000118687116e-12
+plan_minimum_two_absent,what_if,"Plan with the minimum crew, two bartenders absent",Beers sold,3142.5,2860,3361,2261.3,4099.05,64,64,1,0.943990910613364,3.60955709766131e-12
 no_sellers,what_if,No sellers: 12 stations + a second bar with 4,Beers sold,3322,3088.7875,3603,2364.2,4502.85,64,64,1,0.943990910613364,3.60911300845146e-12
 more_cashiers,main,4 ticket windows,Purchase attempts abandoned,15.5,-5.5,34,-70,120.2,28,64,0.4375,0.313734753548496,0.0611393603965313
 presale_bundles,main,Tickets sold with entry + 5-packs,Purchase attempts abandoned,33,8,52.5,-50.65,193.35,20,64,0.3125,0.20242147258013,7.15971633238333e-05
@@ -56,8 +56,8 @@ plan_two_absent,what_if,"Plan, two bartenders absent",Purchase attempts abandone
 plan_late_sellers,what_if,"Plan, sellers start at 19:00",Purchase attempts abandoned,-1341.5,-1450,-1194,-2187.25,-849.65,64,64,1,0.943990910613364,3.60960000273172e-12
 plan_slow_refill,what_if,"Plan, a seller refill takes 4 min",Purchase attempts abandoned,-1341.5,-1450,-1194,-2187.25,-849.65,64,64,1,0.943990910613364,3.60960000273172e-12
 plan_big_tray,what_if,"Plan, sellers carry 12 beers per trip",Purchase attempts abandoned,-1341.5,-1450,-1194,-2187.25,-849.65,64,64,1,0.943990910613364,3.60960000273172e-12
-plan_minimum,what_if,Plan with the minimum crew,Purchase attempts abandoned,-1341.5,-1416,-1192,-2186.4,-832.05,64,64,1,0.943990910613364,3.60910274076301e-12
-plan_minimum_two_absent,what_if,"Plan with the minimum crew, two bartenders absent",Purchase attempts abandoned,-1189,-1369,-1100,-1975.3,-600.300000000001,64,64,1,0.943990910613364,3.60910274076301e-12
+plan_minimum,what_if,Plan with the minimum crew,Purchase attempts abandoned,-1341.5,-1446,-1194,-2187.25,-849.65,64,64,1,0.943990910613364,3.60960000273172e-12
+plan_minimum_two_absent,what_if,"Plan with the minimum crew, two bartenders absent",Purchase attempts abandoned,-1331.5,-1422.5,-1183,-2183,-849.65,64,64,1,0.943990910613364,3.60960000273172e-12
 no_sellers,what_if,No sellers: 12 stations + a second bar with 4,Purchase attempts abandoned,-1341.5,-1463,-1194,-2187.25,-849.65,64,64,1,0.943990910613364,3.60960000273172e-12
 more_cashiers,main,4 ticket windows,Headliner minutes in line per buyer,0.474634415966193,-0.848224592626199,1.12308444088593,-5.83986238122605,4.64065913333861,28,64,0.4375,0.313734753548496,0.975992268377287
 presale_bundles,main,Tickets sold with entry + 5-packs,Headliner minutes in line per buyer,0.52109037685549,-1.09651097150262,1.71076083834273,-5.55755891229834,7.5938693127504,30,64,0.46875,0.34279652893962,0.646884857584259
@@ -76,8 +76,8 @@ plan_two_absent,what_if,"Plan, two bartenders absent",Headliner minutes in line 
 plan_late_sellers,what_if,"Plan, sellers start at 19:00",Headliner minutes in line per buyer,-74.5186953804446,-85.1640172792585,-64.8123562104983,-117.798352135458,-38.5600391131763,64,64,1,0.943990910613364,3.61009732770461e-12
 plan_slow_refill,what_if,"Plan, a seller refill takes 4 min",Headliner minutes in line per buyer,-71.9770498320594,-85.003897481857,-64.5897788131457,-117.596150961416,-38.5696606006618,64,64,1,0.943990910613364,3.61009732770461e-12
 plan_big_tray,what_if,"Plan, sellers carry 12 beers per trip",Headliner minutes in line per buyer,-76.0242319989572,-84.3609154760044,-65.0404980548355,-117.882473762384,-38.5841870507948,64,64,1,0.943990910613364,3.61009732770461e-12
-plan_minimum,what_if,Plan with the minimum crew,Headliner minutes in line per buyer,-74.4546064959704,-85.4508553877366,-65.0377393359507,-118.225047112561,-38.7975477862158,64,64,1,0.943990910613364,3.61009732770461e-12
-plan_minimum_two_absent,what_if,"Plan with the minimum crew, two bartenders absent",Headliner minutes in line per buyer,-69.8225274226969,-79.2206587312528,-59.9928181344344,-112.273938314257,-38.1776978059825,64,64,1,0.943990910613364,3.61009732770461e-12
+plan_minimum,what_if,Plan with the minimum crew,Headliner minutes in line per buyer,-73.6537721689352,-85.3654781885358,-64.9404732628198,-117.943982481165,-38.703797180489,64,64,1,0.943990910613364,3.61009732770461e-12
+plan_minimum_two_absent,what_if,"Plan with the minimum crew, two bartenders absent",Headliner minutes in line per buyer,-66.7472107891273,-84.5054722700509,-63.4285895118672,-117.518641140296,-38.6217039828749,64,64,1,0.943990910613364,3.61009732770461e-12
 no_sellers,what_if,No sellers: 12 stations + a second bar with 4,Headliner minutes in line per buyer,-69.5139219163004,-84.7125469670405,-63.8764474289309,-117.21616454589,-38.7161040177637,64,64,1,0.943990910613364,3.61009732770461e-12
 more_cashiers,main,4 ticket windows,"Hours in line, everyone added up",-26.6455239102161,-39.2687493093495,-8.01202608234826,-118.014946415953,53.0042185002565,44,64,0.6875,0.559405633182538,0.000238050875701501
 presale_bundles,main,Tickets sold with entry + 5-packs,"Hours in line, everyone added up",-32.3793994007124,-48.2739415046515,-17.8925018736527,-103.258794937477,28.7203963037627,48,64,0.75,0.626009543118181,1.30882166621563e-06
@@ -96,6 +96,6 @@ plan_two_absent,what_if,"Plan, two bartenders absent","Hours in line, everyone a
 plan_late_sellers,what_if,"Plan, sellers start at 19:00","Hours in line, everyone added up",-1398.67066636345,-1515.14353839601,-1270.61960115064,-2088.02277948074,-740.9958896057,64,64,1,0.943990910613364,3.61009732770461e-12
 plan_slow_refill,what_if,"Plan, a seller refill takes 4 min","Hours in line, everyone added up",-1391.3867215006,-1477.35332959806,-1275.39105976331,-2089.13443253807,-744.848434096249,64,64,1,0.943990910613364,3.61009732770461e-12
 plan_big_tray,what_if,"Plan, sellers carry 12 beers per trip","Hours in line, everyone added up",-1418.52620295488,-1545.20695238112,-1298.72321515407,-2244.52622711321,-759.310997410971,64,64,1,0.943990910613364,3.61009732770461e-12
-plan_minimum,what_if,Plan with the minimum crew,"Hours in line, everyone added up",-1346.21003504044,-1467.05797621783,-1256.54240245979,-2112.29356179122,-771.778320747569,64,64,1,0.943990910613364,3.61009732770461e-12
-plan_minimum_two_absent,what_if,"Plan with the minimum crew, two bartenders absent","Hours in line, everyone added up",-1010.86518377563,-1090.46540716362,-931.653770303519,-1508.23309372689,-627.818733086983,64,64,1,0.943990910613364,3.61009732770461e-12
+plan_minimum,what_if,Plan with the minimum crew,"Hours in line, everyone added up",-1422.27105306479,-1531.57207095356,-1293.94427233641,-2098.3609019555,-764.299440320674,64,64,1,0.943990910613364,3.61009732770461e-12
+plan_minimum_two_absent,what_if,"Plan with the minimum crew, two bartenders absent","Hours in line, everyone added up",-1317.34536373792,-1420.64432673195,-1236.37321734383,-2074.58170770331,-732.592622725694,64,64,1,0.943990910613364,3.61009732770461e-12
 no_sellers,what_if,No sellers: 12 stations + a second bar with 4,"Hours in line, everyone added up",-1332.36819187372,-1402.11413838652,-1193.98509536995,-2050.65284469244,-697.350974615137,64,64,1,0.943990910613364,3.61009732770461e-12

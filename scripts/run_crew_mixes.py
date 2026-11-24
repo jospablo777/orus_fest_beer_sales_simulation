@@ -1,4 +1,4 @@
-"""Chooses the recommended and complete crews by their results under stress cases.
+"""Chooses the minimum, recommended and complete crews by their results under stress cases.
 
 At each ticket level of the staffing grid, the candidates of a level are the crews that reach
 its reliability with staff hours within 5% of the fewest (sim/staffing.py: candidates). Every
@@ -81,13 +81,19 @@ def main():
     cols = [c for c in draws.columns if c in cal["priors"]]
     summary = pd.read_csv(TAB / "staffing_reliability.csv")
     summary = summary[summary["n_total"].isin(spec["grid"]["crowd.n_total"])]
-    levels = {"recommended": spec["reliability_recommended"],
+    levels = {"minimum": spec["reliability"],
+              "recommended": spec["reliability_recommended"],
               "complete": spec["reliability_complete"]}
     cands = pd.concat([staffing.candidates(summary, r).assign(level=lv)
                        for lv, r in levels.items()], ignore_index=True)
     crews = cands[["n_total", "n_pour", "sellers"]].drop_duplicates()
     cases = spec["stress_cases"]
 
+    # runs stored by an earlier call are reused; only crews and cases not in them are run
+    stored_path = RUNS / "crew_mixes_runs.csv"
+    stored = pd.read_csv(stored_path) if stored_path.exists() else pd.DataFrame()
+    done = (set(zip(stored["n_total"], stored["n_pour"], stored["sellers"], stored["case"]))
+            if len(stored) else set())
     tasks = []
     for _, row in draws.iterrows():
         cfg0 = ex.draw_config(base, row[cols], cal["priors"])
@@ -97,14 +103,20 @@ def main():
             cfg1 = params.with_overrides(cfg0, {"crowd.n_total": int(c.n_total),
                                                 "bar.n_pour": crew[0], "sellers.n": crew[1]})
             for name, over in cases.items():
+                if (int(c.n_total), crew[0], crew[1], name) in done:
+                    continue
                 cfg = params.with_overrides(cfg1, resolve(over, cfg1, crew))
                 tasks.append((cfg, 90_000 + int(row["draw"]), cal["observations"],
                               {"draw": int(row["draw"]), "n_total": int(c.n_total),
                                "n_pour": crew[0], "sellers": crew[1], "case": name}))
     t0 = time.time()
-    metrics, _, _ = ex.run_many_resumable(tasks, RUNS / "parts_mixes", processes=args.processes)
-    print(f"{len(tasks)} runs in {time.time() - t0:.0f} s")
-    metrics.to_csv(RUNS / "crew_mixes_runs.csv", index=False)
+    if tasks:
+        new, _, _ = ex.run_many_resumable(tasks, RUNS / "parts_mixes", processes=args.processes)
+        metrics = pd.concat([stored, new], ignore_index=True)
+    else:
+        metrics = stored
+    print(f"{len(tasks)} new runs in {time.time() - t0:.0f} s")
+    metrics.to_csv(stored_path, index=False)
     metrics["met"] = ((metrics["evening_p90_min"] <= target["evening_p90_min"])
                       & (metrics["abandon_share"] <= target["abandon_share"]))
 

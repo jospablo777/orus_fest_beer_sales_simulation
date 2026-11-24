@@ -146,11 +146,11 @@ h_staff:
   es: "Personal y ventas por hora"
   en: "Staff and sales by the hour"
 staff_intro:
-  es: "El plan usa {staff_plan} personas en cerveza y en 2026 eran unas {staff_2026}. Son unas {extra_hours} horas de trabajo más por noche. Cada hora adicional vende unas {per_hour} cervezas (entre {per_hour_lo} y {per_hour_hi}), unos {per_hour_mxn} pesos en ventas, sin contar costos."
-  en: "The plan uses {staff_plan} people on beer and in 2026 there were about {staff_2026}. That is about {extra_hours} more working hours per night. Each extra hour sells about {per_hour} beers (between {per_hour_lo} and {per_hour_hi}), about MXN {per_hour_mxn} in sales, costs not included."
+  es: "El plan usa {staff_plan} personas en cerveza y en 2026 eran unas {staff_2026}. Son unas {extra_hours} horas de trabajo más por noche. Cada hora adicional vende unas {per_hour} cervezas (entre {per_hour_lo} y {per_hour_hi}), unos {per_hour_mxn} pesos en ventas {price_note_es}, sin contar costos."
+  en: "The plan uses {staff_plan} people on beer and in 2026 there were about {staff_2026}. That is about {extra_hours} more working hours per night. Each extra hour sells about {per_hour} beers (between {per_hour_lo} and {per_hour_hi}), about MXN {per_hour_mxn} in sales {price_note_en}, costs not included."
 staff_text:
-  es: "La meta es que 9 de cada 10 compradores esperen {target_wait} minutos o menos entre las {svc_from} y las {svc_to}. Cada barra de la gráfica es una opción de personal y muestra en cuántas de {crew_nights} noches simuladas se cumple la meta. La gráfica incluye el personal recomendado y todas las opciones con menos horas de trabajo."
-  en: "The target is that 9 of 10 buyers wait {target_wait} minutes or less between {svc_from} and {svc_to}. Each bar of the chart is a crew option and shows in how many of {crew_nights} simulated nights the target is met. The chart includes the recommended crew and every option with fewer working hours."
+  es: "La meta es que 9 de cada 10 compradores esperen {target_wait} minutos o menos entre las {svc_from} y las {svc_to}. Cada barra de la gráfica es una opción de personal y muestra en cuántas de {crew_nights} noches simuladas se cumple la meta, de menos a más horas de trabajo hasta el personal completo."
+  en: "The target is that 9 of 10 buyers wait {target_wait} minutes or less between {svc_from} and {svc_to}. Each bar of the chart is a crew option and shows in how many of {crew_nights} simulated nights the target is met, from fewer to more working hours up to the complete crew."
 alone_sentence:
   es: " También incluye la opción sin vendedores más chica que cumple la meta en al menos el {reliability} de las noches."
   en: " It also includes the smallest option without sellers that meets the target in at least {reliability} of the nights."
@@ -335,6 +335,12 @@ fig_wait_alt:
 fig_sales_alt:
   es: "Cervezas vendidas por hora, 2026 y el plan"
   en: "Beers sold per hour, 2026 and the plan"
+ev_crews_cap:
+  es: "Entre las opciones con casi las mismas horas de trabajo se resalta la que mejor resiste los casos de estrés."
+  en: "Among the options with almost the same working hours, the one that holds up best in the stress cases is highlighted."
+price_note:
+  es: "a {price} pesos la cerveza (precio supuesto)"
+  en: "at MXN {price} per beer (assumed price)"
 fig_crews_alt:
   es: "Opciones de personal y porcentaje de noches en que cada una cumple la meta"
   en: "Crew options and the share of nights in which each one meets the target"
@@ -369,7 +375,7 @@ sum_h_total: {es: "En total", en: "In total"}
 sum_big_wait_l: {es: "en la fila entre las {obs_from} y las {obs_to}; más de 40 es lo que vimos", en: "in line between {obs_from} and {obs_to}; more than 40 is what we saw"}
 sum_big_wait_r: {es: "con el plan, entre {plan_wait_lo} y {plan_wait_hi} min", en: "under the plan, between {plan_wait_lo} and {plan_wait_hi} min"}
 sum_big_beers_v: {es: "+{d_beers} cervezas", en: "+{d_beers} beers"}
-sum_big_beers_l: {es: "cerca de {d_mxn} pesos por noche, sin contar costos", en: "about MXN {d_mxn} per night, costs not included"}
+sum_big_beers_l: {es: "cerca de {d_mxn} pesos por noche {price_note_es}, sin contar costos", en: "about MXN {d_mxn} per night {price_note_en}, costs not included"}
 sum_big_beers_r: {es: "entre {d_beers_lo} y {d_beers_hi} cervezas", en: "between {d_beers_lo} and {d_beers_hi} beers"}
 sum_big_staff_v: {es: "+{extra_staff} personas", en: "+{extra_staff} people"}
 sum_big_staff_l: {es: "unas {extra_hours} horas de trabajo; cada hora adicional vende unas {per_hour} cervezas", en: "about {extra_hours} working hours; each extra hour sells about {per_hour} beers"}
@@ -394,12 +400,12 @@ sum_h_need: {es: "Qué necesitamos de ustedes", en: "What we need from you"}
 sum_need:
   es:
     - "¿El salón permite entregar latas cerradas?"
-    - "¿Quién opera la barra y recibe la venta: Orus Producciones, el salón o un concesionario?"
+    - "¿Quién opera la barra: Orus Producciones, el salón o un concesionario?"
     - "¿Cuánto cuesta una hora de trabajo en la barra?"
     - "¿Cuántas personas pueden atender en la barra al mismo tiempo?"
   en:
     - "Does the venue allow closed cans to be handed out?"
-    - "Who runs the bar and receives the sales: Orus Producciones, the venue or a concessionaire?"
+    - "Who runs the bar: Orus Producciones, the venue or a concessionaire?"
     - "What does one working hour at the bar cost?"
     - "How many people can serve at the bar at the same time?"
 sum_contact:
@@ -407,8 +413,8 @@ sum_contact:
   en: "You can reply to {author} on <a href=\"{contact_url}\">{contact_label}</a>."
 sum_button: {es: "Ver la evidencia", en: "See the evidence"}
 sum_note:
-  es: "Los números son estimaciones de una simulación ajustada a lo que vimos en 2026."
-  en: "The numbers are estimates from a simulation fitted to what we saw in 2026."
+  es: "Números estimados con una simulación ajustada a lo que vimos en 2026."
+  en: "Numbers estimated with a simulation fitted to what we saw in 2026."
 ba_title: {es: "Una cerveza entre las {obs_from} y las {obs_to}", en: "One beer between {obs_from} and {obs_to}"}
 ba_2026: {es: "2026", en: "2026"}
 ba_plan: {es: "Con el plan", en: "Under the plan"}
@@ -438,7 +444,7 @@ ev_lead3:
 ev_changes_cap:
   es: "Espera de 9 de cada 10 compradores entre las {svc_from} y las {svc_to}, noche típica y rango entre noches. Al final de cada barra, las cervezas adicionales por noche."
   en: "Wait of 9 of 10 buyers between {svc_from} and {svc_to}, typical night and range across nights. At the end of each bar, the extra beers per night."
-ev_h4: {es: "El personal: dos niveles", en: "Staff: two levels"}
+ev_h4: {es: "El personal: tres niveles", en: "Staff: three levels"}
 ev_lead4:
   es: "El personal recomendado, {crew_es}, cumple la meta en {rec_met} de {rec_nights} noches y es el que mejor resiste cuando la noche sale mal."
   en: "The recommended crew, {crew_en}, meets the target in {rec_met} of {rec_nights} nights and holds up best when the night goes wrong."
@@ -446,8 +452,8 @@ ev_plan_legend:
   es: "Cuadros detrás de la barra: personas que atienden. Puntos verdes: vendedores en pista. Líneas blancas: un carril con vallas por puesto. Flecha: pasillo central libre."
   en: "Squares behind the bar: bar staff. Green dots: floor sellers. White lines: one lane with barriers per station. Arrow: open central walkway."
 ev_levels:
-  es: "Hay dos niveles para {tickets} boletos. Recomendado: {crew_es}, cumple en {rec_met} de {rec_nights} noches. Completo: {full_crew_es}, cumple en {full_met} de {full_nights}. Varias combinaciones de puestos y vendedores con casi las mismas horas de trabajo cumplen como el recomendado, y con {nights} noches no se distinguen. Elegimos la que cumple en más noches cuando faltan personas, los vendedores llegan tarde o hay más público."
-  en: "There are two levels for {tickets} tickets. Recommended: {crew_en}, met in {rec_met} of {rec_nights} nights. Complete: {full_crew_en}, met in {full_met} of {full_nights}. Several mixes of stations and sellers with almost the same working hours do as well as the recommended crew, and {nights} nights cannot tell them apart. We chose the one that meets the target in the most nights when people are missing, sellers start late or the crowd is larger."
+  es: "Hay tres niveles para {tickets} boletos. Mínimo: {min_crew_es}, cumple en {min_met} de {min_nights} noches y en {min_worst} de {min_nights} en el peor caso. Recomendado: {crew_es}, cumple en {rec_met} de {rec_nights} y en {rec_worst} en el peor caso. Completo: {full_crew_es}, cumple en {full_met} de {full_nights} y en {full_worst} en el peor caso. En cada nivel varias combinaciones con casi las mismas horas de trabajo cumplen igual, y con {nights} noches no se distinguen; elegimos la que cumple en más noches cuando faltan personas, los vendedores llegan tarde o hay más público."
+  en: "There are three levels for {tickets} tickets. Minimum: {min_crew_en}, met in {min_met} of {min_nights} nights and in {min_worst} of {min_nights} in the worst case. Recommended: {crew_en}, met in {rec_met} of {rec_nights} and in {rec_worst} in the worst case. Complete: {full_crew_en}, met in {full_met} of {full_nights} and in {full_worst} in the worst case. At each level several mixes with almost the same working hours do equally well, and {nights} nights cannot tell them apart; we chose the one that meets the target in the most nights when people are missing, sellers start late or the crowd is larger."
 ev_mixes_cap:
   es: "Combinaciones de personal con casi las mismas horas de trabajo: noches que cumplen la meta en la noche base y en el peor de siete casos de estrés."
   en: "Crew mixes with almost the same working hours: nights that meet the target in the base case and in the worst of seven stress cases."

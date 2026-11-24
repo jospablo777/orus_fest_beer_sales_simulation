@@ -391,6 +391,11 @@ def extra_fields(v: dict, lang: str, text: dict, f: dict) -> dict:
                 "full_plus25": str(r.get("complete_plus25_met", "")),
                 "rec_plus25": str(r.get("recommended_plus25_met", ""))})
     out["tap_range_touches_zero"] = cut.quantile(0.05) <= 0
+    for code in ("es", "en"):
+        out[f"price_note_{code}"] = text["price_note"][code].format(price=n0(r["price"]))
+    out.update({"min_worst": str(r.get("minimum_worst_met", "")),
+                "rec_worst": str(r.get("recommended_worst_met", "")),
+                "full_worst": str(r.get("complete_worst_met", ""))})
     out["full_crew_es"] = crew_name(r["full_taps"], r["full_sellers"], "es")
     out["full_crew_en"] = crew_name(r["full_taps"], r["full_sellers"], "en")
     return out
@@ -486,8 +491,6 @@ def evidence_pieces(lang: str) -> list[tuple[str, str]]:
         if row["crew"] is None:
             rows.append((n0(row["tickets"]), text["staff_none"][lang], "", ""))
             continue
-        if row["level"] == "minimum":            # the minimum stays on the technical page
-            continue
         kind = "fallback" if row["fallback"] else row["level"]
         people = "personas" if lang == "es" else "people"
         rows.append((n0(row["tickets"]), text["crew_level"][kind][lang],
@@ -499,7 +502,7 @@ def evidence_pieces(lang: str) -> list[tuple[str, str]]:
             ("p", t("ev_levels")),
             pg.figure(pg.chart("summary_mixes", t("ev_mixes_cap")), t("ev_mixes_cap")),
             ("p", t("ev_counter") + (" " + t("ev_counter_alt") if r.get("alt_taps") else "")),
-            pg.figure(pg.chart("summary_crews", t("fig_crews_alt"))),
+            pg.figure(pg.chart("summary_crews", t("fig_crews_alt")), t("ev_crews_cap")),
             ("p", t("staff_text")),
             ("html", pg.html_table(text["staff_table_head_short"][lang], rows)),
             ("p", t("staff_intro")), ("p", t("ev_surcharge"))]

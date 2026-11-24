@@ -20,7 +20,7 @@ At Orus Fest 2026 the line for a beer took more than 40 minutes between 18:00 an
 ## In total
 
 ```{=html}
-<div class="bigs"><div class="big"><span class="v">40+ → 3 min</span><span class="l">in line between 18:00 and 20:00; more than 40 is what we saw</span><span class="rng">under the plan, between 2 and 5 min</span></div><div class="big"><span class="v">+3,300 beers</span><span class="l">about MXN 264,000 per night, costs not included</span><span class="rng">between 2,242 and 4,579 beers</span></div><div class="big"><span class="v">+15 people</span><span class="l">about 177 working hours; each extra hour sells about 20 beers</span><span class="rng">between 13 and 31 beers per extra hour</span></div></div>
+<div class="bigs"><div class="big"><span class="v">40+ → 3 min</span><span class="l">in line between 18:00 and 20:00; more than 40 is what we saw</span><span class="rng">under the plan, between 2 and 5 min</span></div><div class="big"><span class="v">+3,300 beers</span><span class="l">about MXN 264,000 per night at MXN 80 per beer (assumed price), costs not included</span><span class="rng">between 2,242 and 4,579 beers</span></div><div class="big"><span class="v">+15 people</span><span class="l">about 177 working hours; each extra hour sells about 20 beers</span><span class="rng">between 13 and 31 beers per extra hour</span></div></div>
 ```
 
 The target, 9 of 10 buyers waiting 10 minutes or less, is met in 61 of 64 simulated nights. With 6 more people, in 64 of 64, and in 61 of 64 if 2,500 tickets are sold (with the recommended crew, 53).
@@ -57,9 +57,9 @@ The target, 9 of 10 buyers waiting 10 minutes or less, is met in 61 of 64 simula
 ## What we need from you
 
 ```{=html}
-<div class="needs quick"><ul><li>Does the venue allow closed cans to be handed out?</li><li>Who runs the bar and receives the sales: Orus Producciones, the venue or a concessionaire?</li><li>What does one working hour at the bar cost?</li><li>How many people can serve at the bar at the same time?</li></ul><p>You can reply to José P. Barrantes on <a href="https://www.linkedin.com/in/jose-barrantes/">LinkedIn</a>.</p></div>
+<div class="needs quick"><ul><li>Does the venue allow closed cans to be handed out?</li><li>Who runs the bar: Orus Producciones, the venue or a concessionaire?</li><li>What does one working hour at the bar cost?</li><li>How many people can serve at the bar at the same time?</li></ul><p>You can reply to José P. Barrantes on <a href="https://www.linkedin.com/in/jose-barrantes/">LinkedIn</a>.</p></div>
 ```
 
 [See the evidence](evidence.qmd){.btn .btn-primary .evidence-button}
 
-The numbers are estimates from a simulation fitted to what we saw in 2026.
+Numbers estimated with a simulation fitted to what we saw in 2026.

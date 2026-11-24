@@ -49,6 +49,7 @@ TEXT = {
         "crews_x": "share of simulated nights in which 9 of 10 buyers wait {wait} min or less",
         "crew": "{taps} stations", "crew_s": "{taps} stations + {sellers} sellers",
         "nights": "{k} of {n} nights", "chosen": "recommended", "minimum": "minimum",
+        "complete": "complete",
         "needed": "{r} of nights",
         "seen": "fitted to what we saw", "estimate": "estimate",
         "wait_title_short": "Time in line by hour joined", "wait_y_short": "minutes in line",
@@ -66,6 +67,7 @@ TEXT = {
         "crews_x": "porcentaje de noches simuladas en que 9 de cada 10 esperan {wait} min o menos",
         "crew": "{taps} puestos", "crew_s": "{taps} puestos + {sellers} vendedores",
         "nights": "{k} de {n} noches", "chosen": "recomendado", "minimum": "mínimo",
+        "complete": "completo",
         "needed": "{r} de las noches",
         "seen": "ajustado a lo que vimos", "estimate": "estimación",
         "wait_title_short": "Tiempo en fila según la hora", "wait_y_short": "minutos en fila",
@@ -167,58 +169,65 @@ def sales_figure(v: dict, lang: str, narrow: bool = False):
 
 
 def crews_figure(v: dict, lang: str, narrow: bool = False):
+    """Crew options at the plan ticket level from fewer to more staff hours, up to the
+    complete crew. The minimum, recommended and complete crews are highlighted with a fill
+    and a bold label; dashed lines mark the shares of the minimum and recommended levels."""
     t, raw = TEXT[lang], v["raw"]
     crews = v["crews"]
-    chosen = (crews["n_pour"] == raw["plan_taps"]) & (crews["sellers"] == raw["plan_sellers"])
-    # The organizer pages show two levels (recommended and complete); the minimum crew is on
-    # the technical page only, so it is not marked here.
-    minimum = chosen & False
-    # the recommended crew, every crew with fewer staff hours, and the smallest crew without
-    # sellers that reaches the minimum reliability; the technical page shows the full grid
-    limit = crews.loc[chosen, "staff_hours"].iloc[0]
-    keep = crews["staff_hours"] <= limit
-    alone = crews[(crews["sellers"] == 0) & (crews["share_met"] >= raw["reliability"])]
-    if len(alone):
-        keep |= crews.index == alone.sort_values("staff_hours").index[0]
+
+    def is_crew(df, taps, sellers):
+        return (df["n_pour"] == taps) & (df["sellers"] == sellers)
+
+    levels = [("minimum", raw["min_taps"], raw["min_sellers"], "#8c6a2c"),
+              ("chosen", raw["plan_taps"], raw["plan_sellers"], theme.BRONZE),
+              ("complete", raw["full_taps"], raw["full_sellers"], "#d9a441")]
+    marked = np.zeros(len(crews), bool)
+    for _, taps, sellers, _ in levels:
+        marked |= np.array(is_crew(crews, taps, sellers), dtype=bool)
+    limit = crews.loc[is_crew(crews, raw["full_taps"], raw["full_sellers"]), "staff_hours"]
+    limit = float(limit.iloc[0]) if len(limit) else crews["staff_hours"].max()
+    keep = np.array(crews["staff_hours"] <= limit, dtype=bool)
     if narrow:
-        keep &= crews["share_met"] >= NARROW_MIN_SHARE
-        keep |= chosen | minimum
-    crews = crews[keep].sort_values(["staff_hours", "staff"], ascending=False)
+        keep &= np.array(crews["share_met"] >= NARROW_MIN_SHARE, dtype=bool)
+    crews = crews[keep | marked].sort_values(["staff_hours", "staff"], ascending=False)
     names = [t["crew_s" if r.sellers else "crew"].format(taps=int(r.n_pour), sellers=int(r.sellers))
              for r in crews.itertuples()]
-    chosen = ((crews["n_pour"] == raw["plan_taps"])
-              & (crews["sellers"] == raw["plan_sellers"])).to_numpy()
-    minimum = np.zeros(len(crews), bool)            # not marked on the organizer pages
-    colors = np.where(chosen, theme.BRONZE, np.where(minimum, "#8c6a2c", theme.SILVER))
-
-    def tag(c, mn):
-        if c:
-            return t["chosen"] + (f" = {t['minimum']}" if raw["fallback"] else "")
-        return t["minimum"] if mn else ""
+    tags, colors = [], []
+    for r in crews.itertuples():
+        tag, color = "", theme.SILVER
+        for key, taps, sellers, c in levels:
+            if (r.n_pour, r.sellers) == (taps, sellers):
+                tag = t[key] if not tag else f"{tag} = {t[key]}"
+                color = c
+        tags.append(tag)
+        colors.append(color)
+    rec, rmin = 100 * raw["reliability_rec"], 100 * raw["reliability"]
 
     y = np.arange(len(crews))
     if narrow:
         # each label on its own line above its bar, the count of nights at the end of the bar
-        step = 1.6
-        y = y * step
-        fig, ax = plt.subplots(figsize=(NARROW_W, 0.62 * len(crews) + 1.9))
+        y = y * 1.6
+        fig, ax = plt.subplots(figsize=(NARROW_W, 0.62 * len(crews) + 2.4))
         ax.barh(y, 100 * crews["share_met"], color=colors, edgecolor=theme.PAPER,
                 linewidth=1.0, height=0.62)
-        for yi, name, r, c, mn in zip(y, names, crews.itertuples(), chosen, minimum):
-            label = name + (f"  ·  {tag(c, mn)}" if tag(c, mn) else "")
+        for yi, name, r, tag in zip(y, names, crews.itertuples(), tags):
+            label = name + (f"  ·  {tag}" if tag else "")
             ax.text(0, yi + 0.42, label, va="bottom", ha="left", fontsize=NARROW_FONT,
-                    fontweight="bold" if (c or mn) else "normal", color=theme.INK, zorder=4,
+                    fontweight="bold" if tag else "normal", color=theme.INK, zorder=4,
                     bbox={"fc": ax.get_facecolor(), "ec": "none", "pad": 1.0})
-            ax.text(102, yi, t["nights_short"].format(
-                k=int(r.nights_met), n=int(r.nights)), va="center", fontsize=NARROW_FONT,
-                color=theme.INK)
-        ax.axvline(100 * raw["reliability_rec"], color=theme.INK, lw=1.0, ls=(0, (4, 3)),
-                   alpha=0.8)
-        ax.text(100 * raw["reliability_rec"] + 2.5, y.max() + 1.45,
-                f"{100 * raw['reliability_rec']:.0f}%", ha="left", va="top",
-                fontsize=NARROW_FONT, color=theme.MUTED)
+            ax.text(102, yi, t["nights_short"].format(k=int(r.nights_met), n=int(r.nights)),
+                    va="center", fontsize=NARROW_FONT, color=theme.INK,
+                    fontweight="bold" if tag else "normal")
+        for share in (rmin, rec):
+            ax.axvline(share, color=theme.INK, lw=1.0, ls=(0, (4, 3)), alpha=0.8)
+        top = y.max()
+        box = {"fc": ax.get_facecolor(), "ec": "none", "pad": 1.5}
+        ax.text(rec - 1, top + 2.45, f"{t['chosen']} {rec:.0f}%", ha="right", va="center",
+                fontsize=NARROW_FONT, color=theme.MUTED, bbox=box, zorder=5)
+        ax.text(rmin - 1, top + 1.75, f"{t['minimum']} {rmin:.0f}%", ha="right", va="center",
+                fontsize=NARROW_FONT, color=theme.MUTED, bbox=box, zorder=5)
         ax.set_yticks([])
-        ax.set_ylim(y.min() - 0.6, y.max() + 1.5)
+        ax.set_ylim(y.min() - 0.6, top + 2.9)
         ax.set_xlim(0, 128)
         ax.set_xticks([0, 50, 100])
         ax.set_xticklabels(["0%", "50%", "100%"], fontsize=NARROW_FONT)
@@ -230,23 +239,28 @@ def crews_figure(v: dict, lang: str, narrow: bool = False):
         plt.close(fig)
         return
 
-    fig, ax = plt.subplots(figsize=(10, 0.46 * len(crews) + 1.6))
+    fig, ax = plt.subplots(figsize=(10, 0.46 * len(crews) + 1.8))
     ax.barh(y, 100 * crews["share_met"], color=colors, edgecolor=theme.PAPER, linewidth=1.5,
             height=0.7)
-    for yi, r, c, mn in zip(y, crews.itertuples(), chosen, minimum):
+    for yi, r, tag in zip(y, crews.itertuples(), tags):
         label = t["nights"].format(k=int(r.nights_met), n=int(r.nights))
-        if tag(c, mn):
-            label += f"  ·  {tag(c, mn)}"
+        if tag:
+            label += f"  ·  {tag}"
         ax.text(103, yi, label, va="center", fontsize=11.5,
-                fontweight="bold" if (c or mn) else "normal")
-    ax.axvline(100 * raw["reliability_rec"], color=theme.INK, lw=1.0, ls=(0, (4, 3)),
-               alpha=0.8)
-    ax.text(100 * raw["reliability_rec"] + 1, len(crews) - 0.35,
-            f"{t['chosen']} {100 * raw['reliability_rec']:.0f}%", fontsize=10,
+                fontweight="bold" if tag else "normal")
+    for share in (rmin, rec):
+        ax.axvline(share, color=theme.INK, lw=1.0, ls=(0, (4, 3)), alpha=0.8)
+    ax.text(rmin - 1, len(crews) - 0.35, f"{t['minimum']} {rmin:.0f}%", fontsize=10,
+            color=theme.MUTED, va="bottom", ha="right")
+    ax.text(rec + 1, len(crews) - 0.35, f"{t['chosen']} {rec:.0f}%", fontsize=10,
             color=theme.MUTED, va="bottom", ha="left")
     ax.set_yticks(y)
     ax.set_yticklabels(names)
-    ax.set_xlim(0, 150)
+    for lab, tag in zip(ax.get_yticklabels(), tags):
+        if tag:
+            lab.set_fontweight("bold")
+    ax.set_ylim(-0.6, len(crews) + 0.4)
+    ax.set_xlim(0, 155)
     ax.set_xticks([0, 25, 50, 75, 100])
     ax.set_xticklabels(["0%", "25%", "50%", "75%", "100%"])
     ax.set_xlabel(t["crews_x"].format(wait=raw["target_wait"]), fontsize=11.5)

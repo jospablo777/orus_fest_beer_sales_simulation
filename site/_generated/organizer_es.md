@@ -20,7 +20,7 @@ En Orus Fest 2026 la fila para una cerveza tomó más de 40 minutos entre las 18
 ## En total
 
 ```{=html}
-<div class="bigs"><div class="big"><span class="v">40+ → 3 min</span><span class="l">en la fila entre las 18:00 y las 20:00; más de 40 es lo que vimos</span><span class="rng">con el plan, entre 2 y 5 min</span></div><div class="big"><span class="v">+3,300 cervezas</span><span class="l">cerca de 264,000 pesos por noche, sin contar costos</span><span class="rng">entre 2,242 y 4,579 cervezas</span></div><div class="big"><span class="v">+15 personas</span><span class="l">unas 177 horas de trabajo; cada hora adicional vende unas 20 cervezas</span><span class="rng">entre 13 y 31 cervezas por hora adicional</span></div></div>
+<div class="bigs"><div class="big"><span class="v">40+ → 3 min</span><span class="l">en la fila entre las 18:00 y las 20:00; más de 40 es lo que vimos</span><span class="rng">con el plan, entre 2 y 5 min</span></div><div class="big"><span class="v">+3,300 cervezas</span><span class="l">cerca de 264,000 pesos por noche a 80 pesos la cerveza (precio supuesto), sin contar costos</span><span class="rng">entre 2,242 y 4,579 cervezas</span></div><div class="big"><span class="v">+15 personas</span><span class="l">unas 177 horas de trabajo; cada hora adicional vende unas 20 cervezas</span><span class="rng">entre 13 y 31 cervezas por hora adicional</span></div></div>
 ```
 
 La meta, que 9 de cada 10 compradores esperen 10 minutos o menos, se cumple en 61 de 64 noches simuladas. Con 6 personas más, en 64 de 64, y en 61 de 64 si se venden 2,500 boletos (con el recomendado, 53).
@@ -57,9 +57,9 @@ La meta, que 9 de cada 10 compradores esperen 10 minutos o menos, se cumple en 6
 ## Qué necesitamos de ustedes
 
 ```{=html}
-<div class="needs quick"><ul><li>¿El salón permite entregar latas cerradas?</li><li>¿Quién opera la barra y recibe la venta: Orus Producciones, el salón o un concesionario?</li><li>¿Cuánto cuesta una hora de trabajo en la barra?</li><li>¿Cuántas personas pueden atender en la barra al mismo tiempo?</li></ul><p>Pueden responder a José P. Barrantes por <a href="https://www.linkedin.com/in/jose-barrantes/">LinkedIn</a>.</p></div>
+<div class="needs quick"><ul><li>¿El salón permite entregar latas cerradas?</li><li>¿Quién opera la barra: Orus Producciones, el salón o un concesionario?</li><li>¿Cuánto cuesta una hora de trabajo en la barra?</li><li>¿Cuántas personas pueden atender en la barra al mismo tiempo?</li></ul><p>Pueden responder a José P. Barrantes por <a href="https://www.linkedin.com/in/jose-barrantes/">LinkedIn</a>.</p></div>
 ```
 
 [Ver la evidencia](evidencia.qmd){.btn .btn-primary .evidence-button}
 
-Los números son estimaciones de una simulación ajustada a lo que vimos en 2026.
+Números estimados con una simulación ajustada a lo que vimos en 2026.

@@ -3,10 +3,9 @@
 A crew (stations, sellers) is judged by the share of simulated nights in which it meets the
 service target. For each ticket level three crews are chosen: the minimum crew (`reliability`), the
 recommended crew (`reliability_recommended`) and the complete crew (`reliability_complete`,
-every simulated night). The minimum crew is the one with the fewest staff hours that reaches
-its share. For the recommended and complete levels several crews within 5% of the fewest
-hours reach the share, and 64 nights cannot tell them apart; scripts/run_crew_mixes.py runs
-those candidates under stress cases and keeps the one that holds best
+every simulated night). At each level several crews within 5% of the fewest staff hours
+reach the share, and 64 nights cannot tell them apart; scripts/run_crew_mixes.py runs those
+candidates under stress cases and keeps the one that holds best
 (`chosen_by` = "stress cases"). Before that step the fewest-hours crew stands in
 (`chosen_by` = "fewest staff hours"). The plan uses the recommended crew, or the minimum
 crew when no crew reaches the higher share.

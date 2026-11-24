@@ -159,6 +159,10 @@ def mixes_values(tickets: int, plan_taps: int, plan_sellers: int) -> dict:
     mx = pd.read_csv(path)
     mx = mx[mx["n_total"] == tickets]
     out = {}
+    for level in ("minimum", "recommended", "complete"):
+        c = mx[(mx["level"] == level) & mx["chosen"] & (mx["case"] != "base")]
+        if len(c):
+            out[f"{level}_worst_met"] = int(c["nights_met"].min())
     for level in ("recommended", "complete"):
         c = mx[(mx["level"] == level) & mx["chosen"] & (mx["case"] == "tickets_plus_25")]
         if len(c):
