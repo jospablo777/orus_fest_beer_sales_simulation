@@ -33,6 +33,11 @@ website:
             text: Assumptions
           - href: literature.qmd
             text: Literature
+    right:
+      - icon: github
+        text: Contribuir
+        href: https://github.com/jospablo777/orus_fest_beer_sales_simulation
+        aria-label: "Contribuir en GitHub · Contribute on GitHub"
   page-footer:
     left: "Estudio de simulación para Orus Producciones · Orus Fest 2026, Salón Olímpico Pantitlán"
     right: "Los números se leen de los resultados de la simulación · Numbers are read from the simulation outputs · versión {{< var build >}}"

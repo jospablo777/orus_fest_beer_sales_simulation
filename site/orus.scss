@@ -277,3 +277,10 @@ p.lead-claim { font-size: 1.12rem; margin: 0.4rem 0 0.8rem; }
 }
 .evidence-button { font-weight: 700; padding: 10px 22px; margin: 0.6rem 0; }
 .plan-figure img { max-width: 420px; margin: 0 auto; }
+// "Contribuir" link to the repository, drawn as a button in the navbar
+.navbar a.nav-link[href*="github.com/jospablo777/orus_fest_beer_sales_simulation"] {
+  border: 1px solid $gold; border-radius: 6px; padding: 4px 12px; margin: 4px 0;
+  color: $ink;
+  &:hover { background: $gold; color: $paper; }
+  .bi { margin-right: 6px; }
+}
