@@ -106,13 +106,14 @@ def side_by_side(runs, cfgs, titles, path, fps=20, dpi=120, lang="en", still_onl
     t0_min = runs[0]["series"]["clock_min"].iloc[0] - runs[0]["series"]["t_min"].iloc[0]
     clocks = np.array([t0_min + f["t"] / 60 for f in fa[:n]])
 
-    fig = plt.figure(figsize=(16, 9))
+    # The bottom 10% of the frame stays empty: a browser draws its video controls there.
+    fig = plt.figure(figsize=(16, 10))
     gs = fig.add_gridspec(3, 3, width_ratios=[1, 1, 1.35], left=0.02, right=0.97,
-                          top=0.80, bottom=0.12, wspace=0.08, hspace=0.55)
+                          top=0.82, bottom=0.208, wspace=0.08, hspace=0.55)
     floor_axes = [fig.add_subplot(gs[:, 0]), fig.add_subplot(gs[:, 1])]
     ts_axes = [fig.add_subplot(gs[i, 2]) for i in range(3)]
-    title = fig.text(0.02, 0.962, "", fontsize=21, fontweight="bold", color=INK, va="top")
-    fig.text(0.02, 0.905, L["dot_note"],
+    title = fig.text(0.02, 0.966, "", fontsize=21, fontweight="bold", color=INK, va="top")
+    fig.text(0.02, 0.9145, L["dot_note"],
              fontsize=12.5, color=theme.MUTED, va="top")
 
     scat, sell, info = [], [], []
@@ -130,7 +131,7 @@ def side_by_side(runs, cfgs, titles, path, fps=20, dpi=120, lang="en", still_onl
               (L["wait_seller"], C_WAIT_SELLER), (L["seller"], C_SELLER)]
     handles = [Line2D([], [], ls="", marker="o", ms=8, color=col) for _, col in legend]
     fig.legend(handles, [lab for lab, _ in legend], loc="upper left",
-               bbox_to_anchor=(0.43, 0.972), ncol=3, frameon=False, fontsize=12.5,
+               bbox_to_anchor=(0.43, 0.975), ncol=3, frameon=False, fontsize=12.5,
                columnspacing=2.0, handletextpad=0.4, labelcolor=INK)
 
     palette = [theme.RED, theme.BRONZE]

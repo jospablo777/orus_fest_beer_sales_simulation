@@ -14,11 +14,12 @@ Every number the model uses, where it comes from, and where to change it. Source
 | Waiting at 15:00 to 16:00 | relatively quick, although it still took a while; median time in line at most 10 min | Observed; the 10 is assumed | `calibration.yaml: observations.early_wait` |
 | Waiting between 18:00 and 20:00 (God Module, Das Ich) | over 40 min in the beer exchange line alone, with tickets bought earlier in the afternoon. Matched when the median time until service in the exchange lines is 35 min or more for people who join them in that window. A person without tickets stood in the ticket line first | Observed; the 5 min of tolerance is assumed | `calibration.yaml: observations.long_wait` |
 | Lines between 18:00 and 20:00 | long lines at the ticket window and at the beer exchange; matched when each holds at least 20 people on average (10 in each of the two beer lines) | Observed; the 20 is assumed | `calibration.yaml: observations.both_lines` |
+| Giving up between 18:00 and 20:00 | "a lot of people gave up"; matched when at least 20% of the purchase attempts at the bar that start in that window are given up, either by not joining the line a person sees or by leaving a line before service. People still in line at 21:00 count as not having given up | Observed; the 20% is assumed | `calibration.yaml: observations.gave_up` |
 | After 20:00 | the observers stopped trying to buy; every later wait is a prediction of the model | Observed | `calibration.yaml: observations.headliner_window` |
 | Occupancy peak | around 22:00; accepted when people inside at 22:00 are at least 90% of the night's maximum | Observed (attendee estimate) | `calibration.yaml: observations.peak_occupancy` |
 | Payment system | one ticket window for every drink, then exchange lines (two for beer, one for cocktails and shots); up to 10 tickets per purchase | Observed | `base.yaml: bar.mode = ticket`, `bar.n_cashiers = 1` |
 | Buying for friends | people bought several beers per visit | Observed |
-| Tickets bought ahead | the observers bought several tickets in one visit and used them later | Observed | `calibration.yaml: priors.bar.bundle_mean` | `calibration.yaml: priors.crowd.group_size_mean` |
+| Tickets bought ahead | the observers first bought one ticket per beer, then 10 tickets in one visit for the rest of the night | Observed | `calibration.yaml: priors.bar.bundle_mean` | `calibration.yaml: priors.crowd.group_size_mean` |
 | Food | separate counters and staff | Observed | not modelled |
 | Staff serving drinks at the peak | 5 to 8 in total; people serving beer taken as 2 to 6, since the ticket window and the cocktail line had their own staff | Observed total, assumed split | `calibration.yaml: priors.bar.n_pour` |
 | Roaming sellers | none | Observed | `base.yaml: sellers.n = 0` |
@@ -83,9 +84,9 @@ DJ sets: 13:00 to 13:30, then between every pair of bands (15 to 35 min), and fr
 | Thirst while an act the person does not follow plays | base rate × 1.15 | Assumed | `base.yaml: crowd.nonfan_thirst_mult` |
 | Thirst in a changeover, person does not follow the next act | base rate × 1.2 to 2.4 | Calibrated | `calibration.yaml: crowd.changeover_boost` |
 | Thirst in a changeover, person follows the next act and holds a spot | base rate × 0.6 | Assumed | `base.yaml: crowd.holder_thirst_mult` |
-| Drinking pace before 18:00 | base rate × 0.3 to 1.0 | Calibrated (reconciles a large early crowd with the short lines seen at 15:30) | `calibration.yaml: crowd.afternoon_thirst_mult` |
+| Drinking pace before 18:00 | base rate × 0.1 to 1.0 | Calibrated (reconciles a large early crowd with the short lines seen at 15:30) | `calibration.yaml: crowd.afternoon_thirst_mult` |
 | Minimum time between beers | 14 min per beer | Assumed | `base.yaml: crowd.drink_min` |
-| Buyer takes two beers for themself | 30% of visits | Assumed | `base.yaml: crowd.double_share` |
+| Buyer takes two beers for themself | 30% of visits; a large beer was two bottles or cans poured into one cup | Share assumed; large beers observed | `base.yaml: crowd.double_share` |
 | Groups of friends | mean size 1.5 to 3.5 (1 + Poisson, at most 6); a group shares its attendance window, arrival and departure | Calibrated mean | `calibration.yaml: crowd.group_size_mean`, `sim/model.py: _init_agents` |
 | Rounds | when one member goes for beer, each friend who has finished their last beer joins with probability 0.7, up to 6 beers per visit. The friend's own thirst is then paused by the time they would still have waited, so rounds do not raise consumption | Assumed | `base.yaml: crowd.round_join_share`, `round_max_beers`, `sim/model.py: _collect_round` |
 | First thirst after entering | 5 to 30 min | Assumed | `sim/model.py: _arrivals` |
@@ -94,7 +95,7 @@ DJ sets: 13:00 to 13:30, then between every pair of bands (15 to 35 min), and fr
 
 | Item | Value | Source | File |
 |---|---|---|---|
-| Patience (max expected wait a person accepts) | lognormal, median 25 to 110 min, sd of log 0.45. The upper end is above the 40 min the observers stayed in one line | Calibrated median | `calibration.yaml`, `base.yaml: crowd.patience_*` |
+| Patience (max expected wait a person accepts) | lognormal, median 25 to 180 min, sd of log 0.45. The upper end is well above the 40 min the observers stayed in one line, and the giving-up test bounds it from above | Calibrated median | `calibration.yaml`, `base.yaml: crowd.patience_*` |
 | Patience while an act the person follows plays | patience × 0.6 | Assumed | `base.yaml: crowd.fan_patience_mult` |
 | Balking | a person who expects to wait longer than their patience does not join and retries 8 to 20 min later | Assumed | `base.yaml: crowd.defer_min` |
 | Reneging | a person leaves a line after 1.5 × patience in it | Assumed | `base.yaml: crowd.renege_factor` |
@@ -107,8 +108,8 @@ DJ sets: 13:00 to 13:30, then between every pair of bands (15 to 35 min), and fr
 | Ticket window | 1 | Observed | `base.yaml: bar.n_cashiers` |
 | People serving beer | 2 to 6 | Calibrated within the observed total | `calibration.yaml` |
 | Ticket window, time per beer buyer | mean 8 to 60 s, lognormal CV 0.45. The window also served buyers of other drinks, so this is an effective time | Calibrated | `calibration.yaml`, `base.yaml: bar.service_cv` |
-| Tickets per window visit | the tickets for the current round plus Poisson(mean − 1) spare ones, mean 1.0 to 5.0, at most 10 | Calibrated | `calibration.yaml: bar.bundle_mean` |
-| Serving a beer | mean 15 to 75 s for the first beer of a visit; each further beer takes 0.5 to 1.0 of that | Calibrated | `calibration.yaml: bar.s_pour_mean_s`, `bar.extra_beer_factor` |
+| Tickets per window visit | the tickets for the current round plus Poisson(mean − 1) spare ones, mean 1.0 to 8.0, at most 10 | Calibrated | `calibration.yaml: bar.bundle_mean` |
+| Serving a beer | mean 15 to 75 s for the first beer of a visit; each further beer takes 0.5 to 1.0 of that. All beer was bottled or canned: each one was opened and poured into a cup, and a large beer took two | Calibrated; the bottles and cans were observed | `calibration.yaml: bar.s_pour_mean_s`, `bar.extra_beer_factor` |
 | Service clock | a service ends at its exact time and the next one starts then if its customer was waiting | Design choice | `sim/model.py: _serve` |
 | Payment at the serving station (scenarios) | 15 s card or cash (the plan), 6 s cashless wristband, 25 s in the slow-payment what-if | Assumed | `scenarios.yaml` |
 | Bar layout | counter along the north wall at y = 43.6 m. In the model frame x starts at the east wall: tables in the north-west corner in front of the counter (x 21.1 to 30.1 m), ticket window at x 19.6 m next to the tables, serving stations spread east of it to x 2.0 m; one line per server, lines run south into the floor | Assumed | `base.yaml: bar`, `sim/venue.py` |
@@ -120,7 +121,7 @@ DJ sets: 13:00 to 13:30, then between every pair of bands (15 to 35 min), and fr
 | Item | Value | Source | File |
 |---|---|---|---|
 | Hours | 17:00 to 02:30 (plan and staffing grid: 18:00 to 02:30, from the hour in which lines formed in 2026) | Assumed | `base.yaml: sellers`, `scenarios.yaml`, `staffing.yaml` |
-| Load | 6 beers per trip (a tray of cups) | Observed at other festivals by the study authors | `base.yaml: sellers.capacity` |
+| Load | 6 beers per trip (a tray of 6 large beers in cups) | Observed at other festivals by the study authors | `base.yaml: sellers.capacity` |
 | Sale | 30 s per sale of one beer, 12 s more per further beer | Assumed | `base.yaml: sellers.s_sale_s` |
 | Refill | walk to the nearer end of the bar, 2 min to refill; 4 min in a what-if | Assumed | `base.yaml: sellers.restock_s` |
 | Visibility | a thirsty attendee waits for a seller within 8 m; a seller notices raised hands within 14 m; attendees give up on sellers after 6 min and walk to the bar | Assumed | `base.yaml: sellers.*_radius_m`, `wait_max_min` |

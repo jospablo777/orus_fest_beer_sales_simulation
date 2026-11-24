@@ -169,7 +169,7 @@ stf_path = ROOT / "output" / "tables" / "sensitivity_staffing.csv"
 has_sens = sens_path.exists() and stf_path.exists()
 ```
 
-A first calibration used narrower ranges: patience 25 to 110 min, drinking pace before 18:00 from 0.3 to 1.0 of the evening pace, and 1 to 5 tickets per visit to the ticket window. Its matching nights gathered near the upper limit of patience and the lower limit of the afternoon pace, so those limits, more than the observations, set part of the result. The current calibration widens the three ranges (25 to 180 min, 0.1 to 1.0, 1 to 8) and adds the test on purchase attempts given up between 18:00 and 20:00. The table compares the two runs. The values are the median night and, in brackets, the range across nights (5% to 95%). The two runs simulate different nights, so the p-value is from a Mann-Whitney U test.
+A first calibration used narrower ranges: patience 25 to 110 min, drinking pace before 18:00 from 0.3 to 1.0 of the evening pace, and 1 to 5 tickets per visit to the ticket window. Its matching nights gathered near the upper limit of patience and the lower limit of the afternoon pace, so part of the result came from where those limits were set. The current calibration widens the three ranges (25 to 180 min, 0.1 to 1.0, 1 to 8) and adds the test on purchase attempts given up between 18:00 and 20:00. The table compares the two runs. The values are the median night and, in brackets, the range across nights (5% to 95%). The two runs simulate different nights, so the p-value is from a Mann-Whitney U test.
 
 ```{python}
 #| output: asis
@@ -177,12 +177,19 @@ if has_sens:
     sens = pd.read_csv(sens_path)
 
     def cell(x, k):
-        fmt = "{:,.0f}" if abs(x[f"{k}_med"]) >= 100 else ("{:.2f}" if abs(x[f"{k}_med"]) < 1 else "{:.1f}")
+        if "share of purchase" in x["quantity"]:
+            fmt = "{:.0%}"
+        elif abs(x[f"{k}_med"]) >= 100:
+            fmt = "{:,.0f}"
+        else:
+            fmt = "{:.2f}" if abs(x[f"{k}_med"]) < 1 else "{:.1f}"
         return f"{fmt.format(x[f'{k}_med'])} ({fmt.format(x[f'{k}_lo'])} to {fmt.format(x[f'{k}_hi'])})"
 
+    def p_text(p):
+        return "" if pd.isna(p) else ("< 0.001" if p < 0.001 else f"{p:.3f}")
+
     rows = [(x.quantity, cell(x._asdict(), "reference"), cell(x._asdict(), "current"),
-             "" if pd.isna(x.p_mann_whitney) else f"{x.p_mann_whitney:.3f}")
-            for x in sens.itertuples()]
+             p_text(x.p_mann_whitney)) for x in sens.itertuples()]
     print(md_table(["Quantity", "Narrow ranges", "Wide ranges", "p"], rows))
 ```
 
@@ -193,19 +200,35 @@ if has_sens:
     rows = [(f"{x.n_total:,}", x.n_pour, x.sellers,
              f"{x.reference_met} of {x.reference_nights}" + (" (recommended)" if x.reference_recommended else ""),
              f"{x.current_met} of {x.current_nights}" + (" (recommended)" if x.current_recommended else ""),
-             f"{x.p_fisher:.3f}") for x in stf.itertuples()]
+             p_text(x.p_fisher)) for x in stf.itertuples()]
     print(md_table(["Tickets", "Stations", "Sellers", "Nights that meet the target, narrow ranges",
                     "Same, wide ranges", "p (Fisher)"], rows))
 ```
 
 The second table lists every crew recommended in either run with the nights in which it meets the service target under each calibration. Fisher's exact test compares the two shares.
 
+```{python}
+#| output: asis
+if has_sens:
+    need = r["reliability"]
+    lvl = stf[stf["n_total"] == r["tickets"]]
+    both = lvl[(lvl["reference_met"] >= need * lvl["reference_nights"])
+               & (lvl["current_met"] >= need * lvl["current_nights"])]
+    if len(both):
+        names = " and ".join(f"{x.n_pour} stations with {x.sellers} sellers" for x in both.itertuples())
+        print(f"For {r['tickets']:,} tickets, {names} meet the target in at least "
+              f"{need:.0%} of the nights under both calibrations.")
+    else:
+        print(f"For {r['tickets']:,} tickets, no crew in the table meets the target in at least "
+              f"{need:.0%} of the nights under both calibrations.")
+```
+
 ## Limits of the study
 
 - The calibration rests on the account of the attendees who ran this study. Sales, entries and service times were not measured.
 - People walk in straight lines and pass through each other, so the model cannot compare line layouts, barriers or walkways. Those recommendations come from the literature.
 - Cocktails and shots, food, restrooms and evacuation are outside the model.
-- There were no roaming sellers in 2026, so the seller rules (how far a seller is seen, time per sale, beers per trip, refill time) are assumed.
+- There were no roaming sellers in 2026, so the seller rules (how far a seller is seen, time per sale, beers per trip, refill time) are assumed. Under the plan the sellers sell `{python} v["seller_share"]` of the beer, so the recommended crews depend on those rules.
 - The hall size is an estimate from a satellite image.
 - Sales in MXN use an assumed price and exclude costs.
 

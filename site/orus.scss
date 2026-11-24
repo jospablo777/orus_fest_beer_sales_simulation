@@ -223,6 +223,9 @@ p.lede { font-size: 1.25rem; }
 }
 .tablewrap { overflow-x: auto; margin: 1rem 0; }
 @media (max-width: 640px) {
-  .tablewrap table { font-size: 0.85rem; }
-  .tablewrap th, .tablewrap td { padding: 6px; }
+  .tablewrap table { font-size: 0.78rem; }
+  .tablewrap th, .tablewrap td { padding: 5px 4px; }
+  main table { font-size: 0.8rem; display: block; overflow-x: auto; max-width: 100%; }
+  main table th, main table td { padding: 5px 4px; }
+  main li, main p { overflow-wrap: anywhere; }
 }

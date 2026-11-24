@@ -80,19 +80,25 @@ Un cambio de escenario es una ruta con puntos dentro de `base.yaml`. Los valores
 
 ## Sitio web
 
-`site/` es un sitio de Quarto con el resumen para los organizadores en español (`index.qmd`) y en inglés (`en.qmd`), un reporte técnico y las páginas de métodos, supuestos y literatura. Los dos resúmenes se generan con `site/_organizer.py` a partir de un solo archivo de texto (`site/_text.yaml`) y un solo conjunto de números (`scripts/report_values.py`), y quedan escritos en `site/_generated/organizer_es.md` y `organizer_en.md`. Los colores vienen del arte promocional de Orus Fest 2026 y se definen en `sim/theme.py`, `analysis/figures.R` y `site/orus.scss`.
+El reporte está publicado en <https://jospablo777.github.io/orus_fest_beer_sales_simulation/>. Se abre en cualquier navegador, también en el celular.
 
-```bash
-./scripts/render_site.sh            # site/_site/index.html
-./scripts/render_site.sh publish    # render and push to the gh-pages branch
-```
+| Página | Contenido |
+|---|---|
+| [Resumen](https://jospablo777.github.io/orus_fest_beer_sales_simulation/) | la propuesta para los organizadores, en español |
+| [Summary (EN)](https://jospablo777.github.io/orus_fest_beer_sales_simulation/en.html) | el mismo resumen, en inglés |
+| [Technical report](https://jospablo777.github.io/orus_fest_beer_sales_simulation/technical.html) | calibración, efectos de cada cambio, personal, aforo, sensibilidad a los rangos de la calibración |
+| [Methods](https://jospablo777.github.io/orus_fest_beer_sales_simulation/methods.html), [Assumptions](https://jospablo777.github.io/orus_fest_beer_sales_simulation/assumptions.html), [Literature](https://jospablo777.github.io/orus_fest_beer_sales_simulation/literature.html) | el modelo, cada supuesto con su fuente y la revisión de literatura |
 
-Hay dos formas de publicarlo en GitHub Pages:
+Las páginas técnicas están en inglés.
 
-1. **Desde su computadora.** `./scripts/render_site.sh publish` sube el sitio generado a la rama `gh-pages`. En la configuración del repositorio, sección Pages, elija "Deploy from a branch" y `gh-pages`.
-2. **Con GitHub Actions.** `.github/workflows/site.yml` genera y publica el sitio en cada push a `main` que toque el sitio, los documentos o las figuras. En la configuración del repositorio, sección Pages, elija "GitHub Actions". El reporte técnico queda congelado en `site/_freeze` y los resúmenes en `site/_generated`, así que ese proceso no repite la simulación. Cuando haya resultados nuevos, ejecute `./scripts/render_site.sh` en su computadora y agregue `site/_freeze` y `site/_generated` al repositorio antes de hacer push.
+Cómo leer el resumen:
 
-Las figuras y los videos se copian de `output/` a `site/assets/` al generar el sitio (`site/_sync_assets.py`). Las páginas de documentos se generan de `docs/*.md` en `site/_generated/`, que forma parte del repositorio.
+- Las secciones siguen este orden: cómo se compraba en 2026, cómo se compra con el plan, qué gana cada quien, el plan en seis acciones, los videos de la noche, el personal y las ventas por hora, qué tan firme es cada resultado, los datos que pedimos a los organizadores y cómo se hizo el estudio.
+- Los números salen de noches simuladas. Una cifra sola es la noche típica (la mediana). Un rango "entre X y Y" incluye 9 de cada 10 noches simuladas.
+- En las gráficas la línea es la noche típica y la franja el rango entre noches.
+- En los videos cada punto es una persona. A la izquierda está la noche de 2026 y a la derecha la misma noche con el plan.
+
+El sitio se genera con Quarto a partir de `site/` y se publica con GitHub Actions (`.github/workflows/site.yml`) en cada push a `main` que cambie el sitio, los documentos, las figuras o los videos. Después de una corrida nueva, `./scripts/run_all.sh` deja el sitio al día en `site/_freeze` y `site/_generated`, y esas carpetas van en el commit.
 
 ## Resultados
 

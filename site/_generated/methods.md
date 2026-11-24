@@ -136,15 +136,16 @@ Each seller carries 6 beers per trip and patrols toward randomly chosen attendee
 
 `scripts/run_calibration.py` estimates the unknown inputs with approximate Bayesian computation and a sequential sampler (population Monte Carlo, Beaumont et al. 2009). The ranges are in `config/calibration.yaml`.
 
-A simulated 2026 night matches the observations when all five tests pass:
+A simulated 2026 night matches the observations when all six tests pass:
 
 1. median time in line for people joining 15:00 to 16:00 is at most 10 minutes;
 2. the wait until service in the beer exchange lines is at least 35 minutes for people who join them between 18:00 and 20:00 (the report says over 40 with tickets in hand; 5 minutes of tolerance absorbs single-run noise);
 3. the ticket line holds at least 20 people on average between 18:00 and 20:00;
 4. the beer exchange lines hold at least 20 people in total on average between 18:00 and 20:00 (10 in each of the two lines);
-5. the number of people inside at 22:00 is at least 90% of the night's maximum. The report places the peak "around 22:00", an estimate made from the running order.
+5. the number of people inside at 22:00 is at least 90% of the night's maximum. The report places the peak "around 22:00", an estimate made from the running order;
+6. at least 20% of the purchase attempts at the bar that start between 18:00 and 20:00 are given up. An attempt is given up when the person decides not to join the line they see (the expected wait exceeds their patience) or leaves a line after 1.5 times their patience in it. The report says "a lot of people gave up"; the 20% is assumed. In the model almost every attempt given up is a decision not to join, since a person who joins expects a wait below their patience.
 
-The distance of a night from the observations is the sum of the relative shortfalls of the five tests, and it is zero when all pass.
+The distance of a night from the observations is the sum of the relative shortfalls of the six tests, and it is zero when all pass.
 
 - **Stage 0** draws 320 input sets from the ranges with a Latin hypercube (seed 2026), simulates the 2026 setup once per set (seed 10000 + id) and keeps the closest quarter.
 - **Shortened runs.** A calibration run computes only the test statistics. The occupancy test depends on arrival and departure times alone and needs no simulation. The run stops at 16:20 when the early test fails, and otherwise at 21:00. People still in an exchange line at 21:00 are censored at the minutes they have waited so far.
@@ -202,6 +203,7 @@ Both scripts run in batches stored under `output/runs/parts_*`. A run that stops
 | Figure 09, `arimax_sales.csv` | event study of people in lines around the end of a set; regression of beers sold per 5 minutes on people inside and a changeover indicator with AR(1) errors, fitted per night, with a Ljung-Box test of the residuals | whether sales follow the crowd or stay flat at the bar's limit |
 | Figure 12 | share of nights in which each crew meets the target | how many staff for how many tickets |
 | Figure 13, `capacity.csv` | people per m² of free floor at the fullest moment against tickets | how many tickets the floor takes |
+| `sensitivity_ranges.csv`, `sensitivity_staffing.csv` | the current run against a run with narrower calibration ranges (`output/sensitivity/narrow_ranges`): quantiles of the inputs and outcomes with a Mann-Whitney U test, and the share of nights that meet the target for every recommended crew with Fisher's exact test (`scripts/compare_calibrations.py`) | whether the plan depends on the limits of the calibration ranges |
 
 `scripts/make_summary.py` draws the figures of the organizer pages in Spanish and English, and `sim/diagrams.py` the process diagrams. `scripts/report_values.py` collects every number shown on the site.
 
@@ -213,19 +215,19 @@ Both scripts run in batches stored under `output/runs/parts_*`. A run that stops
 
 Each run gets its seed from the draw number, so the number of processes does not change any result. With the same configs, the same seeds and the same package versions, outputs are identical. A change of NumPy major version can change random streams.
 
-Every simulation step runs in a process pool with one simulated night per process (`sim/experiments.py: pool`), and the videos render one clip and language per process. The pool uses every core unless `--processes N` (or `PROCESSES=N` for `run_all.sh`) sets a limit, and the runtime falls almost in proportion to the number of cores. Runtime on 2 CPU cores: calibration about 2 hours at the limit of 12,000 simulations (0.6 s per shortened run), staffing grid about 50 minutes, scenarios about 25, videos about 8, R analysis and figures under 2 minutes.
+Every simulation step runs in a process pool with one simulated night per process (`sim/experiments.py: pool`), and the videos render one clip and language per process. The pool uses every core unless `--processes N` (or `PROCESSES=N` for `run_all.sh`) sets a limit, and the runtime falls almost in proportion to the number of cores. Runtime on 2 CPU cores: calibration about 2 hours at the limit of 12,000 simulations (0.6 s per shortened run), staffing grid about 50 minutes, scenarios about 25, videos about 8, R analysis and figures under 2 minutes. On an Apple M4 Pro with 14 cores (macOS 26) with every core in use: calibration 3.3 minutes for 3,104 simulations and 3.5 more for the 3,000 added with `--more`, staffing grid 5 minutes for 1,952 runs, scenarios 2.2 minutes for 864 runs, the four videos 1.5 minutes, and the full pipeline about 20 minutes.
 
 ## 9. Limitations
 
 - **Calibration evidence.** The targets come from the account of the attendees who ran the study, and the thresholds that turn "long lines" and "over 40 minutes" into numbers are assumed. Sales, entries and service times were not measured.
 - **After 20:00.** The observers stopped buying at 20:00. Waits during the headliners are predictions.
-- **Serving speed under the plan.** A serving station under the plan takes the calibrated time per beer of the 2026 bar plus the payment time. If part of that time in 2026 came from handling tickets or from the disorder at the counter, the plan needs fewer stations than reported.
+- **Serving speed under the plan.** A serving station under the plan takes the calibrated time per beer of the 2026 bar plus the payment time. All beer in 2026 was bottled or canned. Each one was opened and poured into a cup, and a large beer took two, so most of the serving time is work that stays under the plan. If part of that time came from handling tickets or from the disorder at the counter, the plan needs fewer stations than reported. Draft beer would change the serving time and calls for a new estimate.
 - **Hall size.** The outline was read from a satellite image without a scale bar. The error is near 10% per side (`report.yaml: hall_side_uncertainty`), and the capacity results scale with the area. The ticket level at which the free floor reaches the density limit is reported with the range for a hall 10% smaller or larger per side. That range rescales the floor area of the simulated nights; the simulation was not rerun with other hall sizes.
 - **Movement.** People walk in straight lines and do not collide. Line layouts, barriers, walkways and evacuation cannot be evaluated.
 - **Scope.** Cocktails and shots, food, restrooms and smoking areas are not modelled. The ticket window's work for other drinks enters only through its effective time per beer buyer.
 - **Groups.** Friends buy together and share arrival and departure. They do not stand together in the model.
 - **Running order.** The times are the published plan. Real sets start late, and every delay moves the surges.
-- **Sellers.** The seller rules (visibility, beers per trip, refill time) are not calibrated, because there were no sellers in 2026. The load of 6 beers per trip is what the study authors have seen at other festivals, and the refill time of 2 minutes is assumed (4 minutes in a what-if). Seller results are a plan to test at a small scale first.
+- **Sellers.** The seller rules (visibility, beers per trip, refill time) are not calibrated, because there were no sellers in 2026. The load of 6 beers per trip (a tray of 6 large beers in cups) is what the study authors have seen at other festivals, and the refill time of 2 minutes is assumed (4 minutes in a what-if). Seller results are a plan to test at a small scale first.
 - **Money.** Sales in MXN use an assumed price and exclude the cost of staff, card fees and equipment.
 - **Occupancy.** Peak occupancy depends on the assumed attendance windows. The 2,000 figure is a single reported number with no description of how it was counted.
 
@@ -236,9 +238,11 @@ Sources of the crowd-management recommendations are listed in [LITERATURE_REVIEW
 - Beaumont, M. A., Cornuet, J.-M., Marin, J.-M., & Robert, C. P. (2009). Adaptive approximate Bayesian computation. *Biometrika*, 96(4), 983–990. https://doi.org/10.1093/biomet/asp052
 - Clopper, C. J., & Pearson, E. S. (1934). The use of confidence or fiducial limits illustrated in the case of the binomial. *Biometrika*, 26(4), 404–413. https://doi.org/10.1093/biomet/26.4.404
 - Efron, B. (1979). Bootstrap methods: another look at the jackknife. *The Annals of Statistics*, 7(1), 1–26. https://doi.org/10.1214/aos/1176344552
+- Fisher, R. A. (1922). On the interpretation of χ² from contingency tables, and the calculation of P. *Journal of the Royal Statistical Society*, 85(1), 87–94. https://doi.org/10.2307/2340521
 - Kaplan, E. L., & Meier, P. (1958). Nonparametric estimation from incomplete observations. *Journal of the American Statistical Association*, 53(282), 457–481. https://doi.org/10.1080/01621459.1958.10501452
 - Ljung, G. M., & Box, G. E. P. (1978). On a measure of lack of fit in time series models. *Biometrika*, 65(2), 297–303. https://doi.org/10.1093/biomet/65.2.297
 - International Code Council. (2018). *2018 International Building Code*. Country Club Hills, IL: ICC. Table 1004.5 sets an occupant load factor of 0.46 m² (5 ft²) net per person for standing space.
+- Mann, H. B., & Whitney, D. R. (1947). On a test of whether one of two random variables is stochastically larger than the other. *The Annals of Mathematical Statistics*, 18(1), 50–60. https://doi.org/10.1214/aoms/1177730491
 - National Fire Protection Association. (2018). *NFPA 101: Life Safety Code* (2018 ed.). Quincy, MA: NFPA. Section 12.1.7.1 caps the occupant load of an assembly area of up to 930 m² (10,000 ft²) at one person per 0.46 m² (5 ft²) of available floor space, and of a larger area at one person per 0.65 m² (7 ft²).
 - Weidmann, U. (1993). *Transporttechnik der Fussgänger: Transporttechnische Eigenschaften des Fussgängerverkehrs, Literaturauswertung* (2nd, extended ed.; Schriftenreihe des IVT, No. 90). Institut für Verkehrsplanung, Transporttechnik, Strassen- und Eisenbahnbau, ETH Zürich. https://doi.org/10.3929/ethz-b-000242008
 - Wilcoxon, F. (1945). Individual comparisons by ranking methods. *Biometrics Bulletin*, 1(6), 80–83. https://doi.org/10.2307/3001968

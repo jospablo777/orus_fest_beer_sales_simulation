@@ -217,7 +217,7 @@ Both scripts run in batches stored under `output/runs/parts_*`. A run that stops
 
 Each run gets its seed from the draw number, so the number of processes does not change any result. With the same configs, the same seeds and the same package versions, outputs are identical. A change of NumPy major version can change random streams.
 
-Every simulation step runs in a process pool with one simulated night per process (`sim/experiments.py: pool`), and the videos render one clip and language per process. The pool uses every core unless `--processes N` (or `PROCESSES=N` for `run_all.sh`) sets a limit, and the runtime falls almost in proportion to the number of cores. Runtime on 2 CPU cores: calibration about 2 hours at the limit of 12,000 simulations (0.6 s per shortened run), staffing grid about 50 minutes, scenarios about 25, videos about 8, R analysis and figures under 2 minutes.
+Every simulation step runs in a process pool with one simulated night per process (`sim/experiments.py: pool`), and the videos render one clip and language per process. The pool uses every core unless `--processes N` (or `PROCESSES=N` for `run_all.sh`) sets a limit, and the runtime falls almost in proportion to the number of cores. Runtime on 2 CPU cores: calibration about 2 hours at the limit of 12,000 simulations (0.6 s per shortened run), staffing grid about 50 minutes, scenarios about 25, videos about 8, R analysis and figures under 2 minutes. On an Apple M4 Pro with 14 cores (macOS 26) with every core in use: calibration 3.3 minutes for 3,104 simulations and 3.5 more for the 3,000 added with `--more`, staffing grid 5 minutes for 1,952 runs, scenarios 2.2 minutes for 864 runs, the four videos 1.5 minutes, and the full pipeline about 20 minutes.
 
 ## 9. Limitations
 
