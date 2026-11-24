@@ -27,6 +27,8 @@ TEXT = {
         "line1": "Line 1", "line2": "Line 2", "people": "about {n} people",
         "station": ["Any serving station", "takes card or cash", "and hands over the beer"],
         "stations": "{n} stations open", "sellers": "and {n} sellers walk the floor",
+        "charges": "1 person charges", "serve": ["{n} person serves", "{n} people serve"],
+        "charge_serve": "{n} people charge and serve",
         "one_line": "One short line",
         "old_seen": "Over 40 min in the exchange line with the tickets already bought. This is what we saw.",
         "old_exchange": "{wait} min estimated in the exchange line ({lo} to {hi} across nights)",
@@ -48,6 +50,8 @@ TEXT = {
         "line1": "Fila 1", "line2": "Fila 2", "people": "unas {n} personas",
         "station": ["Cualquier puesto de la barra", "cobra con tarjeta o efectivo", "y entrega la cerveza"],
         "stations": "{n} puestos abiertos", "sellers": "y {n} vendedores recorren la pista",
+        "charges": "1 persona cobra", "serve": ["{n} persona sirve", "{n} personas sirven"],
+        "charge_serve": "{n} personas cobran y sirven",
         "one_line": "Una fila corta",
         "old_seen": "Más de 40 min en la fila de canje con las fichas ya compradas, que es lo que vimos.",
         "old_exchange": "{wait} min estimados en la fila de canje (entre {lo} y {hi} según la noche)",
@@ -70,15 +74,33 @@ def _text(x, y, lines, size=15, weight=400, anchor="middle", fill="currentColor"
             f'text-anchor="{anchor}" fill="{fill}" opacity="{opacity}">{spans}</text>')
 
 
-def _box(x, y, w, h, title, sub=None, stroke="currentColor"):
+def _box(x, y, w, h, title, sub=None, stroke="currentColor", dy=0):
+    """A box with its title and subtitle centered, moved dy pixels down."""
     out = [f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="10" fill="none" '
            f'stroke="{stroke}" stroke-opacity="0.55" stroke-width="1.5"/>']
     n = len(title) + (len(sub) if sub else 0)
-    top = y + h / 2 - (n - 1) * 10 + 3
+    top = y + h / 2 - (n - 1) * 10 + 3 + dy
     out.append(_text(x + w / 2, top, title, size=18, weight=700))
     if sub:
         out.append(_text(x + w / 2, top + len(title) * 22 + 3, sub, size=14.5, opacity=0.8))
     return "".join(out)
+
+
+def _worker(cx, cy, fill="currentColor", scale=1.0):
+    """A person behind the bar: head and shoulders, centered at (cx, cy)."""
+    r, w, h = 4.5 * scale, 15 * scale, 10 * scale
+    return (f'<circle cx="{cx:.1f}" cy="{cy - 6 * scale:.1f}" r="{r:.1f}" fill="{fill}"/>'
+            f'<path d="M{cx - w / 2:.1f},{cy + 1 * scale + h:.1f} v{-h / 2:.1f} '
+            f'a{w / 2:.1f},{h / 2:.1f} 0 0 1 {w:.1f},0 v{h / 2:.1f} z" fill="{fill}"/>')
+
+
+def _workers(cx, cy, n, fill="currentColor", step=22):
+    first = cx - (n - 1) * step / 2
+    return "".join(_worker(first + k * step, cy, fill) for k in range(n))
+
+
+def _serve_label(t, n):
+    return t["serve"][0 if n == 1 else 1].format(n=n)
 
 
 def _arrow(x0, x1, y):
@@ -130,7 +152,7 @@ def _footer(parts, y, bars, note):
 
 
 def _old_narrow(t, exchange_min, total_min, ticket_line, exchange_line, gave_up_of_10,
-                scale_min, observed, exchange_rng, total_rng):
+                scale_min, observed, exchange_rng, total_rng, pourers):
     left, width, mid = 16, NARROW_W - 32, NARROW_W / 2
     title = textwrap.wrap(t["old_title"], 30)
     parts = [_text(left, 28, title, size=20, weight=700, anchor="start")]
@@ -141,8 +163,10 @@ def _old_narrow(t, exchange_min, total_min, ticket_line, exchange_line, gave_up_
                        size=15, fill=theme.DOT_TICKET, weight=700))
     parts.append(_centered_people(y + 42, 11, theme.DOT_TICKET))
     y += 58
-    parts.append(_box(left, y, width, 74, t["window"], _one(t["window_sub"])))
-    y += 74
+    parts.append(_box(left, y, width, 112, t["window"], _one(t["window_sub"]), dy=-20))
+    parts.append(_workers(mid, y + 72, 1))
+    parts.append(_text(mid, y + 100, [t["charges"]], size=13.5, opacity=0.85))
+    y += 112
     parts.append(_text(mid, y + 24, [f'{t["line2"]} · ' + t["people"].format(n=round(exchange_line))],
                        size=15, fill=theme.DOT_TICKET, weight=700))
     parts.append(_centered_people(y + 42, 11, theme.DOT_TICKET))
@@ -150,8 +174,11 @@ def _old_narrow(t, exchange_min, total_min, ticket_line, exchange_line, gave_up_
     parts.append(_centered_people(y + 74, 11, theme.SILVER))
     parts.append(_text(mid, y + 97, [t["cocktails"]], size=13, opacity=0.7))
     y += 110
-    parts.append(_box(left, y, width, 74, _one(t["exchange"]), _one(t["exchange_sub"])))
-    y += 74
+    parts.append(_box(left, y, width, 112, _one(t["exchange"]), _one(t["exchange_sub"]),
+                      dy=-20))
+    parts.append(_workers(mid, y + 72, pourers))
+    parts.append(_text(mid, y + 100, [_serve_label(t, pourers)], size=13.5, opacity=0.85))
+    y += 112
     parts.append(_arrow_down(mid, y + 6, y + 26))
     y += 32
     parts.append(_box(left, y, width, 54, _one(t["back"])))
@@ -184,16 +211,20 @@ def _new_narrow(t, wait_min, p90_min, stations, sellers, scale_min, observed, se
     shown = min(stations, 12)
     per_row = shown if shown <= 6 else math.ceil(shown / 2)
     rows = math.ceil(shown / per_row)
-    box_h = 92 + rows * 32 + 26
+    box_h = 92 + rows * 40 + 44
     parts.append(f'<rect x="{left}" y="{y}" width="{width}" height="{box_h}" rx="10" fill="none" '
                  f'stroke="{theme.BRONZE}" stroke-width="2"/>')
     parts.append(_text(mid, y + 30, t["station"], size=16.5, weight=700))
     first = mid - (per_row * 32 - 8) / 2
     for k in range(shown):
         col, row = k % per_row, k // per_row
-        parts.append(f'<rect x="{first + col * 32:.0f}" y="{y + 92 + row * 32}" width="24" '
-                     f'height="24" rx="5" fill="{theme.BRONZE}"/>')
-    parts.append(_text(mid, y + 92 + rows * 32 + 12, [t["stations"].format(n=stations)],
+        y0 = y + 86 + row * 40
+        parts.append(_worker(first + col * 32 + 12, y0 + 10, theme.BRONZE))
+        parts.append(f'<rect x="{first + col * 32:.0f}" y="{y0 + 22:.0f}" width="24" height="8" '
+                     f'rx="2" fill="{theme.BRONZE}" fill-opacity="0.55"/>')
+    parts.append(_text(mid, y + 92 + rows * 40 + 8, [t["stations"].format(n=stations)],
+                       size=13.5, opacity=0.85))
+    parts.append(_text(mid, y + 92 + rows * 40 + 26, [t["charge_serve"].format(n=stations)],
                        size=13.5, opacity=0.85))
     y += box_h
     if sellers:
@@ -215,30 +246,34 @@ def old_process(lang: str, exchange_min: float, total_min: float, ticket_line: f
                 exchange_line: float, gave_up_of_10: float, scale_min: float,
                 observed: tuple[str, str], narrow: bool = False,
                 exchange_rng: tuple[float, float] = (0, 0),
-                total_rng: tuple[float, float] = (0, 0)) -> str:
+                total_rng: tuple[float, float] = (0, 0), pourers: int = 3) -> str:
     """The 2026 purchase: ticket window, then exchange at the bar. The first line under the
     drawing is what the attendees saw. exchange_min is the estimated wait in the exchange
     line and total_min the estimated wait of a person who starts without tickets, both for
     people who joined a line in the clock window `observed`; the *_rng pairs are their
-    ranges across nights."""
+    ranges across nights. pourers is the typical number of people serving beer in 2026."""
     t = TEXT[lang]
     if narrow:
         return _old_narrow(t, exchange_min, total_min, ticket_line, exchange_line,
-                           gave_up_of_10, scale_min, observed, exchange_rng, total_rng)
-    top, h = 70, 112
+                           gave_up_of_10, scale_min, observed, exchange_rng, total_rng, pourers)
+    top, h = 70, 160
     mid = top + h / 2
     parts = [_text(20, 34, [t["old_title"]], size=22, weight=700, anchor="start")]
     parts.append(_box(20, top, 150, h, t["want"]))
     parts.append(_text(245, top - 6, [f'{t["line1"]} · ' + t["people"].format(n=round(ticket_line))],
                        size=15, fill=theme.DOT_TICKET, weight=700))
     parts.append(_people(184, mid, 11, theme.DOT_TICKET))
-    parts.append(_box(310, top, 180, h, t["window"], t["window_sub"]))
+    parts.append(_box(310, top, 180, h, t["window"], t["window_sub"], dy=-30))
+    parts.append(_workers(400, top + h - 50, 1))
+    parts.append(_text(400, top + h - 16, [t["charges"]], size=13.5, opacity=0.85))
     parts.append(_text(565, top - 6, [f'{t["line2"]} · ' + t["people"].format(n=round(exchange_line))],
                        size=15, fill=theme.DOT_TICKET, weight=700))
     parts.append(_people(504, mid - 22, 11, theme.DOT_TICKET))
     parts.append(_people(504, mid, 11, theme.DOT_TICKET))
     parts.append(_people(504, mid + 22, 11, theme.SILVER))
-    parts.append(_box(630, top, 170, h, t["exchange"], t["exchange_sub"]))
+    parts.append(_box(630, top, 170, h, t["exchange"], t["exchange_sub"], dy=-30))
+    parts.append(_workers(715, top + h - 50, pourers))
+    parts.append(_text(715, top + h - 16, [_serve_label(t, pourers)], size=13.5, opacity=0.85))
     parts.append(_arrow(806, 826, mid))
     parts.append(_box(830, top, 110, h, t["back"]))
     parts.append(_text(504, top + h + 22, [t["cocktails"]], size=13.5, anchor="start", opacity=0.7))
@@ -268,7 +303,7 @@ def new_process(lang: str, wait_min: float, p90_min: float, stations: int, selle
     t = TEXT[lang]
     if narrow:
         return _new_narrow(t, wait_min, p90_min, stations, sellers, scale_min, observed, service)
-    top, h = 70, 112
+    top, h = 70, 160
     mid = top + h / 2
     parts = [_text(20, 34, [t["new_title"]], size=22, weight=700, anchor="start")]
     parts.append(_box(20, top, 150, h, t["want"]))
@@ -283,13 +318,18 @@ def new_process(lang: str, wait_min: float, p90_min: float, stations: int, selle
     shown = min(stations, 12)
     per_row = shown if shown <= 5 else math.ceil(shown / 2)
     rows = math.ceil(shown / per_row)
+    # one worker behind each station
     left = gx + 76 - (per_row * 32 - 8) / 2
     for k in range(shown):
         col, row = k % per_row, k // per_row
-        parts.append(f'<rect x="{left + col * 32:.0f}" y="{mid - 14 - 16 * rows + row * 32:.0f}" '
-                     f'width="24" height="24" rx="5" fill="{theme.BRONZE}"/>')
-    label = t["stations"].format(n=stations)
-    parts.append(_text(gx + 76, top + h - 9, [label], size=13.5, opacity=0.85))
+        y0 = top + 18 + row * 40
+        parts.append(_worker(left + col * 32 + 12, y0 + 10, theme.BRONZE))
+        parts.append(f'<rect x="{left + col * 32:.0f}" y="{y0 + 22:.0f}" width="24" height="8" '
+                     f'rx="2" fill="{theme.BRONZE}" fill-opacity="0.55"/>')
+    parts.append(_text(gx + 76, top + h - 30, [t["stations"].format(n=stations)], size=13.5,
+                       opacity=0.85))
+    parts.append(_text(gx + 76, top + h - 12, [t["charge_serve"].format(n=stations)],
+                       size=13.5, opacity=0.85))
     parts.append(_arrow(806, 826, mid))
     parts.append(_box(830, top, 110, h, t["back"]))
     if sellers:

@@ -9,8 +9,8 @@ h_old:
   es: "Cómo se compraba en 2026"
   en: "How a beer was bought in 2026"
 old_text:
-  es: "Una sola ventanilla vendía las fichas de todas las bebidas. Con las fichas en la mano había que formarse otra vez para canjearlas. La fila de fichas, la de cocteles y las dos de cerveza salían de la barra hacia el escenario, y las de cocteles y cerveza llegaban hasta la cabina de los ingenieros de luces y drones a media pista. A las 15:30 comprar era relativamente rápido, y entre las {obs_from} y las {obs_to} la fila de canje tomaba más de 40 minutos; eso lo vimos. La espera más larga no la medimos. Reconstruimos esa noche en una simulación por computadora, y lo que sigue son estimaciones. La simulación reproduce la noche con entre {pour_lo} y {pour_hi} personas sirviendo cerveza. Entre las {obs_from} y las {obs_to} la simulación estima unas {q1} personas en la fila de fichas (entre {q1_lo} y {q1_hi}) y {q2} en las filas de canje (entre {q2_lo} y {q2_hi}). Después de las 20:00 ya no intentamos comprar. Para las 22:00 la simulación estima {night_wait} minutos en la fila de canje (entre {night_wait_lo} y {night_wait_hi})."
-  en: "One window sold the tickets for every drink. With the tickets in hand, people stood in line again to exchange them. The ticket line, the cocktail line and the two beer lines ran from the bar toward the stage, and the cocktail and beer lines reached the booth of the lighting and drone engineers in the middle of the floor. At 15:30 buying was relatively quick, and between {obs_from} and {obs_to} the exchange line took more than 40 minutes; we saw that. We did not measure the longest wait. We rebuilt that night in a computer simulation, and what follows are estimates. The simulation reproduces the night with {pour_lo} to {pour_hi} people serving beer. Between {obs_from} and {obs_to} the simulation estimates about {q1} people in the ticket line (between {q1_lo} and {q1_hi}) and {q2} in the exchange lines (between {q2_lo} and {q2_hi}). After 20:00 we stopped trying to buy. For 22:00 the simulation estimates {night_wait} minutes in the exchange line (between {night_wait_lo} and {night_wait_hi})."
+  es: "Una sola ventanilla vendía las fichas de todas las bebidas. Con las fichas en la mano había que formarse otra vez para canjearlas. La fila de fichas, la de cocteles y las dos de cerveza salían de la barra hacia el escenario, y las de cocteles y cerveza llegaban hasta la cabina de los ingenieros de luces y drones a media pista. Los baños ocupan la esquina de la barra del lado de la entrada. A las 15:30 comprar era relativamente rápido, y entre las {obs_from} y las {obs_to} la fila de canje tomaba más de 40 minutos; eso lo vimos. La espera más larga no la medimos. Reconstruimos esa noche en una simulación por computadora, y lo que sigue son estimaciones. La simulación reproduce la noche con entre {pour_lo} y {pour_hi} personas sirviendo cerveza. Entre las {obs_from} y las {obs_to} la simulación estima unas {q1} personas en la fila de fichas (entre {q1_lo} y {q1_hi}) y {q2} en las filas de canje (entre {q2_lo} y {q2_hi}). Después de las 20:00 ya no intentamos comprar. Para las 22:00 la simulación estima {night_wait} minutos en la fila de canje (entre {night_wait_lo} y {night_wait_hi})."
+  en: "One window sold the tickets for every drink. With the tickets in hand, people stood in line again to exchange them. The ticket line, the cocktail line and the two beer lines ran from the bar toward the stage, and the cocktail and beer lines reached the booth of the lighting and drone engineers in the middle of the floor. The toilets take the corner of the bar on the entrance side. At 15:30 buying was relatively quick, and between {obs_from} and {obs_to} the exchange line took more than 40 minutes; we saw that. We did not measure the longest wait. We rebuilt that night in a computer simulation, and what follows are estimates. The simulation reproduces the night with {pour_lo} to {pour_hi} people serving beer. Between {obs_from} and {obs_to} the simulation estimates about {q1} people in the ticket line (between {q1_lo} and {q1_hi}) and {q2} in the exchange lines (between {q2_lo} and {q2_hi}). After 20:00 we stopped trying to buy. For 22:00 the simulation estimates {night_wait} minutes in the exchange line (between {night_wait_lo} and {night_wait_hi})."
 
 h_new:
   es: "Cómo se compra con el plan"
@@ -136,8 +136,8 @@ h_video:
   es: "Así se ve la noche"
   en: "Watch the night"
 video_night:
-  es: "La misma noche con las dos formas de vender, de {clip_from} a {clip_to}. Cada punto es una persona. A la izquierda, 2026. A la derecha, el plan. Después de las 20:00 el lado de 2026 es una estimación."
-  en: "The same night under both ways of selling, {clip_from} to {clip_to}. Each dot is one person. On the left, 2026. On the right, the plan. After 20:00 the 2026 side is an estimate."
+  es: "La misma noche con las dos formas de vender, de {clip_from} a {clip_to}. Cada punto es una persona. A la izquierda, 2026. A la derecha, el plan. Después de las 20:00 el lado de 2026 es una estimación. Los cuadros detrás de la barra son las personas que atienden: vacíos si están libres, claros si cobran y dorados si sirven."
+  en: "The same night under both ways of selling, {clip_from} to {clip_to}. Each dot is one person. On the left, 2026. On the right, the plan. After 20:00 the 2026 side is an estimate. The squares behind the bar are the bar staff: hollow when free, light when charging and gold when serving."
 video_change:
   es: "Cámara lenta del momento más pesado de la noche. Funker Vogt termina a las 21:25 y el público va por cerveza antes de Peter Heppner. A esa hora el lado de 2026 es una estimación."
   en: "Slow motion of the heaviest moment of the night. Funker Vogt ends at 21:25 and the audience goes for beer before Peter Heppner. At that hour the 2026 side is an estimate."
@@ -260,8 +260,20 @@ need_text:
   es: "Compartir estos datos es opcional. Con ellos el análisis sería más preciso, los rangos de este reporte se reducirían y podríamos ajustar el plan a su operación. Nos sirve cualquiera de ellos, aunque no estén todos. Pueden enviarlos a {author} por <a href=\"{contact_url}\">{contact_label}</a>."
   en: "Sharing these records is optional. With them the analysis would be more accurate, the ranges in this report would narrow and we could fit the plan to your operation. Any one of them helps, even if not all are available. They can be sent to {author} on <a href=\"{contact_url}\">{contact_label}</a>."
 need_check:
-  es: "Los tres primeros también sirven para comprobar el estudio. Si sus cifras quedan fuera de estos rangos, lo recalculamos con ellas."
-  en: "The first three also serve to check the study. If your figures fall outside these ranges, we recalculate with them."
+  es: "Las cervezas vendidas, los boletos vendidos y las personas en la barra también sirven para comprobar el estudio. Si sus cifras quedan fuera de estos rangos, lo recalculamos con ellas."
+  en: "Beers sold, tickets sold and people at the bar also serve to check the study. If your figures fall outside these ranges, we recalculate with them."
+need_quick_lead:
+  es: "Tres preguntas que se responden en un minuto y cambian qué opciones conviene estudiar."
+  en: "Three questions that take a minute to answer and change which options are worth studying."
+need_quick:
+  es:
+    - ["¿El salón permite entregar latas cerradas al público o exige servir en vaso?", "Con latas cerradas, la cerveza en lata y los cocteles en lata se vuelven opciones que acortan el servicio."]
+    - ["¿Quién opera la barra y recibe la venta de bebidas: Orus Producciones, el salón o un concesionario?", "Define quién decide sobre el personal y quién recibe las ventas adicionales."]
+    - ["¿Cuánto cuesta una hora de trabajo en la barra, o un turno y cuántas horas dura?", "Permite comparar el costo del personal con las ventas adicionales."]
+  en:
+    - ["Does the venue allow closed cans to be handed to the audience, or does it require serving in cups?", "With closed cans, canned beer and canned cocktails become options that shorten the service."]
+    - ["Who runs the bar and receives the drink sales: Orus Producciones, the venue or a concessionaire?", "It defines who decides on the staff and who receives the extra sales."]
+    - ["What does one working hour at the bar cost, or one shift and how many hours it lasts?", "It lets us compare the cost of the crew with the extra sales."]
 need_estimates:
   es:
     - "La simulación estima unas {chk_beers} cervezas vendidas (entre {chk_beers_lo} y {chk_beers_hi})."
@@ -276,16 +288,18 @@ needs:
     - "Cervezas vendidas en la noche (compradas menos sobrantes)."
     - "Boletos vendidos y hora de entrada de cada boleto, de la plataforma de boletos."
     - "Personas en la barra por hora, precios y cuánto se cobró en efectivo y con tarjeta."
-    - "Costo de un turno de barra y margen por cerveza, para comparar ventas con costos."
+    - "Margen por cerveza, para comparar ventas con costos."
     - "Aforo autorizado del salón, y ubicación y ancho de cada salida."
-    - "Fotos o videos de la barra con hora."
+    - "Relatos de asistentes: cuánto tiempo hicieron fila para recibir su bebida, cuántas bebidas y de qué tipo pidieron, y si hicieron solo la fila de bebidas o también la de fichas. Una encuesta corta a quienes compraron boleto sirve."
+    - "Fotografías o videos de las filas de fichas y de la barra, con la hora en que se tomaron."
   en:
     - "Beers sold during the night (bought minus left over)."
     - "Tickets sold and the entry time of each ticket, from the ticketing platform."
     - "People at the bar by hour, prices, and the split between cash and card."
-    - "Cost of a bar shift and margin per beer, to compare sales with costs."
+    - "Margin per beer, to compare sales with costs."
     - "Licensed capacity of the hall, and the position and width of every exit."
-    - "Photos or videos of the bar with a time."
+    - "Reports from attendees: how long they stood in line to get their drink, how many drinks and which kind they asked for, and whether they stood only in the drink line or also in the ticket line. A short survey of ticket buyers works."
+    - "Photos or videos of the ticket and bar lines, with the time each one was taken."
 
 h_how:
   es: "Cómo se hizo"

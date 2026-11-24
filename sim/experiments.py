@@ -167,14 +167,23 @@ def run_metrics(cfg: dict, seed: int, obs: dict) -> tuple[dict, pd.DataFrame, pd
     t_end_h = sim.t_end / 3600
     staff_h = 0.0
     staff = 0
+    span_h = 0.0
     for p in sim.points:
-        a = max(p.open_from, 0.0) / 3600
-        b = min(p.open_to, sim.t_end) / 3600
-        staff_h += p.servers * max(b - a, 0.0)
+        staff_h += p.servers * p.open_seconds(sim.t_end) / 3600
+        span_h += p.servers * p.span_seconds(sim.t_end) / 3600
         staff += p.servers
     if sim.k:
-        staff_h += sim.k * (sim.s_end - sim.s_start) / 3600
+        seller_h = float((sim.s_end_i - sim.s_start_i).sum()) / 3600
+        staff_h += seller_h
+        span_h += seller_h
         staff += sim.k
+    # people outside the bar and the floor: runners, line marshals, top-up cashiers
+    # (staff.extra: [{n, from, to, role}]); none in the 2026 setup or the plan
+    for e in (cfg.get("staff") or {}).get("extra") or []:
+        hours = (clock_to_min(e["to"]) - clock_to_min(e["from"])) / 60
+        staff_h += int(e["n"]) * hours
+        span_h += int(e["n"]) * hours
+        staff += int(e["n"])
     del t_end_h
     m = {
         "early_median_min": med(early),
@@ -207,6 +216,7 @@ def run_metrics(cfg: dict, seed: int, obs: dict) -> tuple[dict, pd.DataFrame, pd
                                                           "clock_served_min")), 1),
         "staff": staff,
         "staff_hours": round(staff_h, 1),
+        "staff_hours_paid_span": round(span_h, 1),
         "beers_per_staff_hour": float(s["beers_total"].iloc[-1]) / max(staff_h, 1e-9),
         "front_density_max": float(s["front_density"].max()),
         "floor_density_peak": float(s["on_floor"].max()) / sim.venue.floor_cells.size,
@@ -220,6 +230,9 @@ def run_metrics(cfg: dict, seed: int, obs: dict) -> tuple[dict, pd.DataFrame, pd
         / max(int(s["balks"].iloc[-1] + s["reneges"].iloc[-1]) + len(buyers), 1),
     }
 
+    m.update(worker_metrics(res["workers"]))
+    m.update(option_metrics(sim, res, txn, s))
+
     s5 = s[(s["t_min"] % 5) == 0][["clock_min", "occupancy", "in_lines_total", "queue_cash",
                                    "queue_pour", "queue_satellite", "wait_seller",
                                    "beers_total", "front_density", "act", "band_playing"]].copy()
@@ -231,6 +244,49 @@ def run_metrics(cfg: dict, seed: int, obs: dict) -> tuple[dict, pd.DataFrame, pd
     else:
         w = pd.DataFrame(columns=["clock_min", "median", "p90", "n"])
     return m, s5, w
+
+
+def option_metrics(sim, res, txn, s) -> dict:
+    """Metrics of the options study: waits before 18:00 and in changeovers, share sold by
+    sellers, farthest reach of a line from the counter, cups and units by product."""
+    o = res["options"]
+    out = {"cups_discarded": o["cups_discarded"], "cups_used": o["cups_used"],
+           "line_reach_m": o["max_reach_m"], "rtd_units": o["rtd_units"],
+           "heavy6_any_share": o["heavy6_any_share"]}
+    beers = float(s["beers_total"].iloc[-1]) if len(s) else 0.0
+    out["seller_share"] = (float(txn.loc[txn["channel"] == "seller", "beers"].sum()) / beers
+                           if len(txn) and beers else np.nan)
+    early = _window(txn, "13:00", "18:00") if len(txn) else txn
+    out["early_p90_min"] = float(early["line_min"].quantile(0.9)) if len(early) else np.nan
+    if len(txn):
+        w = _window(txn, *SERVICE_WINDOW)
+        playing = s.set_index("clock_min")["band_playing"]
+        minute = np.floor(w["clock_join_min"]).astype(int)
+        on = playing.reindex(minute).to_numpy()
+        ch = w[on == 0]
+        out["changeover_p90_min"] = float(ch["line_min"].quantile(0.9)) if len(ch) else np.nan
+    else:
+        out["changeover_p90_min"] = np.nan
+    return out
+
+
+def worker_metrics(w: dict) -> dict:
+    """Busy share of the bar workers (all hours and by clock hour, bar_busy_hHH with HH from
+    13 to 26 for 13:00 to 02:00), the share of busy time spent charging, and the share of
+    seller time in each state."""
+    busy = w["charging_s"] + w["pouring_s"] + w.get("stocking_s", 0.0)
+    staffed = w["staffed_s"]
+    out = {"bar_busy_share": float(busy.sum() / staffed.sum()) if staffed.sum() else np.nan,
+           "bar_charging_share": float(w["charging_s"].sum() / busy.sum())
+           if busy.sum() else np.nan}
+    for k, h in enumerate(range(w["hour0"], w["hour0"] + len(staffed))):
+        if staffed[k] > 0:
+            out[f"bar_busy_h{h}"] = float(min(busy[k] / staffed[k], 1.0))
+    total = sum(v for k, v in w["seller_s"].items() if k != "off")
+    for k, v in w["seller_s"].items():
+        if k != "off":
+            out[f"seller_{k}_share"] = float(v / total) if total else np.nan
+    return out
 
 
 def calibration_metrics(cfg: dict, seed: int, obs: dict) -> dict:

@@ -16,7 +16,10 @@ venue:
   length_m: 52.2
   width_m: 30.1
   stage:          {x0: 0.0,  x1: 30.1, y0: 0.0,  y1: 9.0}
-  bar_zone:       {x0: 0.0,  x1: 30.1, y0: 43.2, y1: 52.2}
+  bar_zone:       {x0: 5.0,  x1: 30.1, y0: 43.2, y1: 52.2}   # starts after the toilets
+  # Observed: the toilets take the east end of the bar wall (study author). Width assumed equal
+  # to the east vendor strip. Drawn on the plan views only; trips to the toilets are not modelled.
+  toilets:        {x0: 0.0,  x1: 5.0,  y0: 43.2, y1: 52.2}
   tables:         {x0: 21.1, x1: 30.1, y0: 34.2, y1: 43.2}   # west corner in front of the bar
   vendors_west:   {x0: 25.1, x1: 30.1, y0: 11.0, y1: 33.0}   # ends before the tables
   vendors_east:   {x0: 0.0,  x1: 5.0,  y0: 12.5, y1: 43.2}   # runs to the bar
@@ -47,6 +50,7 @@ bar:
   exchange_x: [15.7, 18.9]      # observed: two beer exchange lines
   n_pour: 5                     # people serving beer. Observed: 5 to 8 people serving in total,
                                 # two beer lines and one line for cocktails and shots
+  pay_first: true              # direct mode: the customer pays, then the beer is served (assumed order)
   pour_x_min: 5.6               # direct mode: first station, past the east vendor strip
   pour_x_max: 20.0              # direct mode: last station, 1 m short of the tables
   s_cash_mean_s: 45             # ticket window, seconds per beer buyer. Buyers of other drinks
@@ -162,3 +166,8 @@ schedule:
   - {act: "DJ Scorpio",             kind: dj,   start: "01:35", end: "01:55"}
   - {act: "DJ Psyklon",             kind: dj,   start: "01:55", end: "02:15"}
   - {act: "DJ Traxbeat",            kind: dj,   start: "02:15", end: "03:00"}
+
+# People outside the bar and the floor, counted in staff and staff hours (options study):
+# runners at refill points, line marshals, top-up cashiers. [{n, from, to, role}]
+staff:
+  extra: []

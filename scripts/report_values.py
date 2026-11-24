@@ -367,6 +367,24 @@ def compute() -> dict:
         f[f"{tag}_wait"] = f"{w['med']:+.1f} min ({w['med_lo']:+.1f} to {w['med_hi']:+.1f})"
         f[f"{tag}_beers"] = f"{b['med']:+,.0f} ({b['med_lo']:+,.0f} to {b['med_hi']:+,.0f})"
         f[f"{tag}_staff"] = f"{w['staff_diff']:+.0f}"
+    shares_path = TAB / "worker_shares.csv"
+    if shares_path.exists():
+        ws = pd.read_csv(shares_path)
+        for scn, tag in (("baseline", "base"), (head, "plan")):
+            for q, key in (("bar busy share, whole night", "busy"),
+                           ("bar charging share of busy time", "charging")):
+                row = ws[(ws["scenario"] == scn) & (ws["quantity"] == q)].iloc[0]
+                f[f"w_{key}_{tag}"] = f"{pct(row['med'])} ({pct(row['lo'])} to {pct(row['hi'])})"
+        for state in ("walking", "selling", "to refill", "refilling"):
+            row = ws[ws["quantity"] == f"seller {state}"].iloc[0]
+            f[f"w_seller_{state.replace(' ', '_')}"] = (f"{pct(row['med'])} ({pct(row['lo'])} "
+                                                        f"to {pct(row['hi'])})")
+        busy = pd.read_csv(TAB / "worker_busy.csv")
+        for scn, tag in (("baseline", "base"), (head, "plan")):
+            b = busy[busy["scenario"] == scn]
+            top = b.loc[b["med"].idxmax()]
+            f[f"w_peak_{tag}"] = f"{int(top['hour']) % 24:02d}:00"
+            f[f"w_peak_share_{tag}"] = pct(top["med"])
     for scn in wi.index:
         f[f"wi_{scn}"] = n1(raw[f"wi_{scn}"])
         f[f"wi_{scn}_hi"] = n1(raw[f"wi_{scn}_hi"])

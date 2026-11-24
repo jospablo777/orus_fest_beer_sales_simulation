@@ -37,13 +37,31 @@ class ServicePoint:
     open_from: float = -np.inf  # seconds after doors; the line accepts people in this window
     open_to: float = np.inf
     label: str = "bar"
+    windows: list | None = None   # several (from, to) windows; replaces open_from/open_to
+    server_x: list | None = None  # x of each server of a pooled line, behind its station
+    pooled: bool = False
 
     def __post_init__(self):
         if not self.free_at:
             self.free_at = [-1.0] * self.servers
 
     def is_open(self, t: float) -> bool:
+        if self.windows is not None:
+            return any(a <= t < b for a, b in self.windows)
         return self.open_from <= t < self.open_to
+
+    def open_seconds(self, t_end: float) -> float:
+        """Seconds the point is staffed between doors (0) and t_end."""
+        wins = self.windows if self.windows is not None else [(self.open_from, self.open_to)]
+        return sum(max(min(b, t_end) - max(a, 0.0), 0.0) for a, b in wins)
+
+    def span_seconds(self, t_end: float) -> float:
+        """Seconds from the first opening to the last closing between doors and t_end (paid
+        time when the person stays for the whole span)."""
+        wins = self.windows if self.windows is not None else [(self.open_from, self.open_to)]
+        a = max(min(w[0] for w in wins), 0.0)
+        b = min(max(w[1] for w in wins), t_end)
+        return max(b - a, 0.0)
 
 
 def queue_slots(x0, y0, direction, lateral, lane_len, spacing=0.55, lane_gap=0.7, n=900):
@@ -171,6 +189,52 @@ class Venue:
         y = self.cell_y[cells] + rng.uniform(-0.5, 0.5, n)
         return x, y
 
+    def _shift_windows(self, shifts, total, taken, t0_min):
+        """Stations of bar.shifts, spread over the counter among the stations not taken by
+        the base crew or extra_pour. Each shift: {n, from, to} or {n, windows: [[from, to]]}
+        in clock times. Returns {station index: [(from, to) in seconds after doors]}."""
+        from .params import clock_to_min
+
+        def sec(c):
+            return (clock_to_min(c) - t0_min) * 60
+        m = sum(int(sh["n"]) for sh in shifts)
+        free = [k for k in range(total) if k not in taken]
+        pick = np.linspace(0, len(free) - 1, m).round().astype(int) if m > 1 else [len(free) // 2]
+        idx, used = [], set()
+        for q in pick:                       # nearest free index not used yet
+            q = int(q)
+            while q in used:
+                q = (q + 1) % len(free)
+            used.add(q)
+            idx.append(free[q])
+        out, k = {}, 0
+        for sh in shifts:
+            wins = sh.get("windows") or [[sh["from"], sh["to"]]]
+            for _ in range(int(sh["n"])):
+                out[idx[k]] = [(sec(a), sec(b)) for a, b in wins]
+                k += 1
+        return out
+
+    def _pool(self, stations, pools, cy):
+        """Contiguous groups of stations that share one line (bar.direct_pools). Each group is
+        one point with as many servers as stations; its line starts at the middle of the
+        group. Stations of a group share their opening windows with its first station."""
+        groups = np.array_split(np.arange(len(stations)), pools)
+        out = []
+        for g in groups:
+            if not len(g):
+                continue
+            xs = [stations[k].x for k in g]
+            x = float(np.mean(xs))
+            sp = ServicePoint("direct", x, cy + 0.3,
+                              queue_slots(x, cy, (0, -1), (1, 0), self.lane_length(x, 22.0),
+                                          lane_gap=0.6), servers=len(g),
+                              server_x=xs, label="bar", pooled=True)
+            first = stations[g[0]]
+            sp.open_from, sp.open_to, sp.windows = first.open_from, first.open_to, first.windows
+            out.append(sp)
+        return out
+
     def build_service_points(self, cfg: dict, t0_min: float = 0.0) -> list[ServicePoint]:
         b = cfg["bar"]
         cy = self.cfg["counter_y"] - 0.5
@@ -193,23 +257,34 @@ class Venue:
                                                servers=servers))
         else:
             # One station per person serving, each with its own line. Extra stations are
-            # staffed only during a shift window (bar.extra_pour, extra_from/to).
+            # staffed only during a shift window (bar.extra_pour, extra_from/to) or during the
+            # windows of bar.shifts.
             n = b["n_pour"]
             n_extra = int(b.get("extra_pour", 0))
-            xs = self.station_x(n + n_extra, b["pour_x_min"], b["pour_x_max"])
+            shifts = b.get("shifts") or []
+            n_shift = sum(int(sh["n"]) for sh in shifts)
+            xs = self.station_x(n + n_extra + n_shift, b["pour_x_min"], b["pour_x_max"])
             extra_idx = (set(np.linspace(0, len(xs) - 1, n_extra).round().astype(int))
                          if n_extra else set())
             if n_extra:
                 from .params import clock_to_min
                 shift = ((clock_to_min(b["extra_from"]) - t0_min) * 60,
                          (clock_to_min(b["extra_to"]) - t0_min) * 60)
+            windows = {}
+            if n_shift:
+                windows = self._shift_windows(shifts, len(xs), extra_idx, t0_min)
+            stations = []
             for k, x in enumerate(xs):
                 sp = ServicePoint("direct", float(x), cy + 0.3,
                                   queue_slots(x, cy, (0, -1), (1, 0),
                                               self.lane_length(x, 22.0), lane_gap=0.6))
                 if k in extra_idx:
                     sp.open_from, sp.open_to = shift
-                points.append(sp)
+                if k in windows:
+                    sp.windows = windows[k]
+                stations.append(sp)
+            pools = int(b.get("direct_pools", 0))
+            points += self._pool(stations, pools, cy) if pools else stations
         if b.get("satellite_bar"):
             side = b.get("satellite_side", "east")
             sides = ["east", "west"] if side == "both" else [side]

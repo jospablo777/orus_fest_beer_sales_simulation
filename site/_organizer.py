@@ -363,7 +363,8 @@ def pieces(lang: str) -> list[tuple[str, str]]:
 
     old = both_layouts(lambda narrow: diagrams.old_process(
         lang, exchange, total, r["base_queue_cash_obs"], r["base_queue_pour_obs"], gave_up,
-        scale, observed, narrow, exchange_rng=ex_rng, total_rng=tot_rng))
+        scale, observed, narrow, exchange_rng=ex_rng, total_rng=tot_rng,
+        pourers=round(r["pour_2026"])))
     new = both_layouts(lambda narrow: diagrams.new_process(
         lang, max(r["plan_obs_median_min"], 1), r["plan_evening_p90_min"], r["plan_taps"],
         r["plan_sellers"], scale, observed, service, narrow))
@@ -427,7 +428,11 @@ def pieces(lang: str) -> list[tuple[str, str]]:
     needs = "".join(f"<li>{item}" + (f' <span class="check">{checks[k]}</span>'
                                      if k < len(checks) else "") + "</li>"
                     for k, item in enumerate(text["needs"][lang]))
+    quick = "".join(f'<li><strong>{q}</strong> <span class="check">{why}</span></li>'
+                    for q, why in text["need_quick"][lang])
     out += [("h2", t("h_need")),
+            ("html", f'<div class="needs quick"><p>{t("need_quick_lead")}</p><ul>{quick}</ul>'
+                     f'</div>'),
             ("html", f'<div class="needs"><p>{t("need_text")}</p><p>{t("need_check")}</p>'
                      f'<ol>{needs}</ol></div>')]
 

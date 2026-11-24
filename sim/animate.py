@@ -14,7 +14,8 @@ import numpy as np  # noqa: E402
 from matplotlib import animation, patches  # noqa: E402
 from matplotlib.colors import LinearSegmentedColormap  # noqa: E402
 
-from .model import (QUEUED, SERVICE, S_OFF, TO_QUEUE, WAIT_SELLER)  # noqa: E402
+from .model import (QUEUED, SERVICE, S_OFF, S_RESTOCKING, TO_QUEUE, W_CHARGING,  # noqa: E402
+                     W_IDLE, W_OFF, W_POURING, WAIT_SELLER)
 from .params import min_to_clock  # noqa: E402
 from .venue import Venue  # noqa: E402
 from . import theme  # noqa: E402
@@ -33,6 +34,24 @@ INK = theme.INK
 C_COUNTER = "#2a9fbf"
 C_BOOTH = theme.BLUE
 C_COCKTAIL = "#8a7a3a"
+C_TOILETS = "#7a7f8c"
+# Bar workers: square markers behind the counter. Idle is hollow; charging and pouring are
+# filled with a light and a mid tone, which also differ in grey scale. On the bar fill
+# (about #1e373c) the contrast ratios are about 12:1 (charging) and 5.6:1 (pouring).
+C_W_CHARGING = "#f4efe6"
+C_W_POURING = "#d9a441"
+C_REFILL_EDGE = "#d9a441"
+
+
+def worker_style(states):
+    """Face and edge colours (RGBA) of the bar worker markers. Workers off shift are hidden."""
+    from matplotlib.colors import to_rgba
+    face = np.zeros((len(states), 4))
+    edge = np.tile(to_rgba(INK), (len(states), 1))
+    face[states == W_CHARGING] = to_rgba(C_W_CHARGING)
+    face[states == W_POURING] = to_rgba(C_W_POURING)
+    edge[states == W_OFF] = (0, 0, 0, 0)
+    return face, edge
 
 DENSITY_CMAP = LinearSegmentedColormap.from_list("density", theme.DENSITY_STEPS)
 
@@ -73,6 +92,13 @@ def draw_venue(ax, cfg, points, labels=True, lang="en", booth_label=True):
                     names[key], ha="center", va="center", fontsize=8, color=col,
                     rotation=rot, alpha=0.9, fontweight="bold")
     venue = Venue(cfg)
+    if v.get("toilets"):
+        r = v["toilets"]
+        ax.add_patch(patches.Rectangle((r["x0"], r["y0"]), r["x1"] - r["x0"], r["y1"] - r["y0"],
+                                       fc=C_TOILETS, alpha=0.35, ec=C_TOILETS, lw=0.8, zorder=2))
+        if labels:
+            ax.text((r["x0"] + r["x1"]) / 2, (r["y0"] + r["y1"]) / 2, L["toilets"], ha="center",
+                    va="center", fontsize=8, color=INK, rotation=90, fontweight="bold", zorder=2)
     if v.get("booth"):
         r = v["booth"]
         ax.add_patch(patches.Rectangle((r["x0"], r["y0"]), r["x1"] - r["x0"], r["y1"] - r["y0"],
@@ -89,7 +115,8 @@ def draw_venue(ax, cfg, points, labels=True, lang="en", booth_label=True):
         if labels:
             ax.text((r["x0"] + r["x1"]) / 2, (r["y0"] + r["y1"]) / 2, L["cocktail_line"],
                     ha="center", va="center", fontsize=6, color=INK, rotation=90, zorder=2)
-    ax.plot([0, v["width_m"]], [v["counter_y"]] * 2, color=C_COUNTER, lw=2.2, alpha=0.9)
+    ax.plot([v["bar_zone"]["x0"], v["bar_zone"]["x1"]], [v["counter_y"]] * 2, color=C_COUNTER,
+            lw=2.2, alpha=0.9)
     for kind, x, y in points:
         style = {"cash": ("s", C_CASH), "pour": ("v", C_COUNTER), "direct": ("v", C_COUNTER)}
         m, c = style[kind]
@@ -146,12 +173,12 @@ def _phone_layout(L, titles):
     gs = fig.add_gridspec(1, 2, left=0.02, right=0.98, top=0.865, bottom=0.40, wspace=0.06)
     floor_axes = [fig.add_subplot(gs[0, j]) for j in range(2)]
     title = fig.text(0.03, 0.985, "", fontsize=18, fontweight="bold", color=INK, va="top")
-    return fig, floor_axes, [], title, {"panel_title": 14, "wrap": 22, "info": 15,
-                                        "info_y": -0.015, "legend": dict(
-                                            loc="upper left", bbox_to_anchor=(0.03, 0.295),
-                                            ncol=2, fontsize=12.5, columnspacing=1.0,
-                                            handletextpad=0.3), "info_lines": 3,
-                                        "bitrate": 2000}
+    return fig, floor_axes, [], title, {"panel_title": 14, "wrap": 22, "info": 14,
+                                        "info_y": -0.012, "legend": dict(
+                                            loc="upper left", bbox_to_anchor=(0.03, 0.262),
+                                            ncol=2, fontsize=12, columnspacing=1.0,
+                                            handletextpad=0.3, labelspacing=0.35),
+                                        "info_lines": 3, "bitrate": 2000, "worker_size": 22}
 
 
 def _wide_layout(L, titles):
@@ -163,11 +190,13 @@ def _wide_layout(L, titles):
     ts_axes = [fig.add_subplot(gs[i, 2]) for i in range(3)]
     title = fig.text(0.02, 0.966, "", fontsize=21, fontweight="bold", color=INK, va="top")
     fig.text(0.02, 0.9145, L["dot_note"], fontsize=12.5, color=theme.MUTED, va="top")
-    return fig, floor_axes, ts_axes, title, {"panel_title": 13, "wrap": 30, "info": 12.5,
-                                             "info_y": -0.02, "legend": dict(
-                                                 loc="upper left", bbox_to_anchor=(0.40, 0.975),
-                                                 ncol=3, fontsize=12.5, columnspacing=1.2,
-                                                 handletextpad=0.4), "info_lines": 2}
+    return fig, floor_axes, ts_axes, title, {"panel_title": 13, "wrap": 30, "info": 12,
+                                             "info_y": -0.015, "legend": dict(
+                                                 loc="upper left", bbox_to_anchor=(0.37, 0.985),
+                                                 ncol=4, fontsize=11.5, columnspacing=1.0,
+                                                 handletextpad=0.3, labelspacing=0.3),
+                                             "info_lines": 2, "worker_size": 30,
+                                             "order": [0, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
 
 
 def side_by_side(runs, cfgs, titles, path, fps=20, dpi=120, lang="en", still_only=False,
@@ -187,7 +216,7 @@ def side_by_side(runs, cfgs, titles, path, fps=20, dpi=120, lang="en", still_onl
     build = _phone_layout if layout == "phone" else _wide_layout
     fig, floor_axes, ts_axes, title, look = build(L, titles)
 
-    scat, sell, info = [], [], []
+    scat, sell, info, work = [], [], [], []
     for ax, run, cfg, ttl in zip(floor_axes, runs, cfgs, titles):
         draw_venue(ax, cfg, run["points"], lang=lang, booth_label=False)
         ax.set_title(textwrap.fill(ttl, look["wrap"]), fontsize=look["panel_title"], color=INK,
@@ -195,6 +224,8 @@ def side_by_side(runs, cfgs, titles, path, fps=20, dpi=120, lang="en", still_onl
         scat.append(ax.scatter([], [], s=5, lw=0, zorder=3))
         sell.append(ax.scatter([], [], s=70, c=C_SELLER, marker="o", edgecolors=INK,
                                linewidths=0.9, zorder=6))
+        work.append(ax.scatter([], [], s=look["worker_size"], marker="s", linewidths=1.2,
+                               zorder=5))
         info.append(ax.text(0.5, look["info_y"], "", transform=ax.transAxes, ha="center",
                             va="top", fontsize=look["info"], color=INK, linespacing=1.5))
 
@@ -202,9 +233,18 @@ def side_by_side(runs, cfgs, titles, path, fps=20, dpi=120, lang="en", still_onl
               (L["ticket_line"], C_CASH), (L["tap_line"], C_POUR),
               (L["wait_seller"], C_WAIT_SELLER), (L["seller"], C_SELLER)]
     handles = [Line2D([], [], ls="", marker="o", ms=8, color=col) for _, col in legend]
-    handles.append(Line2D([], [], ls="", marker="s", ms=10, color=C_BOOTH, alpha=0.6))
-    fig.legend(handles, [lab for lab, _ in legend] + [L["booth"]], frameon=False,
-               labelcolor=INK, **look["legend"])
+    labels_ = [lab for lab, _ in legend]
+    handles += [Line2D([], [], ls="", marker="o", ms=9, color=C_SELLER, mec=C_REFILL_EDGE,
+                       mew=2.4),
+                Line2D([], [], ls="", marker="s", ms=8, mfc="none", mec=INK, mew=1.2),
+                Line2D([], [], ls="", marker="s", ms=8, mfc=C_W_CHARGING, mec=INK, mew=1.2),
+                Line2D([], [], ls="", marker="s", ms=8, mfc=C_W_POURING, mec=INK, mew=1.2),
+                Line2D([], [], ls="", marker="s", ms=10, color=C_BOOTH, alpha=0.6)]
+    labels_ += [L["s_refill"], L["w_idle"], L["w_charging"], L["w_pouring"], L["booth"]]
+    if "order" in look:              # columns are filled top to bottom; long labels share one
+        handles = [handles[k] for k in look["order"]]
+        labels_ = [labels_[k] for k in look["order"]]
+    fig.legend(handles, labels_, frameon=False, labelcolor=INK, **look["legend"])
 
     palette = [theme.RED, theme.BRONZE]
     series_spec = [("occupancy", L["people_inside"]), ("in_lines_total", L["people_in_lines"]),
@@ -250,16 +290,27 @@ def side_by_side(runs, cfgs, titles, path, fps=20, dpi=120, lang="en", still_onl
             on = f["s_state"] != S_OFF
             sell[j].set_offsets(np.c_[f["sx"][on], f["sy"][on]] if on.any()
                                 else np.empty((0, 2)))
+            refill = f["s_state"][on] == S_RESTOCKING
+            sell[j].set_edgecolors([C_REFILL_EDGE if r else INK for r in refill])
+            sell[j].set_linewidths(np.where(refill, 2.4, 0.9))
+            ws = f["w_state"]
+            work[j].set_offsets(np.c_[f["wx"], f["wy"]])
+            face, edge = worker_style(ws)
+            work[j].set_facecolors(face)
+            work[j].set_edgecolors(edge)
+            staffed = int((ws != W_OFF).sum())
+            busy = int(((ws == W_CHARGING) | (ws == W_POURING)).sum())
+            busy_txt = L["busy_at_bar"].format(b=busy, n=staffed)
             n_line = int(np.isin(f["state"], [QUEUED, SERVICE]).sum())
             w = waits[j][k]
             beers = runs[j]["series"]
             b = beers.loc[(beers["clock_min"] - c).abs().idxmin(), "beers_total"]
             if look["info_lines"] == 3:
                 wtxt = (f"\n{L['wait']} {w:.0f} {L['minutes']}" if np.isfinite(w) else "\n")
-                info[j].set_text(f"{n_line} {L['in_lines']}{wtxt}\n{b:,} {L['beers_sold']}")
             else:
                 wtxt = f"  ·  {L['wait']} {w:.0f} {L['minutes']}" if np.isfinite(w) else ""
-                info[j].set_text(f"{n_line} {L['in_lines']}{wtxt}\n{b:,} {L['beers_sold']}")
+            info[j].set_text(f"{n_line} {L['in_lines']}{wtxt}\n{b:,} {L['beers_sold']}"
+                             f"\n{busy_txt}")
         for mk in markers:
             mk.set_xdata([c, c])
         return []

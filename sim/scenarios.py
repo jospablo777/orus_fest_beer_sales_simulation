@@ -16,7 +16,9 @@ def _expr_names(cfg: dict) -> dict:
     return {"n_pour": b["n_pour"], "n_cashiers": b["n_cashiers"],
             "bundle_mean": b["bundle_mean"], "s_cash_mean_s": b["s_cash_mean_s"],
             "s_pour_mean_s": b["s_pour_mean_s"], "n_total": c["n_total"],
-            "rate_mean_per_h": c["rate_mean_per_h"]}
+            "rate_mean_per_h": c["rate_mean_per_h"],
+            "extra_beer_factor": b.get("extra_beer_factor", 1.0),
+            "double_share": c["double_share"]}
 
 
 def _plan_names() -> dict:

@@ -26,7 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import report_values  # noqa: E402
 from sim import params, theme  # noqa: E402
 from sim import scenarios as sc  # noqa: E402
-from sim.animate import draw_venue  # noqa: E402
+from sim.animate import C_W_POURING, draw_venue  # noqa: E402
 from sim.venue import Venue  # noqa: E402
 
 FIG = params.ROOT / "output" / "figures"
@@ -272,6 +272,9 @@ def plan_figure(v: dict, lang: str):
         for dx in (-0.55, 0.55):
             ax.plot([x + dx, x + dx], [cy - 0.4, cy - 6.4], color=theme.INK, lw=1.4,
                     solid_capstyle="round")
+    # one person behind each station of the recommended crew
+    ax.scatter(xs, np.full(len(xs), cy + 1.0), s=46, marker="s", c=C_W_POURING,
+               edgecolors=theme.INK, linewidths=1.0, zorder=6)
     # open walkway beside the lighting booth, from the stage front to the end of the lanes
     walk_x = 9.5
     ax.add_patch(patches.FancyArrowPatch((walk_x, vz["stage"]["y1"] + 3), (walk_x, cy - 7.5),

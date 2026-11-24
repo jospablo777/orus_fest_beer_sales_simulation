@@ -212,3 +212,82 @@ def test_pour_saving_takes_the_saving_off_each_beer():
     t_slow = np.mean([slow._service_time("direct", 2) for _ in range(4000)])
     t_fast = np.mean([fast._service_time("direct", 2) for _ in range(4000)])
     assert abs((t_slow - t_fast) - 24.0) < 3.0
+
+
+def test_reference_nights_unchanged():
+    """The 2026 setup and the plan on three fixed draws and seeds give the stored metrics
+    (tests/fixtures/reference_metrics.json, written by tests/make_fixture.py before the
+    worker states were added). New metrics may be added; stored ones must not change."""
+    import json
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import make_fixture
+    stored = json.loads(make_fixture.FIXTURE.read_text())
+    runs, obs = make_fixture.cases()
+    for name, cfg, seed in runs:
+        now = make_fixture.metrics_of(cfg, seed, obs)
+        for key, value in stored[name].items():
+            assert now[key] == value, f"{name}: {key} {now[key]} != {value}"
+
+
+def _worker_night(**extra):
+    over = {"bar.mode": "direct", "bar.n_pour": 4, "bar.s_pay_direct_s": 15,
+            "bar.extra_pour": 2, "bar.extra_from": "19:00", "bar.extra_to": "23:00",
+            "sellers.n": 3, "sellers.start": "18:00", "sellers.end": "02:30",
+            "crowd.n_total": 600, **extra}
+    cfg = params.with_overrides(params.load(), over)
+    sim = Simulation(cfg, seed=5, record_frames=True, frame_every_s=300)
+    drawn = []
+    draw = sim._service_time
+
+    def recording(kind, beers, **kw):
+        out = draw(kind, beers, **kw)
+        drawn.append(out)
+        return out
+
+    sim._service_time = recording
+    return sim, sim.run(), drawn
+
+
+def test_worker_states_add_up_to_the_staff():
+    from sim.model import W_OFF
+    sim, res, _ = _worker_night()
+    servers = sum(p.servers for p in sim.points)
+    for f in res["frames"]:
+        assert len(f["w_state"]) == servers
+        on = sum(p.servers for p in sim.points if p.is_open(f["t"]))
+        assert int((f["w_state"] != W_OFF).sum()) == on
+    s = res["series"]
+    bar = s[["bar_off", "bar_idle", "bar_charging", "bar_pouring"]].sum(axis=1)
+    assert (bar == servers).all()
+    sellers = s[[c for c in s.columns if c.startswith("sellers_")]].sum(axis=1)
+    assert (sellers == sim.k).all()
+    assert (s["bar_off"] > 0).any() and (s["bar_charging"] > 0).any()
+
+
+def test_charging_and_pouring_add_up_to_the_service_times():
+    _, res, drawn = _worker_night()
+    w = res["workers"]
+    assert w["charging_s"].sum() + w["pouring_s"].sum() == pytest.approx(sum(drawn), rel=1e-9)
+    assert w["charging_s"].sum() > 0 and w["pouring_s"].sum() > 0
+
+
+def test_ticket_window_charges_and_exchange_pours():
+    cfg = params.with_overrides(params.load(), {"crowd.n_total": 600})
+    sim = Simulation(cfg, seed=3)
+    res = sim.run()
+    s = res["series"]
+    w = res["workers"]
+    assert w["charging_s"].sum() > 0 and w["pouring_s"].sum() > 0
+    cash = sum(p.servers for p in sim.points if p.kind == "cash")
+    assert (s["bar_charging"] <= cash).all()
+
+
+def test_line_waits_count_people_in_service():
+    """People still in line or at the counter count as not yet served (the calibration's
+    shortened runs read this while services are under way)."""
+    cfg = params.with_overrides(params.load(), {"crowd.n_total": 600})
+    sim = Simulation(cfg, seed=4)
+    sim.start()
+    sim.advance(7 * 3600)
+    minutes, served = sim.line_waits_so_far(0, 7 * 3600, "pour")
+    assert len(minutes) == len(served) and len(minutes) > 0

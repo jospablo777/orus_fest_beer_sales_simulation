@@ -525,5 +525,57 @@ p_cap <- ggplot(cap, aes(n_total, density)) +
        x = "tickets sold", y = "people per m²")
 save_fig(p_cap, "13_capacity.png", w = 10, h = 5.6)
 
+# ---- 14 Bar workers: busy share by hour and seller time ------------------------------
+# bar_busy_hHH is the busy share of the bar workers on shift in clock hour HH (13 to 26 for
+# 13:00 to 02:00); seller_*_share is the share of seller time in each state.
+busy_cols <- grep("^bar_busy_h[0-9]+$", names(met), value = TRUE)
+if (length(busy_cols)) {
+  wk <- melt(met[scenario %in% c("baseline", headline), c("scenario", "draw", busy_cols),
+                 with = FALSE],
+             id.vars = c("scenario", "draw"), variable.name = "hour", value.name = "busy")
+  wk[, hour := as.integer(sub("bar_busy_h", "", hour))]
+  wk <- wk[!is.na(busy) & hour <= 26]
+  wk_sum <- wk[, .(med = median(busy), lo = quantile(busy, 0.05), hi = quantile(busy, 0.95),
+                   nights = .N), by = .(scenario, hour)]
+  wk_sum[, setup := factor(ifelse(scenario == "baseline", "2026 setup", "Plan"),
+                           levels = c("2026 setup", "Plan"))]
+  fwrite(wk_sum[order(scenario, hour)], file.path(tab_dir, "worker_busy.csv"))
+  p_busy <- ggplot(wk_sum, aes(hour, med, colour = setup, fill = setup)) +
+    geom_ribbon(aes(ymin = lo, ymax = hi), alpha = 0.2, colour = NA) +
+    geom_line(linewidth = 1) + geom_point(size = 2) +
+    scale_colour_manual(values = c("2026 setup" = red, "Plan" = bronze), name = NULL) +
+    scale_fill_manual(values = c("2026 setup" = red, "Plan" = bronze), name = NULL) +
+    scale_x_continuous(breaks = seq(13, 26, 2), labels = sprintf("%02d:00", seq(13, 26, 2) %% 24)) +
+    scale_y_continuous(labels = percent, limits = c(0, 1)) +
+    labs(title = "Share of time the bar workers on shift are busy",
+         subtitle = "Median night and 5% to 95% of nights. Charging and pouring both count as busy.",
+         x = "clock hour", y = "busy share")
+  sel_cols <- c(walking = "seller_walking_share", selling = "seller_selling_share",
+                `to refill` = "seller_to_refill_share", refilling = "seller_refilling_share")
+  sel <- melt(met[scenario == headline, c("draw", sel_cols), with = FALSE], id.vars = "draw",
+              variable.name = "state", value.name = "share")
+  sel[, state := factor(names(sel_cols)[match(state, sel_cols)], levels = names(sel_cols))]
+  sel_sum <- sel[, .(med = median(share), lo = quantile(share, 0.05),
+                     hi = quantile(share, 0.95)), by = state]
+  ch <- met[scenario %in% c("baseline", headline),
+            .(charging = median(bar_charging_share), charging_lo = quantile(bar_charging_share, 0.05),
+              charging_hi = quantile(bar_charging_share, 0.95), busy = median(bar_busy_share),
+              busy_lo = quantile(bar_busy_share, 0.05), busy_hi = quantile(bar_busy_share, 0.95)),
+            by = scenario]
+  fwrite(rbind(sel_sum[, .(scenario = headline, quantity = paste("seller", state), med, lo, hi)],
+               ch[, .(scenario, quantity = "bar charging share of busy time", med = charging,
+                      lo = charging_lo, hi = charging_hi)],
+               ch[, .(scenario, quantity = "bar busy share, whole night", med = busy,
+                      lo = busy_lo, hi = busy_hi)]),
+         file.path(tab_dir, "worker_shares.csv"))
+  p_sel <- ggplot(sel_sum, aes(med, state)) +
+    geom_errorbar(aes(xmin = lo, xmax = hi), orientation = "y", width = 0, colour = muted) +
+    geom_point(size = 3, colour = bronze) +
+    scale_x_continuous(labels = percent, limits = c(0, 1)) +
+    labs(title = "Seller time under the plan", subtitle = "Median night and 5% to 95% of nights",
+         x = "share of time on shift", y = NULL)
+  save_fig(p_busy / p_sel + plot_layout(heights = c(2, 1)), "14_bar_workers.png", w = 10, h = 8)
+}
+
 writeLines(capture.output(sessionInfo()), file.path(tab_dir, "sessionInfo.txt"))
 cat("figures written to", fig_dir, "\n")

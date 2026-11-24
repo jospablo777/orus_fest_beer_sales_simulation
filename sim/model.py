@@ -6,6 +6,8 @@ draws thirst events, runs every service point and roaming seller, and records su
 
 from __future__ import annotations
 
+from collections import deque
+
 import numpy as np
 from scipy.ndimage import uniform_filter
 
@@ -17,6 +19,12 @@ STATE_NAMES = ["not_arrived", "to_spot", "watch", "to_queue", "queued", "service
                "wait_seller", "to_exit", "gone"]
 
 S_PATROL, S_TO_CUSTOMER, S_SERVING, S_TO_RESTOCK, S_RESTOCKING, S_OFF = range(6)
+# States of the people behind the bar (W_*) and of the sellers as reported (SELLER_STATES).
+W_OFF, W_IDLE, W_CHARGING, W_POURING, W_STOCKING = range(5)
+WORKER_STATES = ["off", "idle", "charging", "pouring", "stocking"]
+SELLER_STATES = ["off", "walking", "selling", "to_refill", "refilling"]
+SELLER_REPORT = {S_OFF: 0, S_PATROL: 1, S_TO_CUSTOMER: 1, S_SERVING: 2, S_TO_RESTOCK: 3,
+                 S_RESTOCKING: 4}
 NO_FRIENDS = np.empty(0, int)
 
 
@@ -146,6 +154,12 @@ class Simulation:
                                 np.split(by_group, cuts)))
 
         self.drinker = rng.random(n) < c["drinker_share"]
+        # crowd.rtd_share: attendees who buy ready-to-drink cans and no beer, taken from the
+        # attendees who do not drink beer (no draw when the share is 0)
+        rtd_share = float(c.get("rtd_share", 0.0) or 0.0)
+        self.rtd = (~self.drinker & (rng.random(n) < rtd_share / max(1 - c["drinker_share"], 1e-9))
+                    if rtd_share else np.zeros(n, bool))
+        self.rtd_units = np.zeros(n, int)
         self.rate = _lognormal(rng, c["rate_mean_per_h"], c["rate_cv"], n) / 3600.0
         self.patience = rng.lognormal(np.log(c["patience_median_min"] * 60),
                                       c["patience_sd_log"], n)
@@ -189,6 +203,19 @@ class Simulation:
         self.k = k
         self.s_start = (clock_to_min(s["start"]) - self.t0_min) * 60
         self.s_end = (clock_to_min(s["end"]) - self.t0_min) * 60
+        # sellers.shifts adds sellers with their own start and end; sellers.restock_extra adds
+        # refill points away from the bar (each with a runner, counted in staff.extra)
+        starts, ends = [self.s_start] * k, [self.s_end] * k
+        for sh in s.get("shifts") or []:
+            n_sh = int(sh["n"])
+            starts += [(clock_to_min(sh["start"]) - self.t0_min) * 60] * n_sh
+            ends += [(clock_to_min(sh["end"]) - self.t0_min) * 60] * n_sh
+        k = len(starts)
+        self.k = k
+        self.s_start_i, self.s_end_i = np.array(starts, float), np.array(ends, float)
+        extra = [[r["x"], r["y"]] for r in s.get("restock_extra") or []]
+        self.restock = (np.vstack([self.venue.restock_points, extra]) if extra
+                        else self.venue.restock_points)
         base = self.venue.restock_points[np.arange(k) % 2] if k else np.zeros((0, 2))
         self.sx = base[:, 0].copy()
         self.sy = base[:, 1].copy()
@@ -241,26 +268,166 @@ class Simulation:
             return np.zeros(len(ids), bool)
         return self.fan[ids, self.focus_k]
 
-    def _service_time(self, kind, beers):
+    def _service_time(self, kind, beers, rtd=False):
+        """Seconds of one visit. Also sets self._split = (charging, pouring) seconds; the
+        ticket window only charges, the 2026 exchange lines only pour."""
         b = self.cfg["bar"]
         cv = b["service_cv"]
         if kind == "cash":
             out = _lognormal(self.rng, b["s_cash_mean_s"], cv)
+            self._split = (out, 0.0)
         else:
             # each beer after the first takes extra_beer_factor of the time of the first
             units = 1.0 + b.get("extra_beer_factor", 1.0) * (beers - 1)
             mean = b["s_pour_mean_s"] * units
+            if rtd and not b.get("rtd_poured", False):   # ready-to-drink cans handed closed
+                mean = b["s_rtd_s"] * units
             # Serving options that skip opening and pouring (cans, draft beer) save a fixed
             # time per beer; at most three quarters of the serving time can be saved.
             saving = b.get("pour_saving_s", 0.0) * beers
             if saving:
                 mean = max(mean - saving, 0.25 * mean)
             out = _lognormal(self.rng, mean, cv / np.sqrt(units))
+            self._split = (0.0, out)
             if kind == "direct":
-                out += _lognormal(self.rng, b["s_pay_direct_s"], cv)
+                pay = _lognormal(self.rng, b["s_pay_direct_s"], cv)
+                self._split = (pay, out)
+                out += pay
         # people judge a line by how long recent visits took at that kind of station
         self.visit_s[kind] = 0.95 * self.visit_s[kind] + 0.05 * out
         return out
+
+    def _add_busy(self, start, charge, pour, pay_first):
+        """Adds one service to the busy seconds of the bar workers, by clock hour."""
+        a = start
+        for name, d in ((("charging", charge), ("pouring", pour)) if pay_first
+                        else (("pouring", pour), ("charging", charge))):
+            self._spread(self.w_busy[name], a, a + d)
+            a += d
+
+    def _spread(self, hours, a, b, weight=1.0):
+        """Adds weight times the seconds of [a, b) (seconds after doors) to an array of clock
+        hours."""
+        h0 = self.t0_min * 60
+        while a < b:
+            h = int((h0 + a) // 3600)
+            edge = min(b, (h + 1) * 3600 - h0)
+            k = h - self.hour0
+            if 0 <= k < len(hours):
+                hours[k] += weight * (edge - a)
+            a = edge
+
+    def worker_states(self, t):
+        """Position and state of every bar worker at time t (W_OFF, W_IDLE, W_CHARGING,
+        W_POURING). A worker stands behind the counter at the x of the station, with the
+        sideways offset of a point with several servers; at a satellite bar, behind it."""
+        pay_first = self.cfg["bar"].get("pay_first", True)
+        first, second = (W_CHARGING, W_POURING) if pay_first else (W_POURING, W_CHARGING)
+        wx, wy, ws = [], [], []
+        cy = self.cfg["venue"]["counter_y"]
+        for p in self.points:
+            busy = {e[2]: e for e in p.serving}
+            for m in range(p.servers):
+                off = (m - (p.servers - 1) / 2) * 0.8
+                if p.server_x:
+                    wx.append(p.server_x[m])
+                    wy.append(cy + 1.0)
+                elif p.label == "satellite":
+                    wx.append(p.x + (1.0 if p.x > self.venue.W / 2 else -1.0))
+                    wy.append(p.y + off)
+                else:
+                    wx.append(p.x + off)
+                    wy.append(cy + 1.0)
+                if not p.is_open(t):
+                    ws.append(W_OFF)
+                elif m in busy:
+                    e = busy[m]
+                    if e[0] < 0:
+                        ws.append(W_STOCKING)
+                    elif p.kind == "cash":
+                        ws.append(W_CHARGING)
+                    elif p.kind == "pour":
+                        ws.append(W_POURING)
+                    else:
+                        ws.append(first if t < e[3] else second)
+                else:
+                    ws.append(W_IDLE)
+        return np.array(wx, float), np.array(wy, float), np.array(ws, np.int8)
+
+    def _account(self, t):
+        """Staffed seconds of the bar workers and seconds of the sellers in each state, by
+        clock hour."""
+        for p in self.points:
+            if p.is_open(t):
+                self._spread(self.w_staffed, t, t + self.dt, p.servers)
+        if self.k:
+            for st in self.s_state:
+                r = SELLER_REPORT[int(st)]
+                if r:
+                    self.s_time[r] += self.dt
+
+    def _prepour_spans(self):
+        """Pre-pour windows in seconds after doors: from bar.prepour.lead_min before the end
+        of each set that ends at 18:00 or later until the next set starts."""
+        pp = self.cfg["bar"]["prepour"]
+        from_t = (clock_to_min(pp.get("from", "18:00")) - self.t0_min) * 60
+        st, en = self.sched.start, self.sched.end
+        out = []
+        for k in range(len(en)):
+            if en[k] < from_t:
+                continue
+            nxt = st[k + 1] if k + 1 < len(st) else en[k]
+            out.append((en[k] - pp["lead_min"] * 60, max(nxt, en[k])))
+        return out
+
+    def _adjust_split(self, p, t, beers):
+        """Changes to a station visit from the options study, applied to self._split after the
+        draws: stocked cups, a menu with more choices and pooled lines. Returns the visit."""
+        b = self.cfg["bar"]
+        charge, pour = self._split
+        if self._prepour and pour > 0:
+            pp = b["prepour"]
+            fresh = pp["fresh_min"] * 60
+            while p.stock and t - p.stock[0] > fresh:   # too old: thrown away
+                p.stock.popleft()
+                self.cups_discarded += 1
+            f = b.get("extra_beer_factor", 1.0)
+            units = 1.0 + f * (beers - 1)
+            used = min(len(p.stock), beers)
+            if used:
+                for _ in range(used):
+                    p.stock.popleft()
+                self.cups_used += used
+                share = (1.0 + f * (used - 1)) / units
+                pour *= 1.0 - (1.0 - pp["handover_share"]) * share
+        charge += self._menu_s
+        if p.pooled:
+            m = b.get("pool_service_mult", 1.0)
+            charge, pour = charge * m, pour * m
+        self._split = (charge, pour)
+        return charge + pour
+
+    def _stock_cup(self, p, t):
+        """An idle server at a station with an empty line pours one cup to stock during the
+        pre-pour windows (bar.prepour). Returns True when a pour started."""
+        pp = self.cfg["bar"]["prepour"]
+        if p.kind != "direct" or not p.is_open(t):
+            return False
+        if not any(a <= t < z for a, z in self._prepour_windows):
+            return False
+        pending = sum(1 for e in p.serving if e[0] < 0)
+        if len(p.stock) + pending >= pp["cups_per_station"]:
+            return False
+        busy = {e[2] for e in p.serving}
+        free = [m for m in range(p.servers) if m not in busy]
+        if not free:
+            return False
+        s = min(free, key=lambda m: p.free_at[m])
+        start = max(t, p.free_at[s])
+        d = _lognormal(self.rng, self.cfg["bar"]["s_pour_mean_s"], self.cfg["bar"]["service_cv"])
+        self._spread(self.w_busy["stocking"], start, start + d)
+        p.serving.append([-1, start + d, s, start + d])
+        return True
 
     def _line_estimate(self, p):
         return ((len(p.queue) + p.walking) / p.servers + 1) * self.visit_s[p.kind]
@@ -268,7 +435,10 @@ class Simulation:
     def _collect_round(self, i, t):
         """Friends of buyer i join the purchase: drinkers of the same group who stand in the
         crowd and have finished their last beer accept with probability round_join_share.
-        They do not start a purchase of their own while i is away."""
+        They do not start a purchase of their own while i is away. Buyers of ready-to-drink
+        cans buy for themselves only."""
+        if self.rtd[i]:
+            return
         if i in self.orders:
             return
         c = self.cfg["crowd"]
@@ -307,6 +477,8 @@ class Simulation:
             else:
                 continue
             est += np.hypot(p.x - self.x[i], p.y - self.y[i]) / 0.6
+            if self._noise:                      # people misjudge lines (crowd.line_choice_noise)
+                est *= self.rng.lognormal(0.0, self._noise)
             if est < best_est:
                 best, best_est = j, est
         return best, best_est
@@ -351,7 +523,10 @@ class Simulation:
         friends = self.orders.pop(i, NO_FRIENDS)
         served = friends[: max(beers - 1, 0)]
         own = beers - served.size
-        self.beers[i] += own
+        if self.rtd[i]:
+            self.rtd_units[i] += own
+        else:
+            self.beers[i] += own
         if friends.size:
             # A friend got this beer before their own thirst asked for it. The time they would
             # still have waited is added to the pause, so rounds do not raise consumption.
@@ -402,7 +577,8 @@ class Simulation:
     def _thirst(self, t):
         c = self.cfg["crowd"]
         k, focus = self.sched.focus(t)
-        cand = np.flatnonzero((self.state == WATCH) & self.drinker & (self.ordered_by < 0)
+        cand = np.flatnonzero((self.state == WATCH) & (self.drinker | self.rtd)
+                              & (self.ordered_by < 0)
                               & (t >= self.next_eligible) & (t < self.leave - 900))
         if cand.size == 0:
             return
@@ -475,20 +651,27 @@ class Simulation:
             while True:
                 if p.serving:
                     k = min(range(len(p.serving)), key=lambda m: p.serving[m][1])
-                    i, done, s = p.serving[k]
+                    i, done, s = p.serving[k][:3]
                     if t >= done:
                         p.serving.pop(k)
                         p.free_at[s] = done
-                        self._end_service(p, i, done, t, b)
+                        if i < 0:                    # a cup poured to stock
+                            p.stock.append(done)
+                        else:
+                            self._end_service(p, i, done, t, b)
+                        continue
+                if not p.queue and self._prepour and len(p.serving) < p.servers:
+                    if self._stock_cup(p, t):
                         continue
                 if not p.queue or len(p.serving) >= p.servers:
                     break
-                busy = {m for _, _, m in p.serving}
+                busy = {e[2] for e in p.serving}
                 s = min((m for m in range(p.servers) if m not in busy),
                         key=lambda m: p.free_at[m])
                 i = p.queue.popleft()
                 self.state[i] = SERVICE
-                self.x[i], self.y[i] = p.x + (s - (p.servers - 1) / 2) * 0.8, p.y + 0.4
+                sx = p.server_x[s] if p.server_x else p.x + (s - (p.servers - 1) / 2) * 0.8
+                self.x[i], self.y[i] = sx, p.y + 0.4
                 start = min(t, max(p.free_at[s], self.q_enter[i]))
                 if p.kind == "cash":
                     end = start + self._service_time("cash", 1)
@@ -498,13 +681,22 @@ class Simulation:
                     two = want_two and (p.kind == "direct" or self.tickets[i] >= nf + 2)
                     beers = nf + (2 if two else 1)
                     self._pending_beers[i] = beers
-                    end = start + self._service_time(p.kind, beers)
-                p.serving.append([i, end, s])
+                    end = start + self._service_time(p.kind, beers, rtd=bool(self.rtd[i]))
+                    if p.kind == "direct" and (self._prepour or self._menu_s or p.pooled):
+                        end = start + self._adjust_split(p, t, beers)
+                # [attendee, end, server, end of the first phase]. The customer pays first
+                # when bar.pay_first holds (assumed order); a phase can last 0 s.
+                charge, pour = self._split
+                pay_first = b.get("pay_first", True)
+                self._add_busy(start, charge, pour, pay_first)
+                p.serving.append([i, end, s, start + (charge if pay_first else pour)])
             n = len(p.queue)
             if n:
                 ids = np.fromiter(p.queue, int, n)
                 pos = p.slots[np.minimum(np.arange(n), len(p.slots) - 1)]
                 self.x[ids], self.y[ids] = pos[:, 0], pos[:, 1]
+                if p.label == "bar":
+                    self.max_reach = max(self.max_reach, float(p.y - pos[:, 1].min()))
 
     def _end_service(self, p, i, done, t, b):
         """Attendee i leaves the counter of point p at time done."""
@@ -550,8 +742,8 @@ class Simulation:
         if not self.k:
             return
         s = self.cfg["sellers"]
-        on = self.s_start <= t < self.s_end
-        self.sellers_on = on
+        on_i = (self.s_start_i <= t) & (t < self.s_end_i)
+        self.sellers_on = bool(on_i.any())
         waiting = np.flatnonzero(self.state == WAIT_SELLER)
         # attendees who waited too long without a seller walk to the bar
         for i in waiting:
@@ -564,6 +756,7 @@ class Simulation:
         rho = self.rho[self.venue.cell_index(self.sx, self.sy)]
         v = weidmann_speed(rho, self.cfg["crowd"]["walk_speed_ms"] * s["speed_factor"])
         for m in range(self.k):
+            on = on_i[m]
             st = self.s_state[m]
             if st == S_OFF:
                 if on:
@@ -577,7 +770,7 @@ class Simulation:
                     continue
                 if self.s_stock[m] <= 0:
                     self.s_state[m] = S_TO_RESTOCK
-                    rp = self.venue.restock_points
+                    rp = self.restock
                     r = np.argmin(np.hypot(rp[:, 0] - self.sx[m], rp[:, 1] - self.sy[m]))
                     self.stx[m], self.sty[m] = rp[r]
                     continue
@@ -652,6 +845,23 @@ class Simulation:
         b = self.cfg["bar"]
         self.visit_s = {"cash": b["s_cash_mean_s"], "pour": b["s_pour_mean_s"] * 1.3,
                         "direct": b["s_pour_mean_s"] * 1.3 + b["s_pay_direct_s"]}
+        # busy and staffed seconds of the bar workers and seller seconds by state
+        self.hour0 = int(self.t0_min // 60)
+        n_hours = int(np.ceil((self.t0_min * 60 + self.t_end) / 3600)) - self.hour0 + 1
+        self.w_busy = {"charging": np.zeros(n_hours), "pouring": np.zeros(n_hours),
+                       "stocking": np.zeros(n_hours)}
+        b, c = self.cfg["bar"], self.cfg["crowd"]
+        self._noise = float(c.get("line_choice_noise", 0.0) or 0.0)
+        self._menu_s = float(b.get("menu_choice_s", 0.0) or 0.0)
+        self._prepour = bool(b.get("prepour"))
+        self._prepour_windows = self._prepour_spans() if self._prepour else []
+        self.cups_discarded = self.cups_used = 0
+        self.max_reach = 0.0
+        for p in self.points:
+            p.stock = deque()
+        self.w_staffed = np.zeros(n_hours)
+        self.s_time = np.zeros(len(SELLER_STATES))
+        self._split = (0.0, 0.0)
         self.phase_key = (-2, -2)
         self.focus_k = -1
         self.sellers_on = False
@@ -678,6 +888,7 @@ class Simulation:
             self._sellers(t)
             self._thirst(t)
             self._serve(t)
+            self._account(t)
             self._move(t)
             if t >= self._next_renege:
                 self._renege(t)
@@ -736,7 +947,7 @@ class Simulation:
         for p in self.points:
             if p.kind != kind:
                 continue
-            for i in list(p.queue) + [m for m, _, _ in p.serving]:
+            for i in list(p.queue) + [e[0] for e in p.serving if e[0] >= 0]:
                 if lo <= self.q_enter[i] < hi:
                     minutes.append((self.t_now - self.q_enter[i]) / 60.0)
                     served.append(False)
@@ -770,7 +981,17 @@ class Simulation:
             "max_rho": float(self.rho.max()),
             "act": self.sched.label(t),
             "band_playing": int(self.sched.phase(t)[0] >= 0),
+            **self._state_counts(t),
         }
+
+    def _state_counts(self, t):
+        """Bar workers and sellers in each state at time t."""
+        _, _, ws = self.worker_states(t)
+        out = {f"bar_{name}": int((ws == k).sum()) for k, name in enumerate(WORKER_STATES)}
+        rep = np.array([SELLER_REPORT[int(v)] for v in self.s_state], int)
+        out.update({f"sellers_{name}": int((rep == k).sum())
+                    for k, name in enumerate(SELLER_STATES)})
+        return out
 
     def _frame(self, t):
         pres = np.flatnonzero(self.present)
@@ -783,6 +1004,7 @@ class Simulation:
                               self.target_q[pres]]) if pres.size else np.array([]),
             "sx": self.sx.copy(), "sy": self.sy.copy(),
             "s_state": self.s_state.copy(), "s_stock": self.s_stock.copy(),
+            **dict(zip(("wx", "wy", "w_state"), self.worker_states(t))),
             "rho": self.counts.reshape(self.venue.ny, self.venue.nx).copy(),
         }
 
@@ -801,4 +1023,14 @@ class Simulation:
             txn["clock_served_min"] = self.t0_min + txn["t_served"] / 60.0
         return {"series": series, "txn": txn, "frames": frames,
                 "seller_sold": self.s_sold.copy(), "seller_giveups": self.seller_giveups,
+                "options": {"cups_discarded": self.cups_discarded, "cups_used": self.cups_used,
+                            "max_reach_m": self.max_reach,
+                            "rtd_units": int(self.rtd_units.sum()),
+                            "heavy6_any_share": float(((self.beers + self.rtd_units) >= 6)
+                                                      .mean())},
+                "workers": {"hour0": self.hour0, "staffed_s": self.w_staffed.copy(),
+                            "charging_s": self.w_busy["charging"].copy(),
+                            "pouring_s": self.w_busy["pouring"].copy(),
+                            "stocking_s": self.w_busy["stocking"].copy(),
+                            "seller_s": dict(zip(SELLER_STATES, self.s_time.copy()))},
                 "points": [(p.kind, p.x, p.y) for p in self.points]}
