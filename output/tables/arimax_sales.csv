@@ -1,5 +1,5 @@
 scenario,term,med,lo,hi,ar1,resid_ok,label
 baseline,per 100 people inside,-0.00423571300725023,-0.108230448986666,0.085200149783163,-0.22553291454527,0.90625,2026 setup (ticket window + exchange)
 baseline,during a changeover,0.00534240074756678,-0.552244733175321,0.648765374977785,-0.22553291454527,0.90625,2026 setup (ticket window + exchange)
-plan,per 100 people inside,3.8168848079532,3.01332881514366,4.51231690319972,0.257888455290193,0.9375,"Plan (pay at the station, recommended crew)"
-plan,during a changeover,8.16218490005024,3.75102072944138,14.7520863390283,0.257888455290193,0.9375,"Plan (pay at the station, recommended crew)"
+plan,per 100 people inside,3.53268096518841,2.71647601511046,4.16388487190832,0.421699656917638,0.96875,"Plan (pay at the station, recommended crew)"
+plan,during a changeover,5.4288354574133,0.0725241549267236,11.7664533928406,0.421699656917638,0.96875,"Plan (pay at the station, recommended crew)"

@@ -28,6 +28,8 @@ def main():
     ap.add_argument("--calibration", default=params.ROOT / "config" / "calibration.yaml")
     ap.add_argument("--staffing", default=params.ROOT / "config" / "staffing.yaml")
     ap.add_argument("--processes", type=int, default=None)
+    ap.add_argument("--tables-only", action="store_true",
+                    help="rebuild the tables from output/runs/staffing_grid.csv without runs")
     args = ap.parse_args()
 
     base = params.load(args.base)
@@ -49,15 +51,19 @@ def main():
             tasks.append((params.with_overrides(cfg, combo), 90_000 + int(row["draw"]),
                           cal["observations"], tags))
     t0 = time.time()
-    metrics, _, _ = ex.run_many_resumable(tasks, OUT / "parts_staffing",
-                                          processes=args.processes)
-    metrics.to_csv(OUT / "staffing_grid.csv", index=False)
+    if args.tables_only:
+        metrics = pd.read_csv(OUT / "staffing_grid.csv")
+    else:
+        metrics, _, _ = ex.run_many_resumable(tasks, OUT / "parts_staffing",
+                                              processes=args.processes)
+        metrics.to_csv(OUT / "staffing_grid.csv", index=False)
     tables = params.ROOT / "output" / "tables"
     tables.mkdir(parents=True, exist_ok=True)
     summary = staffing.summarize(metrics, spec["service_target"])
     summary.to_csv(tables / "staffing_reliability.csv", index=False)
     in_grid = summary[summary["n_total"].isin(spec["grid"]["crowd.n_total"])]
-    plan = staffing.plan_table(in_grid, spec["reliability"], spec["reliability_recommended"])
+    plan = staffing.plan_table(in_grid, spec["reliability"], spec["reliability_recommended"],
+                               spec.get("reliability_complete"))
     plan.to_csv(staffing.PLAN_FILE, index=False)
     print(plan[["n_total", "level", "n_pour", "sellers", "nights_met", "nights", "fallback"]]
           .to_string(index=False))

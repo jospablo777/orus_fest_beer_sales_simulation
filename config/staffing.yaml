@@ -25,11 +25,14 @@ service_target:
   evening_p90_min: 10          # 9 of 10 people who join a line in the window wait at most 10 min
   abandon_share: 0.05          # at most 5% of purchase attempts abandoned
 
-# Two crews per ticket level, each the one with the fewest staff hours among the crews that
-# meet the target in at least this share of simulated nights. The plan uses the recommended
-# crew; when no crew reaches its share, the plan falls back to the minimum crew.
+# Three crews per ticket level. The minimum crew has the fewest staff hours among the crews
+# that meet the target in at least `reliability` of the simulated nights. The recommended
+# and complete crews are chosen among the crews within 5% of the fewest hours at their share,
+# by their results under stress cases (scripts/run_crew_mixes.py). The plan uses the
+# recommended crew; when no crew reaches its share, the plan falls back to the minimum crew.
 reliability: 0.9                  # minimum crew
 reliability_recommended: 0.95     # recommended crew
+reliability_complete: 1.0         # complete crew: the target is met in every simulated night
 
 # Crowd safety reference for capacity planning (people per m² of free floor at the peak).
 safety:
@@ -37,3 +40,15 @@ safety:
   # larger areas at one per 0.65 m². The free floor is below 930 m².
   floor_density_limit: 2.2
   floor_density_limit_large_area: 1.54
+
+# Stress cases of scripts/run_crew_mixes.py. Each entry overrides the crew's configuration;
+# strings starting with "=" are evaluated with the scenario names plus taps and sellers.
+stress_cases:
+  two_bar_absent:      {bar.n_pour: "= max(taps - 2, 1)"}
+  three_sellers_absent: {sellers.n: "= max(sellers - 3, 0)"}
+  sellers_from_19:     {sellers.start: "19:00"}
+  sellers_slower:      {sellers.s_sale_s: "= s_sale_s * 1.3", sellers.restock_s: "= restock_s * 1.3",
+                        sellers.speed_factor: "= speed_factor * 0.8"}
+  demand_plus_30:      {crowd.rate_mean_per_h: "= rate_mean_per_h * 1.3"}
+  tickets_plus_25:     {crowd.n_total: "= round(n_total * 1.25)"}
+  payment_25s:         {bar.s_pay_direct_s: 25}

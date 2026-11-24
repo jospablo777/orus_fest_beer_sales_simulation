@@ -33,6 +33,8 @@ TABLES = params.ROOT / "output" / "tables"
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--processes", type=int, default=None)
+    ap.add_argument("--tables-only", action="store_true",
+                    help="rebuild the tables from output/runs/serving_grid.csv without runs")
     args = ap.parse_args()
 
     base = params.load()
@@ -60,12 +62,16 @@ def main():
                 tasks.append((params.with_overrides(cfg, crew), 90_000 + int(row["draw"]),
                               cal["observations"], tags))
     t0 = time.time()
-    metrics, _, _ = ex.run_many_resumable(tasks, OUT / "parts_serving", processes=args.processes)
-    staff_grid = pd.read_csv(OUT / "staffing_grid.csv")
-    same = staff_grid[(staff_grid["n_total"] == tickets)
-                      & staff_grid["draw"].isin(draws["draw"])].assign(option="bottles")
-    allruns = pd.concat([same, metrics], ignore_index=True)
-    allruns.to_csv(OUT / "serving_grid.csv", index=False)
+    if args.tables_only:
+        allruns = pd.read_csv(OUT / "serving_grid.csv")
+    else:
+        metrics, _, _ = ex.run_many_resumable(tasks, OUT / "parts_serving",
+                                              processes=args.processes)
+        staff_grid = pd.read_csv(OUT / "staffing_grid.csv")
+        same = staff_grid[(staff_grid["n_total"] == tickets)
+                          & staff_grid["draw"].isin(draws["draw"])].assign(option="bottles")
+        allruns = pd.concat([same, metrics], ignore_index=True)
+        allruns.to_csv(OUT / "serving_grid.csv", index=False)
 
     target = spec["service_target"]
     rel_lo = spec["reliability"]
@@ -77,6 +83,7 @@ def main():
                                   target)
         summaries.append(summ.assign(option=name))
         plan = staffing.plan_table(summ, rel_lo, rel_hi).set_index("level")
+        plan = plan[~plan.index.duplicated()]
         at_plan = summ[(summ["n_pour"] == plan_crew["plan_taps"])
                        & (summ["sellers"] == plan_crew["plan_sellers"])]
         row = {"option": name, "label": opt["label"], "assumption": opt["assumption"]}

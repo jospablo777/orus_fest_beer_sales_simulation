@@ -1,10 +1,15 @@
 """Crew selection from the staffing grid.
 
 A crew (stations, sellers) is judged by the share of simulated nights in which it meets the
-service target. For each ticket level two crews are chosen, each the one with the fewest staff
-hours among the crews whose share reaches a required reliability: the minimum crew
-(`reliability`) and the recommended crew (`reliability_recommended`). The plan uses the
-recommended crew, or the minimum crew when no crew reaches the higher share.
+service target. For each ticket level three crews are chosen: the minimum crew (`reliability`), the
+recommended crew (`reliability_recommended`) and the complete crew (`reliability_complete`,
+every simulated night). The minimum crew is the one with the fewest staff hours that reaches
+its share. For the recommended and complete levels several crews within 5% of the fewest
+hours reach the share, and 64 nights cannot tell them apart; scripts/run_crew_mixes.py runs
+those candidates under stress cases and keeps the one that holds best
+(`chosen_by` = "stress cases"). Before that step the fewest-hours crew stands in
+(`chosen_by` = "fewest staff hours"). The plan uses the recommended crew, or the minimum
+crew when no crew reaches the higher share.
 """
 
 from __future__ import annotations
@@ -15,6 +20,8 @@ from scipy import stats
 from . import params
 
 PLAN_FILE = params.ROOT / "output" / "tables" / "staffing_plan.csv"
+MIXES_FILE = params.ROOT / "output" / "tables" / "crew_mixes.csv"
+HOURS_TOLERANCE = 0.05
 KEYS = ["n_total", "n_pour", "sellers"]
 
 
@@ -57,21 +64,41 @@ def choose(summary: pd.DataFrame, reliability: float) -> pd.DataFrame:
     return ok.groupby("n_total", as_index=False).first()
 
 
-def plan_table(summary: pd.DataFrame, reliability: float,
-               reliability_recommended: float) -> pd.DataFrame:
-    """Minimum and recommended crew per ticket level, one row each (column `level`). A level
-    whose recommended crew does not exist gets the minimum crew as its recommended row, with
-    `fallback` set."""
+def candidates(summary: pd.DataFrame, reliability: float,
+               tolerance: float = HOURS_TOLERANCE) -> pd.DataFrame:
+    """Per ticket level: every crew whose share of nights that meet the target reaches
+    `reliability` with staff hours within `tolerance` of the fewest among them."""
+    ok = summary[summary["share_met"] >= reliability - 1e-12]
+    least = ok.groupby("n_total")["staff_hours"].transform("min")
+    return ok[ok["staff_hours"] <= (1 + tolerance) * least + 1e-9].copy()
+
+
+def plan_table(summary: pd.DataFrame, reliability: float, reliability_recommended: float,
+               reliability_complete: float | None = None) -> pd.DataFrame:
+    """Minimum, recommended and complete crew per ticket level, one row each (column
+    `level`). A level whose recommended crew does not exist gets the minimum crew as its
+    recommended row, with `fallback` set. A level with no complete crew has no complete
+    row. Recommended and complete rows are the fewest-hours crews until
+    scripts/run_crew_mixes.py replaces them."""
     lo = choose(summary, reliability).assign(level="minimum", fallback=False)
     hi = choose(summary, reliability_recommended).assign(level="recommended", fallback=False)
     missing = lo[~lo["n_total"].isin(hi["n_total"])].assign(level="recommended", fallback=True)
-    out = pd.concat([lo, hi, missing], ignore_index=True)
-    return out.sort_values(["n_total", "level"]).reset_index(drop=True)
+    parts = [lo, hi, missing]
+    if reliability_complete is not None:
+        parts.append(choose(summary, reliability_complete).assign(level="complete",
+                                                                  fallback=False))
+    out = pd.concat(parts, ignore_index=True)
+    out["chosen_by"] = "fewest staff hours"
+    order = {"minimum": 0, "recommended": 1, "complete": 2}
+    out["k"] = out["level"].map(order)
+    return out.sort_values(["n_total", "k"]).drop(columns="k").reset_index(drop=True)
 
 
 def plan_crew(tickets: int) -> dict:
-    """Stations and sellers of the recommended crew (plan_taps, plan_sellers) and of the
-    minimum crew (plan_min_taps, plan_min_sellers) for a ticket level."""
+    """Stations and sellers of the recommended crew (plan_taps, plan_sellers), the minimum
+    crew (plan_min_taps, plan_min_sellers) and the complete crew (plan_full_taps,
+    plan_full_sellers; the recommended crew when no crew meets every night) for a ticket
+    level."""
     if not PLAN_FILE.exists():
         raise FileNotFoundError(f"{PLAN_FILE} is missing; run scripts/run_staffing.py first")
     plan = pd.read_csv(PLAN_FILE)
@@ -80,5 +107,7 @@ def plan_crew(tickets: int) -> dict:
         raise ValueError(f"no crew in the staffing grid reaches the reliability for "
                          f"{tickets} tickets")
     rec, low = rows.loc["recommended"], rows.loc["minimum"]
+    full = rows.loc["complete"] if "complete" in rows.index else rec
     return {"plan_taps": int(rec["n_pour"]), "plan_sellers": int(rec["sellers"]),
-            "plan_min_taps": int(low["n_pour"]), "plan_min_sellers": int(low["sellers"])}
+            "plan_min_taps": int(low["n_pour"]), "plan_min_sellers": int(low["sellers"]),
+            "plan_full_taps": int(full["n_pour"]), "plan_full_sellers": int(full["sellers"])}
