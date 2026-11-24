@@ -167,18 +167,21 @@ def rolling_wait(txn, t_grid_clock, window_min=15):
 
 def _phone_layout(L, titles):
     """Phone cut: the two floor panels and their readouts, the clock above and the colour key
-    below. Drawn 720 px wide; on a phone it is shown about 360 px wide."""
-    # The bottom 18% of the frame stays empty for the video controls of a phone browser.
-    fig = plt.figure(figsize=(7.2, 11.2))
-    gs = fig.add_gridspec(1, 2, left=0.02, right=0.98, top=0.865, bottom=0.40, wspace=0.06)
+    below. Drawn 720 px wide; on a 390 px phone screen it is shown about 306 px wide, so text
+    of 17 points (24 px in the video) shows at about 10 px."""
+    fig = plt.figure(figsize=(7.2, 11.1))
+    gs = fig.add_gridspec(1, 2, left=0.02, right=0.98, top=0.874, bottom=0.370, wspace=0.05)
     floor_axes = [fig.add_subplot(gs[0, j]) for j in range(2)]
-    title = fig.text(0.03, 0.985, "", fontsize=18, fontweight="bold", color=INK, va="top")
-    return fig, floor_axes, [], title, {"panel_title": 14, "wrap": 22, "info": 14,
-                                        "info_y": -0.012, "legend": dict(
-                                            loc="upper left", bbox_to_anchor=(0.03, 0.262),
-                                            ncol=2, fontsize=12, columnspacing=1.0,
-                                            handletextpad=0.3, labelspacing=0.35),
-                                        "info_lines": 3, "bitrate": 2000, "worker_size": 22}
+    title = fig.text(0.03, 0.989, "", fontsize=20, fontweight="bold", color=INK, va="top")
+    return fig, floor_axes, [], title, {"panel_title": 17, "wrap": 20, "info": 17,
+                                        "info_y": -0.01, "legend": dict(
+                                            loc="upper left", bbox_to_anchor=(0.0, 0.212),
+                                            ncol=2, fontsize=17, columnspacing=0.4,
+                                            handletextpad=0.2, handlelength=1.2, labelspacing=0.3,
+                                            borderaxespad=0.0),
+                                        "info_lines": 3, "bitrate": 2000, "worker_size": 22,
+                                        "order": [0, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                        "legend_wrap": 26}
 
 
 def _wide_layout(L, titles):
@@ -196,7 +199,8 @@ def _wide_layout(L, titles):
                                                  ncol=4, fontsize=11.5, columnspacing=1.0,
                                                  handletextpad=0.3, labelspacing=0.3),
                                              "info_lines": 2, "worker_size": 30,
-                                             "order": [0, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
+                                             "order": [0, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                        "legend_wrap": 26}
 
 
 def side_by_side(runs, cfgs, titles, path, fps=20, dpi=120, lang="en", still_only=False,
@@ -241,6 +245,8 @@ def side_by_side(runs, cfgs, titles, path, fps=20, dpi=120, lang="en", still_onl
                 Line2D([], [], ls="", marker="s", ms=8, mfc=C_W_POURING, mec=INK, mew=1.2),
                 Line2D([], [], ls="", marker="s", ms=10, color=C_BOOTH, alpha=0.6)]
     labels_ += [L["s_refill"], L["w_idle"], L["w_charging"], L["w_pouring"], L["booth"]]
+    if look.get("legend_wrap"):       # long labels on two lines in the phone cut
+        labels_ = [textwrap.fill(lab, look["legend_wrap"]) for lab in labels_]
     if "order" in look:              # columns are filled top to bottom; long labels share one
         handles = [handles[k] for k in look["order"]]
         labels_ = [labels_[k] for k in look["order"]]

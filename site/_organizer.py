@@ -19,7 +19,7 @@ import report_values  # noqa: E402
 from sim import diagrams  # noqa: E402
 
 # Cases of the what-if table, in the order shown.
-WHAT_IF = ["plan", "plan_minimum", "plan_two_absent", "plan_minimum_two_absent", "plan_sold_out",
+WHAT_IF = ["plan", "plan_two_absent", "plan_sold_out",
            "plan_thirsty", "plan_slow_pay", "plan_late_sellers", "plan_slow_refill", "no_sellers"]
 
 
@@ -168,9 +168,11 @@ def fields(v: dict, lang: str, text: dict) -> dict:
                 "ninguna opción probada" if code == "es" else "none of the options tested")
             if crew and (crew[0], crew[1]) == (taps, sellers):
                 ref_crew = ("el mismo, " if code == "es" else "the same, ") + ref_crew
+            plan_ref = ref.get("plan_crew") or ("", "")
             f[f"no_limit_{code}"] = text["no_limit"][code].format(
                 ref_exchange=n0(ex), ref_exchange_lo=n0(lo), ref_exchange_hi=n0(hi),
-                base_exchange=f["base_exchange"], **{f"ref_crew_{code}": ref_crew})
+                base_exchange=f["base_exchange"], ref_plan_met=plan_ref[0],
+                ref_plan_nights=plan_ref[1], **{f"ref_crew_{code}": ref_crew})
         else:
             f[f"no_limit_{code}"] = ""
         large = r["cap_tickets_large"]
@@ -249,61 +251,40 @@ def single_changes(v, lang, text, html_table) -> list[tuple[str, str]]:
 
 
 def serving_section(v, lang, text, f, html_table) -> list[tuple[str, str]]:
-    """Serving options (scripts/run_serving.py): a table with the minimum and recommended crew
-    of each option and the wait with the plan crew, and the option that saves most hours."""
+    """Serving options (scripts/run_serving.py): with the plan crew, the wait and the nights
+    that meet the target; and the working hours saved by the fewest-hours crew that meets the
+    target in 95% of nights, against serving in cups."""
     sv = v["serving"]
     if sv is None or sv.empty:
         return []
-
-    def short(taps, sellers):
-        if taps != taps:                              # NaN: no crew reaches the share
-            return text["staff_none"][lang]
-        unit = ("puestos", "vendedores") if lang == "es" else ("stations", "sellers")
-        return f"{int(taps)} {unit[0]}" + (f" + {int(sellers)} {unit[1]}" if sellers else "")
-
+    bottles = sv[sv["option"] == "bottles"].iloc[0]
+    saved_all = bottles["recommended_staff_hours"] - sv.set_index("option")[
+        "recommended_staff_hours"]
     rows = []
     for x in sv[~sv["option"].str.endswith(("_low", "_high"))].itertuples():
-        wait = (f"{up(x.plan_crew_wait)} / {up(x.plan_crew_wait_bad)}"
-                if x.plan_crew_wait == x.plan_crew_wait else "")
+        has = x.plan_crew_wait == x.plan_crew_wait
         rows.append((f'{text["serve_option"][x.option][lang]} <span class="check">'
                      f'({text["serve_assumption"][x.option][lang]})</span>',
-                     short(x.minimum_taps, x.minimum_sellers),
-                     short(x.recommended_taps, x.recommended_sellers), wait))
-    bottles = sv[sv["option"] == "bottles"].iloc[0]
-    # the best option among the central assumptions; the low and high cases give the range
-    central = sv[~sv["option"].str.endswith(("_low", "_high"))]
-    saved = bottles["recommended_staff_hours"] - central["recommended_staff_hours"]
-    best = central.loc[saved.idxmax()]
-    if best["option"] != "bottles" and saved.max() >= 1:
-        label = text["serve_option"][best["option"]][lang]
-        fewer = int(best["recommended_sellers"]) < int(bottles["recommended_sellers"])
-        closing = text["serve_best"][lang].format(
-            best_label=label[:1].lower() + label[1:],
-            best_crew=crew_name(int(best["recommended_taps"]), int(best["recommended_sellers"]),
-                                lang),
-            hours=n0(saved.max()),
-            sellers_note=text["serve_fewer_sellers"][lang].format(
-                s=int(best["recommended_sellers"]), b=int(bottles["recommended_sellers"]))
-            if fewer else "")
+                     f"{up(x.plan_crew_wait)} / {up(x.plan_crew_wait_bad)}" if has else "",
+                     f"{int(x.plan_crew_met)} / {int(x.nights)}" if has else "",
+                     n0(max(saved_all[x.option], 0))))
+    central = sv[~sv["option"].str.endswith(("_low", "_high"))].set_index("option")
+    saved = saved_all[central.index]
+    best = saved.idxmax()
+    if best != "bottles" and saved.max() >= 1:
+        label = text["serve_option"][best][lang]
+        closing = text["serve_best"][lang].format(best_label=label[:1].lower() + label[1:],
+                                                  hours=n0(saved.max()))
     else:
         closing = text["serve_none"][lang]
-    intro = text["serve_intro"][lang].format(serve_nights=n0(bottles["nights"]),
-                                             tickets=f["tickets"])
-    cases = sv.set_index("option")
-    if {"cans_low", "cans_high"} <= set(cases.index):
+    if {"cans_low", "cans_high"} <= set(saved_all.index):
         saving = report_values.serving_savings()
-
-        def crew_hours(option):
-            x = cases.loc[option]
-            if x["recommended_taps"] != x["recommended_taps"]:
-                return text["staff_none"][lang]
-            hours = ("horas de trabajo" if lang == "es" else "working hours")
-            return (crew_name(int(x["recommended_taps"]), int(x["recommended_sellers"]), lang)
-                    + f" ({n0(x['recommended_staff_hours'])} {hours})")
-
         closing += " " + text["serve_cans_range"][lang].format(
             low_s=n0(saving["cans_low"]), high_s=n0(saving["cans_high"]),
-            low_crew=crew_hours("cans_low"), high_crew=crew_hours("cans_high"))
+            low_hours=n0(max(saved_all["cans_low"], 0)),
+            high_hours=n0(max(saved_all["cans_high"], 0)))
+    intro = text["serve_intro"][lang].format(serve_nights=n0(bottles["nights"]),
+                                             tickets=f["tickets"])
     return [("h2", text["h_serve"][lang]), ("p", intro),
             ("html", html_table(text["serve_head"][lang], rows)), ("p", closing),
             ("p", text["serve_notes"][lang])]
@@ -404,6 +385,12 @@ def extra_fields(v: dict, lang: str, text: dict, f: dict) -> dict:
                 "wi_worst": text["wi_case"][worst][lang][:1].lower()
                 + text["wi_case"][worst][lang][1:],
                 "wi_worst_met": str(r[f"wi_{worst}_met"])})
+    for k in ("alt_taps", "alt_sellers", "alt_base", "alt_worst", "alt_nights"):
+        out[k] = str(r.get(k, ""))
+    out.update({"tickets_plus25": n0(round(r["tickets"] * 1.25)),
+                "full_plus25": str(r.get("complete_plus25_met", "")),
+                "rec_plus25": str(r.get("recommended_plus25_met", ""))})
+    out["tap_range_touches_zero"] = cut.quantile(0.05) <= 0
     out["full_crew_es"] = crew_name(r["full_taps"], r["full_sellers"], "es")
     out["full_crew_en"] = crew_name(r["full_taps"], r["full_sellers"], "en")
     return out
@@ -417,9 +404,11 @@ def summary_pieces(lang: str) -> list[tuple[str, str]]:
     ba = pg.both_layouts(lambda narrow: diagrams.before_after(
         lang, pg.f, r["plan_taps"], r["plan_sellers"], narrow))
     out += [("h2", t("sum_h_problem")), ("p", t("sum_problem")), pg.figure(ba)]
+    gain1 = "sum_card1_gain_some" if pg.f["tap_range_touches_zero"] else "sum_card1_gain"
+    gains = {1: t(gain1), 2: t("sum_card2_gain"), 3: t("sum_card3_gain")}
     cards = "".join(
         f'<div class="card"><strong>{t(f"sum_card{k}")}</strong>'
-        f'<span class="gain">{t(f"sum_card{k}_gain")}</span></div>' for k in (1, 2, 3))
+        f'<span class="gain">{gains[k]}</span></div>' for k in (1, 2, 3))
     out += [("h2", t("sum_h_do")), ("html", f'<div class="cards">{cards}</div>')]
     bigs = [(f"40+ → {pg.f['plan_wait']} min", t("sum_big_wait_l"), t("sum_big_wait_r")),
             (t("sum_big_beers_v"), t("sum_big_beers_l"), t("sum_big_beers_r")),
@@ -497,6 +486,8 @@ def evidence_pieces(lang: str) -> list[tuple[str, str]]:
         if row["crew"] is None:
             rows.append((n0(row["tickets"]), text["staff_none"][lang], "", ""))
             continue
+        if row["level"] == "minimum":            # the minimum stays on the technical page
+            continue
         kind = "fallback" if row["fallback"] else row["level"]
         people = "personas" if lang == "es" else "people"
         rows.append((n0(row["tickets"]), text["crew_level"][kind][lang],
@@ -507,7 +498,7 @@ def evidence_pieces(lang: str) -> list[tuple[str, str]]:
                       cls="plain-figure plan-figure"),
             ("p", t("ev_levels")),
             pg.figure(pg.chart("summary_mixes", t("ev_mixes_cap")), t("ev_mixes_cap")),
-            ("p", t("ev_counter")),
+            ("p", t("ev_counter") + (" " + t("ev_counter_alt") if r.get("alt_taps") else "")),
             pg.figure(pg.chart("summary_crews", t("fig_crews_alt"))),
             ("p", t("staff_text")),
             ("html", pg.html_table(text["staff_table_head_short"][lang], rows)),

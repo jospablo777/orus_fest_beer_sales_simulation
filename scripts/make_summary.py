@@ -170,10 +170,11 @@ def crews_figure(v: dict, lang: str, narrow: bool = False):
     t, raw = TEXT[lang], v["raw"]
     crews = v["crews"]
     chosen = (crews["n_pour"] == raw["plan_taps"]) & (crews["sellers"] == raw["plan_sellers"])
-    minimum = (crews["n_pour"] == raw["min_taps"]) & (crews["sellers"] == raw["min_sellers"])
-    # the recommended crew, every crew with fewer staff hours (the minimum crew among them),
-    # and the smallest crew without sellers that reaches the minimum reliability; the
-    # technical page shows the full grid
+    # The organizer pages show two levels (recommended and complete); the minimum crew is on
+    # the technical page only, so it is not marked here.
+    minimum = chosen & False
+    # the recommended crew, every crew with fewer staff hours, and the smallest crew without
+    # sellers that reaches the minimum reliability; the technical page shows the full grid
     limit = crews.loc[chosen, "staff_hours"].iloc[0]
     keep = crews["staff_hours"] <= limit
     alone = crews[(crews["sellers"] == 0) & (crews["share_met"] >= raw["reliability"])]
@@ -187,8 +188,7 @@ def crews_figure(v: dict, lang: str, narrow: bool = False):
              for r in crews.itertuples()]
     chosen = ((crews["n_pour"] == raw["plan_taps"])
               & (crews["sellers"] == raw["plan_sellers"])).to_numpy()
-    minimum = ((crews["n_pour"] == raw["min_taps"])
-               & (crews["sellers"] == raw["min_sellers"])).to_numpy() & ~chosen
+    minimum = np.zeros(len(crews), bool)            # not marked on the organizer pages
     colors = np.where(chosen, theme.BRONZE, np.where(minimum, "#8c6a2c", theme.SILVER))
 
     def tag(c, mn):
@@ -212,11 +212,11 @@ def crews_figure(v: dict, lang: str, narrow: bool = False):
             ax.text(102, yi, t["nights_short"].format(
                 k=int(r.nights_met), n=int(r.nights)), va="center", fontsize=NARROW_FONT,
                 color=theme.INK)
-        for share in (raw["reliability"], raw["reliability_rec"]):
-            ax.axvline(100 * share, color=theme.INK, lw=1.0, ls=(0, (4, 3)), alpha=0.8)
+        ax.axvline(100 * raw["reliability_rec"], color=theme.INK, lw=1.0, ls=(0, (4, 3)),
+                   alpha=0.8)
         ax.text(100 * raw["reliability_rec"] + 2.5, y.max() + 1.45,
-                f"{100 * raw['reliability']:.0f}% · {100 * raw['reliability_rec']:.0f}%",
-                ha="left", va="top", fontsize=NARROW_FONT, color=theme.MUTED)
+                f"{100 * raw['reliability_rec']:.0f}%", ha="left", va="top",
+                fontsize=NARROW_FONT, color=theme.MUTED)
         ax.set_yticks([])
         ax.set_ylim(y.min() - 0.6, y.max() + 1.5)
         ax.set_xlim(0, 128)
@@ -239,11 +239,8 @@ def crews_figure(v: dict, lang: str, narrow: bool = False):
             label += f"  ·  {tag(c, mn)}"
         ax.text(103, yi, label, va="center", fontsize=11.5,
                 fontweight="bold" if (c or mn) else "normal")
-    for share in (raw["reliability"], raw["reliability_rec"]):
-        ax.axvline(100 * share, color=theme.INK, lw=1.0, ls=(0, (4, 3)), alpha=0.8)
-    ax.text(100 * raw["reliability"] - 1, len(crews) - 0.35,
-            f"{t['minimum']} {100 * raw['reliability']:.0f}%", fontsize=10,
-            color=theme.MUTED, va="bottom", ha="right")
+    ax.axvline(100 * raw["reliability_rec"], color=theme.INK, lw=1.0, ls=(0, (4, 3)),
+               alpha=0.8)
     ax.text(100 * raw["reliability_rec"] + 1, len(crews) - 0.35,
             f"{t['chosen']} {100 * raw['reliability_rec']:.0f}%", fontsize=10,
             color=theme.MUTED, va="bottom", ha="left")

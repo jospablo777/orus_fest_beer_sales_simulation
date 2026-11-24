@@ -141,6 +141,38 @@ def reference_values(name: str, stf_cfg: dict, tickets: int) -> dict | None:
     out["crew"] = (None if rec.empty else
                    (int(rec["n_pour"].iloc[0]), int(rec["sellers"].iloc[0]),
                     int(rec["nights_met"].iloc[0]), int(rec["nights"].iloc[0])))
+    plan = staffing.plan_crew(tickets)
+    hit = summ[(summ["n_total"] == tickets) & (summ["n_pour"] == plan["plan_taps"])
+               & (summ["sellers"] == plan["plan_sellers"])]
+    out["plan_crew"] = (None if hit.empty else
+                        (int(hit["nights_met"].iloc[0]), int(hit["nights"].iloc[0])))
+    return out
+
+
+def mixes_values(tickets: int, plan_taps: int, plan_sellers: int) -> dict:
+    """From output/tables/crew_mixes.csv at a ticket level: the recommended and complete
+    crews under 25% more tickets, and the best candidate of the recommended level with fewer
+    stations than the plan (base nights and worst stress case)."""
+    path = TAB / "crew_mixes.csv"
+    if not path.exists():
+        return {}
+    mx = pd.read_csv(path)
+    mx = mx[mx["n_total"] == tickets]
+    out = {}
+    for level in ("recommended", "complete"):
+        c = mx[(mx["level"] == level) & mx["chosen"] & (mx["case"] == "tickets_plus_25")]
+        if len(c):
+            out[f"{level}_plus25_met"] = int(c["nights_met"].iloc[0])
+            out[f"{level}_plus25_nights"] = int(c["nights"].iloc[0])
+    rec = mx[(mx["level"] == "recommended") & (mx["n_pour"] < plan_taps)]
+    if len(rec):
+        g = rec.groupby(["n_pour", "sellers"])
+        worst = rec[rec["case"] != "base"].groupby(["n_pour", "sellers"])["nights_met"].min()
+        base = rec[rec["case"] == "base"].set_index(["n_pour", "sellers"])["nights_met"]
+        best = worst.sort_values(ascending=False).index[0]
+        out.update({"alt_taps": int(best[0]), "alt_sellers": int(best[1]),
+                    "alt_base": int(base.loc[best]), "alt_worst": int(worst.loc[best]),
+                    "alt_nights": int(g["nights"].first().loc[best])})
     return out
 
 
@@ -250,6 +282,7 @@ def compute() -> dict:
     raw["long_wait_max"] = cal_cfg["observations"]["long_wait"].get("max_median_min")
     raw["long_wait_min"] = cal_cfg["observations"]["long_wait"]["min_median_min"]
     raw["ref_no_limit"] = reference_values("no_upper_limit", stf_cfg, tickets)
+    raw.update(mixes_values(tickets, int(crew["n_pour"]), int(crew["sellers"])))
     shares_path = TAB / "worker_shares.csv"
     if shares_path.exists():
         ws = pd.read_csv(shares_path)

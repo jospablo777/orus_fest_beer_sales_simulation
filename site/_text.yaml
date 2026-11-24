@@ -149,8 +149,8 @@ staff_intro:
   es: "El plan usa {staff_plan} personas en cerveza y en 2026 eran unas {staff_2026}. Son unas {extra_hours} horas de trabajo más por noche. Cada hora adicional vende unas {per_hour} cervezas (entre {per_hour_lo} y {per_hour_hi}), unos {per_hour_mxn} pesos en ventas, sin contar costos."
   en: "The plan uses {staff_plan} people on beer and in 2026 there were about {staff_2026}. That is about {extra_hours} more working hours per night. Each extra hour sells about {per_hour} beers (between {per_hour_lo} and {per_hour_hi}), about MXN {per_hour_mxn} in sales, costs not included."
 staff_text:
-  es: "La meta es que 9 de cada 10 compradores esperen {target_wait} minutos o menos entre las {svc_from} y las {svc_to}. Cada barra de la gráfica es una opción de personal y muestra en cuántas de {crew_nights} noches simuladas se cumple la meta. El personal mínimo es la opción con menos horas de trabajo que la cumple en al menos el {reliability} de las noches, y el recomendado la que la cumple en al menos el {reliability_rec}. La gráfica incluye las dos y todas las opciones con menos horas.{alone_sentence_es}"
-  en: "The target is that 9 of 10 buyers wait {target_wait} minutes or less between {svc_from} and {svc_to}. Each bar of the chart is a crew option and shows in how many of {crew_nights} simulated nights the target is met. The minimum crew is the option with the fewest working hours that meets it in at least {reliability} of the nights, and the recommended crew the one that meets it in at least {reliability_rec}. The chart includes both and every option with fewer hours.{alone_sentence_en}"
+  es: "La meta es que 9 de cada 10 compradores esperen {target_wait} minutos o menos entre las {svc_from} y las {svc_to}. Cada barra de la gráfica es una opción de personal y muestra en cuántas de {crew_nights} noches simuladas se cumple la meta. La gráfica incluye el personal recomendado y todas las opciones con menos horas de trabajo."
+  en: "The target is that 9 of 10 buyers wait {target_wait} minutes or less between {svc_from} and {svc_to}. Each bar of the chart is a crew option and shows in how many of {crew_nights} simulated nights the target is met. The chart includes the recommended crew and every option with fewer working hours."
 alone_sentence:
   es: " También incluye la opción sin vendedores más chica que cumple la meta en al menos el {reliability} de las noches."
   en: " It also includes the smallest option without sellers that meets the target in at least {reliability} of the nights."
@@ -201,14 +201,14 @@ serve_intro:
   es: "En 2026 cada cerveza se destapaba y se servía en un vaso, y una grande llevaba dos. Probamos otras formas de servir en las mismas {serve_nights} noches simuladas, con {tickets} boletos. Nadie midió cuánto tiempo ahorra cada una, así que los segundos de la tabla son supuestos nuestros."
   en: "In 2026 every beer was opened and poured into a cup, and a large beer took two. We tried other ways of serving on the same {serve_nights} simulated nights, with {tickets} tickets. Nobody measured how much time each one saves, so the seconds in the table are our assumptions."
 serve_head:
-  es: ["Forma de servir (supuesto)", "Personal mínimo (90% de las noches)", "Personal con menos horas que cumple en el 95%", "Espera de 9 de cada 10 con el personal del plan (min, noche típica / noche mala)"]
-  en: ["Way of serving (assumption)", "Minimum crew (90% of nights)", "Crew with the fewest hours that meets 95%", "Wait of 9 of 10 buyers with the plan crew (min, typical night / bad night)"]
+  es: ["Forma de servir (supuesto)", "Espera de 9 de cada 10 con el personal del plan (min, noche típica / noche mala)", "Noches que cumplen la meta con el personal del plan", "Horas de trabajo que se ahorran para cumplir en el 95% de las noches"]
+  en: ["Way of serving (assumption)", "Wait of 9 of 10 buyers with the plan crew (min, typical night / bad night)", "Nights that meet the target with the plan crew", "Working hours saved to meet the target in 95% of nights"]
 serve_best:
-  es: "Con {best_label} el personal con menos horas que cumple en el 95% de las noches es {best_crew}, unas {hours} horas de trabajo menos por noche que sirviendo en vaso{sellers_note}. En esta tabla cada forma de servir usa la regla de menos horas; el personal del plan se eligió además por los casos de estrés."
-  en: "With {best_label} the crew with the fewest hours that meets the target in 95% of nights is {best_crew}, about {hours} fewer working hours per night than serving in cups{sellers_note}. In this table every way of serving uses the fewest-hours rule; the plan crew was also chosen by the stress cases."
+  es: "Con {best_label} se necesitan unas {hours} horas de trabajo menos por noche para cumplir la meta en el 95% de las noches."
+  en: "With {best_label} about {hours} fewer working hours per night are needed to meet the target in 95% of nights."
 serve_cans_range:
-  es: "Si las latas ahorran {low_s} segundos por cerveza, ese personal es {low_crew}; si ahorran {high_s}, es {high_crew}."
-  en: "If cans save {low_s} seconds per beer, that crew is {low_crew}; if they save {high_s}, it is {high_crew}."
+  es: "Si las latas ahorran {low_s} segundos por cerveza, se ahorran unas {low_hours} horas; si ahorran {high_s}, unas {high_hours}."
+  en: "If cans save {low_s} seconds per beer, about {low_hours} hours are saved; if they save {high_s}, about {high_hours}."
 serve_fewer_sellers:
   es: ", y depende menos de los vendedores: {s} en lugar de {b}"
   en: ", and it depends less on sellers: {s} in place of {b}"
@@ -251,8 +251,8 @@ conf_check:
   es: "La espera más larga de 2026 no se midió. Vimos más de 40 minutos en la fila de canje, y la simulación supone que la espera típica de esa fila no pasó de {wait_max} minutos, un límite que pusimos nosotros. {no_limit_es} El tamaño del salón se estimó de una imagen satelital con un margen de {hall_side} por lado, así que el límite de boletos por espacio también es aproximado. {cap_strict_es} El aforo autorizado es el que decide. La evacuación y los cocteles quedaron fuera del estudio."
   en: "The longest wait of 2026 was not measured. We saw more than 40 minutes in the exchange line, and the simulation assumes that the typical wait in that line did not pass {wait_max} minutes, a limit we set ourselves. {no_limit_en} The hall size was estimated from a satellite image with a margin of {hall_side} per side, so the ticket limit by floor space is approximate as well. {cap_strict_en} The licensed capacity is what decides. Evacuation and cocktails were left out of the study."
 no_limit:
-  es: "Sin ese límite la simulación estima {ref_exchange} minutos en la fila de canje (entre {ref_exchange_lo} y {ref_exchange_hi}) en lugar de {base_exchange}, y el personal recomendado sería {ref_crew_es}."
-  en: "Without that limit the simulation estimates {ref_exchange} minutes in the exchange line (between {ref_exchange_lo} and {ref_exchange_hi}) instead of {base_exchange}, and the recommended crew would be {ref_crew_en}."
+  es: "Sin ese límite la simulación estima {ref_exchange} minutos en la fila de canje (entre {ref_exchange_lo} y {ref_exchange_hi}) en lugar de {base_exchange}, y el personal del plan cumple la meta en {ref_plan_met} de {ref_plan_nights} noches."
+  en: "Without that limit the simulation estimates {ref_exchange} minutes in the exchange line (between {ref_exchange_lo} and {ref_exchange_hi}) instead of {base_exchange}, and the plan crew meets the target in {ref_plan_met} of {ref_plan_nights} nights."
 cap_strict:
   es: "La lectura más estricta de la misma norma ({lim_large} personas por m²) pone el límite {cap_large_es}."
   en: "The stricter reading of the same code ({lim_large} people per m²) puts the limit {cap_large_en}."
@@ -349,6 +349,9 @@ sum_problem:
   en: "At Orus Fest 2026 the line for a beer took more than 40 minutes between {obs_from} and {obs_to}. The simulation reproduces those lines only with {pour_lo} to {pour_hi} people serving beer for about {inside_2026} people inside the hall."
 sum_h_do: {es: "Qué hacer y qué se gana", en: "What to do and what it gains"}
 sum_card1: {es: "Cobrar y servir en el mismo puesto.", en: "Take payment where the beer is served."}
+sum_card1_gain_some:
+  es: "Una fila en lugar de dos. Por sí solo recorta la espera cerca de un {tap_pct}%; en algunas noches no la cambia."
+  en: "One line in place of two. On its own it cuts the wait by about {tap_pct}%; on some nights it does not change it."
 sum_card1_gain:
   es: "Una fila en lugar de dos. Por sí solo recorta la espera un {tap_pct}% (entre {tap_pct_lo}% y {tap_pct_hi}%)."
   en: "One line in place of two. On its own it cuts the wait by {tap_pct}% (between {tap_pct_lo}% and {tap_pct_hi}%)."
@@ -356,8 +359,8 @@ sum_card2:
   es: "{staff_plan} personas atendiendo cerveza desde las 18:00: {plan_taps} en la barra y {plan_sellers} en pista. En 2026 eran unas {staff_2026}."
   en: "{staff_plan} people on beer from 18:00: {plan_taps} at the bar and {plan_sellers} on the floor. In 2026 there were about {staff_2026}."
 sum_card2_gain:
-  es: "La espera baja a unos {plan_wait} minutos y se venden unas {d_beers} cervezas más por noche."
-  en: "The wait drops to about {plan_wait} minutes and about {d_beers} more beers are sold per night."
+  es: "9 de cada 10 compradores esperan {plan_p90} minutos o menos y se venden unas {d_beers} cervezas más por noche."
+  en: "9 of 10 buyers wait {plan_p90} minutes or less and about {d_beers} more beers are sold per night."
 sum_card3: {es: "Un carril con vallas por puesto.", en: "One lane with barriers per station."}
 sum_card3_gain:
   es: "Filas derechas y pista libre. La simulación no lo mide."
@@ -372,8 +375,8 @@ sum_big_staff_v: {es: "+{extra_staff} personas", en: "+{extra_staff} people"}
 sum_big_staff_l: {es: "unas {extra_hours} horas de trabajo; cada hora adicional vende unas {per_hour} cervezas", en: "about {extra_hours} working hours; each extra hour sells about {per_hour} beers"}
 sum_big_staff_r: {es: "entre {per_hour_lo} y {per_hour_hi} cervezas por hora adicional", en: "between {per_hour_lo} and {per_hour_hi} beers per extra hour"}
 sum_levels:
-  es: "La meta, que 9 de cada 10 compradores esperen {target_wait} minutos o menos, se cumple en {rec_met} de {rec_nights} noches simuladas. Con {full_more} personas más se cumple en {full_met} de {full_nights}."
-  en: "The target, 9 of 10 buyers waiting {target_wait} minutes or less, is met in {rec_met} of {rec_nights} simulated nights. With {full_more} more people it is met in {full_met} of {full_nights}."
+  es: "La meta, que 9 de cada 10 compradores esperen {target_wait} minutos o menos, se cumple en {rec_met} de {rec_nights} noches simuladas. Con {full_more} personas más, en {full_met} de {full_nights}, y en {full_plus25} de {full_nights} si se venden {tickets_plus25} boletos (con el recomendado, {rec_plus25})."
+  en: "The target, 9 of 10 buyers waiting {target_wait} minutes or less, is met in {rec_met} of {rec_nights} simulated nights. With {full_more} more people, in {full_met} of {full_nights}, and in {full_plus25} of {full_nights} if {tickets_plus25} tickets are sold (with the recommended crew, {rec_plus25})."
 sum_levels_same:
   es: "La meta, que 9 de cada 10 compradores esperen {target_wait} minutos o menos, se cumple en {rec_met} de {rec_nights} noches simuladas."
   en: "The target, 9 of 10 buyers waiting {target_wait} minutes or less, is met in {rec_met} of {rec_nights} simulated nights."
@@ -393,10 +396,12 @@ sum_need:
     - "¿El salón permite entregar latas cerradas?"
     - "¿Quién opera la barra y recibe la venta: Orus Producciones, el salón o un concesionario?"
     - "¿Cuánto cuesta una hora de trabajo en la barra?"
+    - "¿Cuántas personas pueden atender en la barra al mismo tiempo?"
   en:
     - "Does the venue allow closed cans to be handed out?"
     - "Who runs the bar and receives the sales: Orus Producciones, the venue or a concessionaire?"
     - "What does one working hour at the bar cost?"
+    - "How many people can serve at the bar at the same time?"
 sum_contact:
   es: "Pueden responder a {author} por <a href=\"{contact_url}\">{contact_label}</a>."
   en: "You can reply to {author} on <a href=\"{contact_url}\">{contact_label}</a>."
@@ -433,7 +438,7 @@ ev_lead3:
 ev_changes_cap:
   es: "Espera de 9 de cada 10 compradores entre las {svc_from} y las {svc_to}, noche típica y rango entre noches. Al final de cada barra, las cervezas adicionales por noche."
   en: "Wait of 9 of 10 buyers between {svc_from} and {svc_to}, typical night and range across nights. At the end of each bar, the extra beers per night."
-ev_h4: {es: "El personal: tres niveles", en: "Staff: three levels"}
+ev_h4: {es: "El personal: dos niveles", en: "Staff: two levels"}
 ev_lead4:
   es: "El personal recomendado, {crew_es}, cumple la meta en {rec_met} de {rec_nights} noches y es el que mejor resiste cuando la noche sale mal."
   en: "The recommended crew, {crew_en}, meets the target in {rec_met} of {rec_nights} nights and holds up best when the night goes wrong."
@@ -441,14 +446,17 @@ ev_plan_legend:
   es: "Cuadros detrás de la barra: personas que atienden. Puntos verdes: vendedores en pista. Líneas blancas: un carril con vallas por puesto. Flecha: pasillo central libre."
   en: "Squares behind the bar: bar staff. Green dots: floor sellers. White lines: one lane with barriers per station. Arrow: open central walkway."
 ev_levels:
-  es: "Hay tres niveles para {tickets} boletos. Mínimo: {min_crew_es}, cumple en {min_met} de {min_nights} noches. Recomendado: {crew_es}, {rec_met} de {rec_nights}. Completo: {full_crew_es}, {full_met} de {full_nights}. Varias combinaciones de puestos y vendedores con casi las mismas horas de trabajo cumplen en el recomendado; con {nights} noches no se distinguen. Elegimos la que cumple en más noches cuando faltan personas, llegan tarde los vendedores o hay más público."
-  en: "There are three levels for {tickets} tickets. Minimum: {min_crew_en}, met in {min_met} of {min_nights} nights. Recommended: {crew_en}, {rec_met} of {rec_nights}. Complete: {full_crew_en}, {full_met} of {full_nights}. Several mixes of stations and sellers with almost the same working hours reach the recommended level, and {nights} nights cannot tell them apart. We chose the one that meets the target in the most nights when people are missing, sellers start late or the crowd is larger."
+  es: "Hay dos niveles para {tickets} boletos. Recomendado: {crew_es}, cumple en {rec_met} de {rec_nights} noches. Completo: {full_crew_es}, cumple en {full_met} de {full_nights}. Varias combinaciones de puestos y vendedores con casi las mismas horas de trabajo cumplen como el recomendado, y con {nights} noches no se distinguen. Elegimos la que cumple en más noches cuando faltan personas, los vendedores llegan tarde o hay más público."
+  en: "There are two levels for {tickets} tickets. Recommended: {crew_en}, met in {rec_met} of {rec_nights} nights. Complete: {full_crew_en}, met in {full_met} of {full_nights}. Several mixes of stations and sellers with almost the same working hours do as well as the recommended crew, and {nights} nights cannot tell them apart. We chose the one that meets the target in the most nights when people are missing, sellers start late or the crowd is larger."
 ev_mixes_cap:
   es: "Combinaciones de personal con casi las mismas horas de trabajo: noches que cumplen la meta en la noche base y en el peor de siete casos de estrés."
   en: "Crew mixes with almost the same working hours: nights that meet the target in the base case and in the worst of seven stress cases."
 ev_counter:
   es: "Con {plan_taps} puestos cada uno tiene unos {counter_m} m de barra{counter_flag}."
   en: "With {plan_taps} stations each one has about {counter_m} m of counter{counter_flag}."
+ev_counter_alt:
+  es: "Si en la barra no caben {plan_taps} personas, {alt_taps} en la barra y {alt_sellers} en pista dan casi el mismo resultado: {alt_base} de {alt_nights} noches en la noche base y {alt_worst} de {alt_nights} en el peor caso."
+  en: "If the bar cannot fit {plan_taps} people, {alt_taps} at the bar and {alt_sellers} on the floor give almost the same result: {alt_base} of {alt_nights} nights on the base night and {alt_worst} of {alt_nights} in the worst case."
 ev_counter_flag: {es: "; menos de 1 m es poco espacio por persona", en: "; under 1 m is tight per person"}
 ev_surcharge:
   es: "Con {surcharge} pesos más por boleto y {paying} boletos se reúnen {budget} pesos. Eso cubre el personal completo si la hora de trabajo cuesta menos de {cost_limit} pesos."

@@ -14,7 +14,7 @@ At Orus Fest 2026 the line for a beer took more than 40 minutes between 18:00 an
 ## What to do and what it gains
 
 ```{=html}
-<div class="cards"><div class="card"><strong>Take payment where the beer is served.</strong><span class="gain">One line in place of two. On its own it cuts the wait by 14% (between -1% and 25%).</span></div><div class="card"><strong>18 people on beer from 18:00: 12 at the bar and 6 on the floor. In 2026 there were about 3.</strong><span class="gain">The wait drops to about 3 minutes and about 3,300 more beers are sold per night.</span></div><div class="card"><strong>One lane with barriers per station.</strong><span class="gain">Straight lines and a clear floor. The simulation does not measure it.</span></div></div>
+<div class="cards"><div class="card"><strong>Take payment where the beer is served.</strong><span class="gain">One line in place of two. On its own it cuts the wait by about 14%; on some nights it does not change it.</span></div><div class="card"><strong>18 people on beer from 18:00: 12 at the bar and 6 on the floor. In 2026 there were about 3.</strong><span class="gain">9 of 10 buyers wait 4 minutes or less and about 3,300 more beers are sold per night.</span></div><div class="card"><strong>One lane with barriers per station.</strong><span class="gain">Straight lines and a clear floor. The simulation does not measure it.</span></div></div>
 ```
 
 ## In total
@@ -23,7 +23,7 @@ At Orus Fest 2026 the line for a beer took more than 40 minutes between 18:00 an
 <div class="bigs"><div class="big"><span class="v">40+ → 3 min</span><span class="l">in line between 18:00 and 20:00; more than 40 is what we saw</span><span class="rng">under the plan, between 2 and 5 min</span></div><div class="big"><span class="v">+3,300 beers</span><span class="l">about MXN 264,000 per night, costs not included</span><span class="rng">between 2,242 and 4,579 beers</span></div><div class="big"><span class="v">+15 people</span><span class="l">about 177 working hours; each extra hour sells about 20 beers</span><span class="rng">between 13 and 31 beers per extra hour</span></div></div>
 ```
 
-The target, 9 of 10 buyers waiting 10 minutes or less, is met in 61 of 64 simulated nights. With 6 more people it is met in 64 of 64.
+The target, 9 of 10 buyers waiting 10 minutes or less, is met in 61 of 64 simulated nights. With 6 more people, in 64 of 64, and in 61 of 64 if 2,500 tickets are sold (with the recommended crew, 53).
 
 ```{=html}
 <p class="method"><a href="evidence.html#como-se-hizo">8,960 simulated nights · 64 nights per comparison · ranges that cover 9 of 10 nights</a></p>
@@ -57,7 +57,7 @@ The target, 9 of 10 buyers waiting 10 minutes or less, is met in 61 of 64 simula
 ## What we need from you
 
 ```{=html}
-<div class="needs quick"><ul><li>Does the venue allow closed cans to be handed out?</li><li>Who runs the bar and receives the sales: Orus Producciones, the venue or a concessionaire?</li><li>What does one working hour at the bar cost?</li></ul><p>You can reply to José P. Barrantes on <a href="https://www.linkedin.com/in/jose-barrantes/">LinkedIn</a>.</p></div>
+<div class="needs quick"><ul><li>Does the venue allow closed cans to be handed out?</li><li>Who runs the bar and receives the sales: Orus Producciones, the venue or a concessionaire?</li><li>What does one working hour at the bar cost?</li><li>How many people can serve at the bar at the same time?</li></ul><p>You can reply to José P. Barrantes on <a href="https://www.linkedin.com/in/jose-barrantes/">LinkedIn</a>.</p></div>
 ```
 
 [See the evidence](evidence.qmd){.btn .btn-primary .evidence-button}
