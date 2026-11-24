@@ -265,7 +265,8 @@ def serving_section(v, lang, text, f, html_table) -> list[tuple[str, str]]:
     for x in sv[~sv["option"].str.endswith(("_low", "_high"))].itertuples():
         wait = (f"{up(x.plan_crew_wait)} / {up(x.plan_crew_wait_bad)}"
                 if x.plan_crew_wait == x.plan_crew_wait else "")
-        rows.append((text["serve_option"][x.option][lang], text["serve_assumption"][x.option][lang],
+        rows.append((f'{text["serve_option"][x.option][lang]} <span class="check">'
+                     f'({text["serve_assumption"][x.option][lang]})</span>',
                      short(x.minimum_taps, x.minimum_sellers),
                      short(x.recommended_taps, x.recommended_sellers), wait))
     bottles = sv[sv["option"] == "bottles"].iloc[0]
@@ -308,39 +309,49 @@ def serving_section(v, lang, text, f, html_table) -> list[tuple[str, str]]:
             ("p", text["serve_notes"][lang])]
 
 
-def pieces(lang: str) -> list[tuple[str, str]]:
-    """The page as a list of (kind, content). Kinds: "html" (a block of HTML), "h2", "p"
-    and "links" (the row of links to the technical pages, in Quarto markdown)."""
-    text = yaml.safe_load((SITE / "_text.yaml").read_text(encoding="utf-8"))
-    v = report_values.compute()
-    r = v["raw"]
-    f = fields(v, lang, text)
+SITE_URL = "https://jospablo777.github.io/orus_fest_beer_sales_simulation/"
+SUMMARY_CHANGES = ["baseline", "more_cashiers", "pay_at_tap", "sellers_6", "plan"]
 
-    def t(key):
-        return text[key][lang].format(**f)
 
-    def figure(inner, caption=None):
+class Page:
+    """Shared values and HTML helpers of the organizer pages in one language."""
+
+    def __init__(self, lang: str):
+        self.lang = lang
+        self.text = yaml.safe_load((SITE / "_text.yaml").read_text(encoding="utf-8"))
+        self.v = report_values.compute()
+        self.r = self.v["raw"]
+        self.f = fields(self.v, lang, self.text)
+        self.f.update(extra_fields(self.v, lang, self.text, self.f))
+
+    def t(self, key):
+        return self.text[key][self.lang].format(**self.f)
+
+    def figure(self, inner, caption=None, cls="plain-figure"):
         cap = f"<figcaption>{caption}</figcaption>" if caption else ""
-        return ("html", f'<figure class="plain-figure">{inner}{cap}</figure>')
+        return ("html", f'<figure class="{cls}">{inner}{cap}</figure>')
 
-    def img(name, alt):
-        return f'<img src="assets/figures/{name}_{lang}.png" alt="{alt}" loading="lazy">'
+    def img(self, name, alt):
+        return (f'<img src="assets/figures/{name}_{self.lang}.png" alt="{alt}" '
+                f'loading="lazy">')
 
-    def chart(name, alt):
+    def chart(self, name, alt):
         """Wide image, and the narrow one for phones (scripts/make_summary.py)."""
-        return (f'<div class="diagram wide">{img(name, alt)}</div>'
-                f'<div class="diagram narrow">{img(f"{name}_narrow", alt)}</div>')
+        return (f'<div class="diagram wide">{self.img(name, alt)}</div>'
+                f'<div class="diagram narrow">{self.img(f"{name}_narrow", alt)}</div>')
 
-    def one_video(name, label, cls):
-        return (f'<video class="{cls}" controls preload="none" playsinline '
+    def one_video(self, name, label, cls, extra=""):
+        lang = self.lang
+        return (f'<video class="{cls}" controls preload="none" playsinline {extra}'
                 f'poster="assets/video/{name}_{lang}.jpg" '
                 f'src="assets/video/{name}_{lang}.mp4" aria-label="{label}"></video>')
 
-    def video(name, label):
+    def video(self, name, label, phone=None, extra=""):
         """Both floor panels with the charts, and the cut with the floor panels for phones."""
-        return (one_video(name, label, "video-wide")
-                + one_video(f"{name}_phone", label, "video-phone"))
+        return (self.one_video(name, label, "video-wide", extra)
+                + self.one_video(phone or f"{name}_phone", label, "video-phone", extra))
 
+    @staticmethod
     def html_table(head, rows):
         """Below 600 px wide each row is shown as a block of label and value (data-label)."""
         def cell(h, c):
@@ -350,79 +361,187 @@ def pieces(lang: str) -> list[tuple[str, str]]:
                 + "".join("<tr>" + "".join(cell(h, c) for h, c in zip(head, row)) + "</tr>"
                           for row in rows) + "</tbody></table></div>")
 
-    exchange, total = r["base_obs_exchange_median_min"], r["base_obs_buyer_median_min"]
-    scale = max(exchange, total, 1.0)
-    gave_up = 10 * r["base_abandon_share"]
-    observed, service = (r["obs_from"], r["obs_to"]), (r["svc_from"], r["svc_to"])
-    ex_rng = (r["base_obs_exchange_median_min_lo"], r["base_obs_exchange_median_min_hi"])
-    tot_rng = (r["base_obs_buyer_median_min_lo"], r["base_obs_buyer_median_min_hi"])
-
+    @staticmethod
     def both_layouts(draw):
         return (f'<div class="diagram wide">{draw(False)}</div>'
                 f'<div class="diagram narrow">{draw(True)}</div>')
 
-    old = both_layouts(lambda narrow: diagrams.old_process(
-        lang, exchange, total, r["base_queue_cash_obs"], r["base_queue_pour_obs"], gave_up,
-        scale, observed, narrow, exchange_rng=ex_rng, total_rng=tot_rng,
-        pourers=round(r["pour_2026"])))
-    new = both_layouts(lambda narrow: diagrams.new_process(
+    def lead(self, key):
+        return ("html", f'<p class="lead-claim"><strong>{self.t(key)}</strong></p>')
+
+
+def extra_fields(v: dict, lang: str, text: dict, f: dict) -> dict:
+    """Values of the summary and evidence pages that fields() does not give."""
+    r, m = v["raw"], v["scenario_metrics"]
+    base = m[m["scenario"] == "baseline"].set_index("draw")["evening_p90_min"]
+    tap = m[m["scenario"] == "pay_at_tap"].set_index("draw")["evening_p90_min"]
+    cut = (100 * (base - tap.reindex(base.index)) / base).dropna()
+    med = {k: float(m.loc[m["scenario"] == k, "evening_p90_min"].median())
+           for k in ("more_cashiers", "pay_at_tap")}
+    out = {"tap_pct": n0(cut.median()), "tap_pct_lo": n0(cut.quantile(0.05)),
+           "tap_pct_hi": n0(cut.quantile(0.95)),
+           "plan_wait_lo": up(max(r["plan_obs_median_min_lo"], 1)),
+           "plan_wait_hi": up(max(r["plan_obs_median_min_hi"], 1)),
+           "extra_staff": n0(r["ss_staff_plan"] - r["ss_staff_2026"]),
+           "inside_2026": n10(r["base_peak_occupancy"]),
+           "best_single": n0(min(med.values())),
+           "plan_taps": str(r["plan_taps"]), "plan_sellers": str(r["plan_sellers"]),
+           "full_met": str(r["full_met"]), "full_nights": str(r["full_nights"]),
+           "full_more": n0(r["full_staff"] - r["rec_staff"]),
+           "counter_m": f"{r['counter_m_plan']:.1f}",
+           "counter_flag": text["ev_counter_flag"][lang] if r["counter_m_plan"] < 1.0 else "",
+           "surcharge": n0(r["surcharge"]), "paying": n0(r["paying_tickets"]),
+           "budget": n0(r["surcharge"] * r["paying_tickets"]),
+           "cost_limit": n0(r["cost_limit_full"]) if r["cost_limit_full"] else "",
+           "busy_base": r["busy_base"], "busy_plan": r["busy_plan"]}
+    # what-ifs of the plan crew itself (the minimum crew and the option without sellers are
+    # other crews)
+    cases = [k for k in WHAT_IF if f"wi_{k}" in r
+             and k not in ("plan", "plan_minimum", "plan_minimum_two_absent", "no_sellers")]
+    worst = min(cases, key=lambda k: r[f"wi_{k}_met"])
+    out.update({"wi_ok": str(sum(what_if_status(r, k) == "met" for k in cases)),
+                "wi_cases": str(len(cases)),
+                "wi_worst": text["wi_case"][worst][lang][:1].lower()
+                + text["wi_case"][worst][lang][1:],
+                "wi_worst_met": str(r[f"wi_{worst}_met"])})
+    out["full_crew_es"] = crew_name(r["full_taps"], r["full_sellers"], "es")
+    out["full_crew_en"] = crew_name(r["full_taps"], r["full_sellers"], "en")
+    return out
+
+
+def summary_pieces(lang: str) -> list[tuple[str, str]]:
+    """The summary page. Kinds: "html", "h2", "p", "button" (link to the evidence page)."""
+    pg = Page(lang)
+    r, t = pg.r, pg.t
+    out = [("html", f'<p class="byline"><a href="{r["contact_url"]}">{r["author"]}</a></p>')]
+    ba = pg.both_layouts(lambda narrow: diagrams.before_after(
+        lang, pg.f, r["plan_taps"], r["plan_sellers"], narrow))
+    out += [("h2", t("sum_h_problem")), ("p", t("sum_problem")), pg.figure(ba)]
+    cards = "".join(
+        f'<div class="card"><strong>{t(f"sum_card{k}")}</strong>'
+        f'<span class="gain">{t(f"sum_card{k}_gain")}</span></div>' for k in (1, 2, 3))
+    out += [("h2", t("sum_h_do")), ("html", f'<div class="cards">{cards}</div>')]
+    bigs = [(f"40+ → {pg.f['plan_wait']} min", t("sum_big_wait_l"), t("sum_big_wait_r")),
+            (t("sum_big_beers_v"), t("sum_big_beers_l"), t("sum_big_beers_r")),
+            (t("sum_big_staff_v"), t("sum_big_staff_l"), t("sum_big_staff_r"))]
+    big = "".join(f'<div class="big"><span class="v">{a}</span><span class="l">{b}</span>'
+                  f'<span class="rng">{c}</span></div>' for a, b, c in bigs)
+    same = (r["full_taps"], r["full_sellers"]) == (r["plan_taps"], r["plan_sellers"])
+    anchor = "evidencia.qmd" if lang == "es" else "evidence.qmd"
+    out += [("h2", t("sum_h_total")), ("html", f'<div class="bigs">{big}</div>'),
+            ("p", t("sum_levels_same" if same else "sum_levels")),
+            ("html", f'<p class="method"><a href="{anchor.replace(".qmd", ".html")}'
+                     f'#como-se-hizo">{t("sum_method")}</a></p>')]
+    phone = ("night_2026_vs_plan_phone_light"
+             if (SITE / "assets" / "video" / f"night_2026_vs_plan_phone_light_{lang}.mp4")
+             .exists() else None)
+    vid = pg.video("night_2026_vs_plan", t("sum_video_cap"), phone,
+                   extra='muted loop data-autoplay="1" ')
+    out += [("h2", t("sum_h_video")), pg.figure(vid, t("sum_video_cap")),
+            ("html", AUTOPLAY_SCRIPT),
+            pg.figure(pg.chart("summary_wait", t("fig_wait_alt")), t("sum_wait_cap"))]
+    need = "".join(f"<li>{q}</li>" for q in pg.text["sum_need"][lang])
+    out += [("h2", t("sum_h_need")),
+            ("html", f'<div class="needs quick"><ul>{need}</ul><p>{t("sum_contact")}</p></div>'),
+            ("button", (anchor, t("sum_button"))), ("p", t("sum_note"))]
+    return out
+
+
+# The night video plays muted on its own unless the reader's system asks for reduced
+# motion; only the cut shown at the current width is started.
+AUTOPLAY_SCRIPT = """<script>
+(function () {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  document.querySelectorAll("video[data-autoplay]").forEach(function (v) {
+    if (v.offsetParent === null) return;
+    v.muted = true;
+    v.preload = "auto";
+    var p = v.play();
+    if (p && p.catch) p.catch(function () {});
+  });
+})();
+</script>"""
+
+
+def evidence_pieces(lang: str) -> list[tuple[str, str]]:
+    """The evidence page, eleven sections, each opening with its conclusion."""
+    pg = Page(lang)
+    v, r, f, t, text = pg.v, pg.r, pg.f, pg.t, pg.text
+    exchange, total = r["base_obs_exchange_median_min"], r["base_obs_buyer_median_min"]
+    scale = max(exchange, total, 1.0)
+    observed, service = (r["obs_from"], r["obs_to"]), (r["svc_from"], r["svc_to"])
+    ex_rng = (r["base_obs_exchange_median_min_lo"], r["base_obs_exchange_median_min_hi"])
+    tot_rng = (r["base_obs_buyer_median_min_lo"], r["base_obs_buyer_median_min_hi"])
+    old = pg.both_layouts(lambda narrow: diagrams.old_process(
+        lang, exchange, total, r["base_queue_cash_obs"], r["base_queue_pour_obs"],
+        10 * r["base_abandon_share"], scale, observed, narrow, exchange_rng=ex_rng,
+        total_rng=tot_rng, pourers=round(r["pour_2026"])))
+    new = pg.both_layouts(lambda narrow: diagrams.new_process(
         lang, max(r["plan_obs_median_min"], 1), r["plan_evening_p90_min"], r["plan_taps"],
         r["plan_sellers"], scale, observed, service, narrow))
+    out = [("h2", t("ev_h1")), pg.lead("ev_lead1"), pg.figure(old), ("p", t("ev_text1")),
+           pg.figure(new), ("p", t("new_text"))]
 
-    out = [("html", f'<p class="byline"><a href="{r["contact_url"]}">{r["author"]}</a></p>'),
-           ("html", f'<p class="lede">{t("lede")}</p>'),
-           ("h2", t("h_old")), figure(old), ("p", t("old_text")),
-           ("h2", t("h_new")), figure(new), ("p", t("new_text"))]
-    out += single_changes(v, lang, text, html_table)
+    out += [("h2", t("ev_h2")), pg.lead("ev_lead2"),
+            pg.figure(pg.video("night_2026_vs_plan", t("video_night")), t("video_night")),
+            pg.figure(pg.video("changeover_2026_vs_plan", t("video_change")),
+                      t("video_change"))]
 
-    tiles = "".join(
-        f'<div class="tile good"><span class="v">{t(f"tile_{k}_v")}</span>'
-        f'<span class="l">{t(f"tile_{k}")}</span></div>'
-        for k in ("audience", "staff", "sales", "reputation"))
-    out += [("h2", t("h_gain")), ("html", f'<div class="tiles">{tiles}</div>'),
-            figure(chart("summary_wait", t("fig_wait_alt")), t("wait_caption"))]
-
-    seller_key = "sellers" if r["plan_sellers"] else "none"
-    actions = [(t("a1_t"), t("a1")), (t("a2_t"), t("a2")),
-               (t(f"a3_t_{seller_key}"), t(f"a3_{seller_key}")),
-               (t("a4_t"), t("a4")), (t("a5_t"), t("a5")), (t("a6_t"), t("a6"))]
-    items = "".join(f"<li><strong>{a}</strong><span>{b}</span></li>" for a, b in actions)
-    out += [("h2", t("h_plan")),
-            ("html", f'<div class="plan">{img("summary_plan", t("plan_alt"))}'
-                     f'<ol class="actions">{items}</ol></div>')]
-
-    out += [("h2", t("h_video")),
-            figure(video("night_2026_vs_plan", t("video_night")), t("video_night")),
-            figure(video("changeover_2026_vs_plan", t("video_change")), t("video_change"))]
+    single = single_changes(v, lang, text, pg.html_table)
+    out += [("h2", t("ev_h3")), pg.lead("ev_lead3"),
+            pg.figure(pg.chart("summary_changes", t("ev_h3")), t("ev_changes_cap")),
+            ("p", single[1][1]), single[2], ("p", single[3][1]), single[4]]
 
     rows = []
     for row in v["staffing_rows"]:
         if row["crew"] is None:
-            rows.append((n0(row["tickets"]), text["staff_none"][lang], "", "", "", "", "", ""))
+            rows.append((n0(row["tickets"]), text["staff_none"][lang], "", ""))
             continue
         kind = "fallback" if row["fallback"] else row["level"]
-        rows.append((n0(row["tickets"]), text["crew_level"][kind][lang], row["taps"],
-                     row["sellers"], n0(row["staff"]), n0(row["staff_hours"]),
-                     f"{row['met']} / {row['nights']}", n10(row["inside"])))
-    crew_notes = " ".join(x for x in (f[f"min_sentence_{lang}"], f[f"grid_edge_{lang}"]) if x)
-    out += [("h2", t("h_staff")), ("p", t("staff_intro")), ("p", t("staff_text"))]
-    if crew_notes:
-        out.append(("p", crew_notes))
-    out += [figure(chart("summary_crews", t("fig_crews_alt"))),
-            ("html", html_table(text["staff_table_head"][lang], rows)),
-            figure(chart("summary_sales", t("fig_sales_alt")), t("sales_text"))]
+        people = "personas" if lang == "es" else "people"
+        rows.append((n0(row["tickets"]), text["crew_level"][kind][lang],
+                     f"{row['taps']} + {row['sellers']} · {n0(row['staff'])} {people} · "
+                     f"{n0(row['staff_hours'])} h", f"{row['met']} / {row['nights']}"))
+    out += [("h2", t("ev_h4")), pg.lead("ev_lead4"),
+            pg.figure(pg.img("summary_plan", t("plan_alt")), t("ev_plan_legend"),
+                      cls="plain-figure plan-figure"),
+            ("p", t("ev_levels")),
+            pg.figure(pg.chart("summary_mixes", t("ev_mixes_cap")), t("ev_mixes_cap")),
+            ("p", t("ev_counter")),
+            pg.figure(pg.chart("summary_crews", t("fig_crews_alt"))),
+            ("p", t("staff_text")),
+            ("html", pg.html_table(text["staff_table_head_short"][lang], rows)),
+            ("p", t("staff_intro")), ("p", t("ev_surcharge"))]
+
+    small = "".join(f'<div class="small-num"><span class="v">{a.format(**f)}</span>'
+                    f'<span class="l">{b.format(**f)}</span></div>'
+                    for a, b in text["ev_small"][lang])
+    out += [("h2", t("ev_h5")), pg.lead("ev_lead5"),
+            pg.figure(pg.chart("summary_wait", t("fig_wait_alt")), t("wait_caption")),
+            pg.figure(pg.chart("summary_sales", t("fig_sales_alt")), t("sales_text")),
+            pg.figure(pg.chart("summary_busy", t("ev_busy_cap")), t("ev_busy_cap")),
+            ("html", f'<div class="small-nums">{small}</div>')]
 
     cases = [k for k in WHAT_IF if f"wi_{k}" in r]
     wi_rows = [(text["wi_case"][k][lang], up(r[f"wi_{k}"]),
                 f"{r[f'wi_{k}_met']} / {r[f'wi_{k}_nights']}",
                 text["wi_status"][what_if_status(r, k)][lang]) for k in cases]
-    out += [("p", t("whatif_intro")),
-            ("html", html_table(text["whatif_head"][lang], wi_rows))]
-    out += serving_section(v, lang, text, f, html_table)
+    out += [("h2", t("ev_h6")), pg.lead("ev_lead6"),
+            ("html", pg.html_table(text["whatif_head"][lang], wi_rows)),
+            ("p", t("whatif_intro"))]
+
+    serve = serving_section(v, lang, text, f, pg.html_table)
+    out += [("h2", t("ev_h7")), pg.lead("ev_lead7")] + serve[1:]
+
+    out += [("h2", t("ev_h8")), pg.lead("ev_lead8"),
+            ("html", f'<div class="confs"><div class="conf"><strong>{t("a5_t")}</strong>'
+                     f'<span>{t("a5")}</span></div><div class="conf"><strong>{t("a6_t")}'
+                     f'</strong><span>{t("a6")}</span></div></div>')]
 
     conf = "".join(f'<div class="conf {k}"><strong>{t(f"conf_{k}_t")}</strong>'
-                   f'<span>{t(f"conf_{k}")}</span></div>' for k in ("firm", "prob", "check"))
-    out += [("h2", t("h_conf")), ("html", f'<div class="confs">{conf}</div>')]
+                   f'<span>{t(f"conf_{k}")}' + (f' {t("ev_crew_rule")}' if k == "prob" else "")
+                   + '</span></div>' for k in ("firm", "prob", "check"))
+    out += [("h2", t("ev_h9")), pg.lead("ev_lead9"), ("html", f'<div class="confs">{conf}</div>')]
 
     checks = [e.format(**f) for e in text["need_estimates"][lang]]
     needs = "".join(f"<li>{item}" + (f' <span class="check">{checks[k]}</span>'
@@ -430,25 +549,68 @@ def pieces(lang: str) -> list[tuple[str, str]]:
                     for k, item in enumerate(text["needs"][lang]))
     quick = "".join(f'<li><strong>{q}</strong> <span class="check">{why}</span></li>'
                     for q, why in text["need_quick"][lang])
-    out += [("h2", t("h_need")),
+    out += [("h2", t("ev_h10")), pg.lead("ev_lead10"),
             ("html", f'<div class="needs quick"><p>{t("need_quick_lead")}</p><ul>{quick}</ul>'
                      f'</div>'),
             ("html", f'<div class="needs"><p>{t("need_text")}</p><p>{t("need_check")}</p>'
                      f'<ol>{needs}</ol></div>')]
 
-    out += [("h2", t("h_how")), ("p", t("how_text")), ("links", t("links"))]
+    out += [("h2id", (t("ev_h11"), "como-se-hizo")), pg.lead("ev_lead11"),
+            ("p", t("how_text")), ("links", t("links"))]
     return out
 
 
-def render(lang: str) -> str:
-    """Quarto markdown of the page, included by site/index.qmd and site/en.qmd."""
+PAGES = {"summary": summary_pieces, "evidence": evidence_pieces}
+
+
+def _button_md(target):
+    href, label = target
+    return f'\n[{label}]({href}){{.btn .btn-primary .evidence-button}}\n'
+
+
+def render(lang: str, page: str = "summary") -> str:
+    """Quarto markdown of a page, included by site/index.qmd, en.qmd, evidencia.qmd and
+    evidence.qmd."""
     form = {"html": "\n```{{=html}}\n{}\n```\n", "h2": "\n## {}\n", "p": "\n{}\n",
             "links": "\n{}\n"}
-    return "".join(form[kind].format(content) for kind, content in pieces(lang))
+    parts = []
+    for kind, content in PAGES[page](lang):
+        if kind == "button":
+            parts.append(_button_md(content))
+        elif kind == "h2id":
+            parts.append(f"\n## {content[0]} {{#{content[1]}}}\n")
+        else:
+            parts.append(form[kind].format(content))
+    return "".join(parts)
 
 
-def render_html(lang: str) -> str:
-    """The page as plain HTML without the links to the technical pages, for the single-file
-    preview built by scripts/make_preview.py."""
+def render_html(lang: str, page: str = "summary") -> str:
+    """A page as plain HTML without the links to the technical pages, for the single-file
+    preview built by scripts/make_preview.py. The evidence button points to the site."""
     form = {"html": "{}\n", "h2": "<h2>{}</h2>\n", "p": "<p>{}</p>\n", "links": ""}
-    return "".join(form[kind].format(content) for kind, content in pieces(lang))
+    parts = []
+    for kind, content in PAGES[page](lang):
+        if kind == "button":
+            href = SITE_URL + content[0].replace(".qmd", ".html")
+            parts.append(f'<p><a class="evidence-button" href="{href}">{content[1]}</a></p>\n')
+        elif kind == "h2id":
+            parts.append(f'<h2 id="{content[1]}">{content[0]}</h2>\n')
+        else:
+            parts.append(form[kind].format(content))
+    return "".join(parts)
+
+
+def running_words(lang: str = "es") -> int:
+    """Words of running text on the summary page: paragraphs, card text, numbers' labels and
+    the questions; captions, the method line, the diagram and the byline do not count."""
+    import re
+    words = 0
+    for kind, content in summary_pieces(lang):
+        if kind == "p":
+            words += len(re.sub(r"<[^>]+>", " ", content).split())
+        elif kind == "button":
+            words += len(content[1].split())
+        elif kind == "html" and ('class="cards"' in content or 'class="bigs"' in content
+                                 or 'class="needs' in content):
+            words += len(re.sub(r"<[^>]+>", " ", content).split())
+    return words

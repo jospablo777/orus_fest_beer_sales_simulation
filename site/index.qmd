@@ -1,8 +1,13 @@
 ---
 title: "Cerveza sin filas en [Orus Fest]{.red}"
-subtitle: "Propuesta para la próxima edición · simulación de Orus Fest 2026, Salón Olímpico Pantitlán, Ciudad de México"
+subtitle: "Propuesta para la próxima edición · simulación de Orus Fest 2026, Salón Olímpico Pantitlán"
 lang: es
-toc-title: "En esta página"
+toc: false
+image: assets/figures/before_after_og_es.png
+open-graph:
+  title: "Cerveza sin filas en Orus Fest"
+  description: "En 2026 la fila para una cerveza tomó más de 40 minutos. Con cobro en la barra y el personal indicado, unos minutos."
+  image: assets/figures/before_after_og_es.png
 ---
 
 {{< include _generated/organizer_es.md >}}

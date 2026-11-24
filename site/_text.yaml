@@ -161,6 +161,10 @@ crew_level:
   minimum: {es: "mínimo", en: "minimum"}
   recommended: {es: "recomendado", en: "recommended"}
   fallback: {es: "recomendado (igual al mínimo)", en: "recommended (same as minimum)"}
+  complete: {es: "completo", en: "complete"}
+staff_table_head_short:
+  es: ["Boletos", "Nivel", "Puestos + vendedores · personas · horas", "Noches que cumplen la meta"]
+  en: ["Tickets", "Level", "Stations + sellers · people · hours", "Nights that meet the target"]
 staff_none:
   es: "ninguna opción probada cumple la meta"
   en: "no option tested meets the target"
@@ -197,14 +201,14 @@ serve_intro:
   es: "En 2026 cada cerveza se destapaba y se servía en un vaso, y una grande llevaba dos. Probamos otras formas de servir en las mismas {serve_nights} noches simuladas, con {tickets} boletos. Nadie midió cuánto tiempo ahorra cada una, así que los segundos de la tabla son supuestos nuestros."
   en: "In 2026 every beer was opened and poured into a cup, and a large beer took two. We tried other ways of serving on the same {serve_nights} simulated nights, with {tickets} tickets. Nobody measured how much time each one saves, so the seconds in the table are our assumptions."
 serve_head:
-  es: ["Forma de servir", "Supuesto", "Personal mínimo (90% de las noches)", "Personal recomendado (95%)", "Espera de 9 de cada 10 con el personal del plan (min, noche típica / noche mala)"]
-  en: ["Way of serving", "Assumption", "Minimum crew (90% of nights)", "Recommended crew (95%)", "Wait of 9 of 10 buyers with the plan crew (min, typical night / bad night)"]
+  es: ["Forma de servir (supuesto)", "Personal mínimo (90% de las noches)", "Personal con menos horas que cumple en el 95%", "Espera de 9 de cada 10 con el personal del plan (min, noche típica / noche mala)"]
+  en: ["Way of serving (assumption)", "Minimum crew (90% of nights)", "Crew with the fewest hours that meets 95%", "Wait of 9 of 10 buyers with the plan crew (min, typical night / bad night)"]
 serve_best:
-  es: "Con {best_label} el personal recomendado es {best_crew}, unas {hours} horas de trabajo menos por noche que sirviendo en vaso{sellers_note}."
-  en: "With {best_label} the recommended crew is {best_crew}, about {hours} fewer working hours per night than serving in cups{sellers_note}."
+  es: "Con {best_label} el personal con menos horas que cumple en el 95% de las noches es {best_crew}, unas {hours} horas de trabajo menos por noche que sirviendo en vaso{sellers_note}. En esta tabla cada forma de servir usa la regla de menos horas; el personal del plan se eligió además por los casos de estrés."
+  en: "With {best_label} the crew with the fewest hours that meets the target in 95% of nights is {best_crew}, about {hours} fewer working hours per night than serving in cups{sellers_note}. In this table every way of serving uses the fewest-hours rule; the plan crew was also chosen by the stress cases."
 serve_cans_range:
-  es: "Si las latas ahorran {low_s} segundos por cerveza, el personal recomendado es {low_crew}; si ahorran {high_s}, es {high_crew}."
-  en: "If cans save {low_s} seconds per beer, the recommended crew is {low_crew}; if they save {high_s}, it is {high_crew}."
+  es: "Si las latas ahorran {low_s} segundos por cerveza, ese personal es {low_crew}; si ahorran {high_s}, es {high_crew}."
+  en: "If cans save {low_s} seconds per beer, that crew is {low_crew}; if they save {high_s}, it is {high_crew}."
 serve_fewer_sellers:
   es: ", y depende menos de los vendedores: {s} en lugar de {b}"
   en: ", and it depends less on sellers: {s} in place of {b}"
@@ -337,3 +341,156 @@ fig_crews_alt:
 wait_caption:
   es: "La línea es la noche típica y la franja el rango entre noches simuladas. El tiempo cuenta hasta recibir la cerveza o hasta salirse de la fila. La simulación se ajustó a lo que vimos hasta las 20:00; después de esa hora la curva de 2026 es una estimación. En 2026 la espera sube desde las 18:00 y sigue alta hasta el cierre."
   en: "The line is the typical night and the band the range across simulated nights. Time counts until the beer is received or the person leaves the line. The simulation was fitted to what we saw up to 20:00; after that hour the 2026 curve is an estimate. In 2026 the wait rises from 18:00 and stays high until closing."
+
+# ---- Summary page (site/index.qmd, site/en.qmd) ------------------------------------------
+sum_h_problem: {es: "El problema", en: "The problem"}
+sum_problem:
+  es: "En Orus Fest 2026 la fila para una cerveza tomó más de 40 minutos entre las {obs_from} y las {obs_to}. La simulación solo reproduce esas filas con {pour_lo} a {pour_hi} personas sirviendo cerveza para unas {inside_2026} personas dentro del salón."
+  en: "At Orus Fest 2026 the line for a beer took more than 40 minutes between {obs_from} and {obs_to}. The simulation reproduces those lines only with {pour_lo} to {pour_hi} people serving beer for about {inside_2026} people inside the hall."
+sum_h_do: {es: "Qué hacer y qué se gana", en: "What to do and what it gains"}
+sum_card1: {es: "Cobrar y servir en el mismo puesto.", en: "Take payment where the beer is served."}
+sum_card1_gain:
+  es: "Una fila en lugar de dos. Por sí solo recorta la espera un {tap_pct}% (entre {tap_pct_lo}% y {tap_pct_hi}%)."
+  en: "One line in place of two. On its own it cuts the wait by {tap_pct}% (between {tap_pct_lo}% and {tap_pct_hi}%)."
+sum_card2:
+  es: "{staff_plan} personas atendiendo cerveza desde las 18:00: {plan_taps} en la barra y {plan_sellers} en pista. En 2026 eran unas {staff_2026}."
+  en: "{staff_plan} people on beer from 18:00: {plan_taps} at the bar and {plan_sellers} on the floor. In 2026 there were about {staff_2026}."
+sum_card2_gain:
+  es: "La espera baja a unos {plan_wait} minutos y se venden unas {d_beers} cervezas más por noche."
+  en: "The wait drops to about {plan_wait} minutes and about {d_beers} more beers are sold per night."
+sum_card3: {es: "Un carril con vallas por puesto.", en: "One lane with barriers per station."}
+sum_card3_gain:
+  es: "Filas derechas y pista libre. La simulación no lo mide."
+  en: "Straight lines and a clear floor. The simulation does not measure it."
+sum_h_total: {es: "En total", en: "In total"}
+sum_big_wait_l: {es: "en la fila entre las {obs_from} y las {obs_to}; más de 40 es lo que vimos", en: "in line between {obs_from} and {obs_to}; more than 40 is what we saw"}
+sum_big_wait_r: {es: "con el plan, entre {plan_wait_lo} y {plan_wait_hi} min", en: "under the plan, between {plan_wait_lo} and {plan_wait_hi} min"}
+sum_big_beers_v: {es: "+{d_beers} cervezas", en: "+{d_beers} beers"}
+sum_big_beers_l: {es: "cerca de {d_mxn} pesos por noche, sin contar costos", en: "about MXN {d_mxn} per night, costs not included"}
+sum_big_beers_r: {es: "entre {d_beers_lo} y {d_beers_hi} cervezas", en: "between {d_beers_lo} and {d_beers_hi} beers"}
+sum_big_staff_v: {es: "+{extra_staff} personas", en: "+{extra_staff} people"}
+sum_big_staff_l: {es: "unas {extra_hours} horas de trabajo; cada hora adicional vende unas {per_hour} cervezas", en: "about {extra_hours} working hours; each extra hour sells about {per_hour} beers"}
+sum_big_staff_r: {es: "entre {per_hour_lo} y {per_hour_hi} cervezas por hora adicional", en: "between {per_hour_lo} and {per_hour_hi} beers per extra hour"}
+sum_levels:
+  es: "La meta, que 9 de cada 10 compradores esperen {target_wait} minutos o menos, se cumple en {rec_met} de {rec_nights} noches simuladas. Con {full_more} personas más se cumple en {full_met} de {full_nights}."
+  en: "The target, 9 of 10 buyers waiting {target_wait} minutes or less, is met in {rec_met} of {rec_nights} simulated nights. With {full_more} more people it is met in {full_met} of {full_nights}."
+sum_levels_same:
+  es: "La meta, que 9 de cada 10 compradores esperen {target_wait} minutos o menos, se cumple en {rec_met} de {rec_nights} noches simuladas."
+  en: "The target, 9 of 10 buyers waiting {target_wait} minutes or less, is met in {rec_met} of {rec_nights} simulated nights."
+sum_method:
+  es: "{sims} noches simuladas · {nights} noches por comparación · rangos que cubren 9 de cada 10 noches"
+  en: "{sims} simulated nights · {nights} nights per comparison · ranges that cover 9 of 10 nights"
+sum_h_video: {es: "Así se ve la noche", en: "Watch the night"}
+sum_video_cap:
+  es: "La misma noche simulada, de {clip_from} a {clip_to}. A la izquierda 2026, a la derecha el plan. Cada punto es una persona."
+  en: "The same simulated night, {clip_from} to {clip_to}. On the left 2026, on the right the plan. Each dot is one person."
+sum_wait_cap:
+  es: "Minutos en fila según la hora en que la persona se formó. Después de las 20:00 la curva de 2026 es una estimación."
+  en: "Minutes in line by the hour a person joined. After 20:00 the 2026 curve is an estimate."
+sum_h_need: {es: "Qué necesitamos de ustedes", en: "What we need from you"}
+sum_need:
+  es:
+    - "¿El salón permite entregar latas cerradas?"
+    - "¿Quién opera la barra y recibe la venta: Orus Producciones, el salón o un concesionario?"
+    - "¿Cuánto cuesta una hora de trabajo en la barra?"
+  en:
+    - "Does the venue allow closed cans to be handed out?"
+    - "Who runs the bar and receives the sales: Orus Producciones, the venue or a concessionaire?"
+    - "What does one working hour at the bar cost?"
+sum_contact:
+  es: "Pueden responder a {author} por <a href=\"{contact_url}\">{contact_label}</a>."
+  en: "You can reply to {author} on <a href=\"{contact_url}\">{contact_label}</a>."
+sum_button: {es: "Ver la evidencia", en: "See the evidence"}
+sum_note:
+  es: "Los números son estimaciones de una simulación ajustada a lo que vimos en 2026."
+  en: "The numbers are estimates from a simulation fitted to what we saw in 2026."
+ba_title: {es: "Una cerveza entre las {obs_from} y las {obs_to}", en: "One beer between {obs_from} and {obs_to}"}
+ba_2026: {es: "2026", en: "2026"}
+ba_plan: {es: "Con el plan", en: "Under the plan"}
+ba_wait_2026: {es: "más de 40 min", en: "over 40 min"}
+ba_wait_plan: {es: "{plan_wait} min", en: "{plan_wait} min"}
+ba_lines_2026: {es: "dos filas: fichas y canje", en: "two lines: tickets, then exchange"}
+ba_lines_plan: {es: "una fila por puesto", en: "one line per station"}
+ba_staff_2026: {es: "unas {n} personas atienden", en: "about {n} people on staff"}
+ba_staff_plan: {es: "{taps} en barra y {sellers} en pista", en: "{taps} at the bar and {sellers} on the floor"}
+
+# ---- Evidence page (site/evidencia.qmd, site/evidence.qmd) -------------------------------
+ev_h1: {es: "Cómo se compraba en 2026 y cómo se compra con el plan", en: "How a beer was bought in 2026 and how it is bought under the plan"}
+ev_lead1:
+  es: "En 2026 una cerveza pedía dos filas; con el plan pide una."
+  en: "In 2026 a beer took two lines; under the plan it takes one."
+ev_text1:
+  es: "Una ventanilla vendía las fichas de todas las bebidas y después había que formarse para canjearlas. Las filas salían de la barra hacia el escenario y llegaban hasta la cabina de los ingenieros de luces y drones. Los baños ocupan la esquina de la barra del lado de la entrada. Vimos más de 40 minutos en la fila de canje entre las {obs_from} y las {obs_to}; la simulación estima {base_exchange} (entre {base_exchange_lo} y {base_exchange_hi}), con unas {q1} personas en la fila de fichas y {q2} en las de canje."
+  en: "One window sold the tickets for every drink, and then people lined up again to exchange them. The lines ran from the bar toward the stage and reached the booth of the lighting and drone engineers. The toilets take the corner of the bar on the entrance side. We saw more than 40 minutes in the exchange line between {obs_from} and {obs_to}; the simulation estimates {base_exchange} (between {base_exchange_lo} and {base_exchange_hi}), with about {q1} people in the ticket line and {q2} in the exchange lines."
+ev_h2: {es: "Así se ve la noche", en: "Watch the night"}
+ev_lead2:
+  es: "En la misma noche simulada, en 2026 llegan a estar formadas unas {base_maxq} personas al mismo tiempo; con el plan, unas {plan_maxq}."
+  en: "On the same simulated night, up to about {base_maxq} people stand in line at once in 2026; under the plan, about {plan_maxq}."
+ev_h3: {es: "Lo que más reduce la espera es tener más personas sirviendo", en: "What cuts the wait most is more people serving"}
+ev_lead3:
+  es: "Con el mismo personal, abrir ventanillas o cobrar en la barra deja la espera de 9 de cada 10 compradores en {best_single} minutos o más; con el plan baja a {plan_p90}."
+  en: "With the same staff, opening ticket windows or charging at the bar leaves the wait of 9 of 10 buyers at {best_single} minutes or more; under the plan it drops to {plan_p90}."
+ev_changes_cap:
+  es: "Espera de 9 de cada 10 compradores entre las {svc_from} y las {svc_to}, noche típica y rango entre noches. Al final de cada barra, las cervezas adicionales por noche."
+  en: "Wait of 9 of 10 buyers between {svc_from} and {svc_to}, typical night and range across nights. At the end of each bar, the extra beers per night."
+ev_h4: {es: "El personal: tres niveles", en: "Staff: three levels"}
+ev_lead4:
+  es: "El personal recomendado, {crew_es}, cumple la meta en {rec_met} de {rec_nights} noches y es el que mejor resiste cuando la noche sale mal."
+  en: "The recommended crew, {crew_en}, meets the target in {rec_met} of {rec_nights} nights and holds up best when the night goes wrong."
+ev_plan_legend:
+  es: "Cuadros detrás de la barra: personas que atienden. Puntos verdes: vendedores en pista. Líneas blancas: un carril con vallas por puesto. Flecha: pasillo central libre."
+  en: "Squares behind the bar: bar staff. Green dots: floor sellers. White lines: one lane with barriers per station. Arrow: open central walkway."
+ev_levels:
+  es: "Hay tres niveles para {tickets} boletos. Mínimo: {min_crew_es}, cumple en {min_met} de {min_nights} noches. Recomendado: {crew_es}, {rec_met} de {rec_nights}. Completo: {full_crew_es}, {full_met} de {full_nights}. Varias combinaciones de puestos y vendedores con casi las mismas horas de trabajo cumplen en el recomendado; con {nights} noches no se distinguen. Elegimos la que cumple en más noches cuando faltan personas, llegan tarde los vendedores o hay más público."
+  en: "There are three levels for {tickets} tickets. Minimum: {min_crew_en}, met in {min_met} of {min_nights} nights. Recommended: {crew_en}, {rec_met} of {rec_nights}. Complete: {full_crew_en}, {full_met} of {full_nights}. Several mixes of stations and sellers with almost the same working hours reach the recommended level, and {nights} nights cannot tell them apart. We chose the one that meets the target in the most nights when people are missing, sellers start late or the crowd is larger."
+ev_mixes_cap:
+  es: "Combinaciones de personal con casi las mismas horas de trabajo: noches que cumplen la meta en la noche base y en el peor de siete casos de estrés."
+  en: "Crew mixes with almost the same working hours: nights that meet the target in the base case and in the worst of seven stress cases."
+ev_counter:
+  es: "Con {plan_taps} puestos cada uno tiene unos {counter_m} m de barra{counter_flag}."
+  en: "With {plan_taps} stations each one has about {counter_m} m of counter{counter_flag}."
+ev_counter_flag: {es: "; menos de 1 m es poco espacio por persona", en: "; under 1 m is tight per person"}
+ev_surcharge:
+  es: "Con {surcharge} pesos más por boleto y {paying} boletos se reúnen {budget} pesos. Eso cubre el personal completo si la hora de trabajo cuesta menos de {cost_limit} pesos."
+  en: "With MXN {surcharge} more per ticket and {paying} tickets, MXN {budget} is raised. That covers the complete crew if a working hour costs less than MXN {cost_limit}."
+ev_h5: {es: "La barra hora por hora", en: "The bar hour by hour"}
+ev_lead5:
+  es: "La venta sube desde las 18:00; en 2026 la barra estaba ocupada {busy_base} del tiempo y con el plan {busy_plan}."
+  en: "Sales rise from 18:00; in 2026 the bar was busy {busy_base} of the time and under the plan {busy_plan}."
+ev_busy_cap:
+  es: "Porcentaje del tiempo que las personas de la barra están cobrando o sirviendo, por hora. Noche típica y rango entre noches."
+  en: "Share of time the bar staff are charging or serving, by hour. Typical night and range across nights."
+ev_small:
+  es: [["{base_maxq} → {plan_maxq}", "personas formadas al mismo tiempo, máximo (en 2026 entre {base_maxq_lo} y {base_maxq_hi})"],
+       ["{base_lost} → {plan_lost}", "compras abandonadas en la noche (en 2026 entre {base_lost_lo} y {base_lost_hi})"],
+       ["{base_hours} → {plan_hours} h", "horas que el público pasa en filas, sumando a todos (en 2026 entre {base_hours_lo} y {base_hours_hi})"]]
+  en: [["{base_maxq} → {plan_maxq}", "people in line at the same time, at most (in 2026 between {base_maxq_lo} and {base_maxq_hi})"],
+       ["{base_lost} → {plan_lost}", "purchases abandoned during the night (in 2026 between {base_lost_lo} and {base_lost_hi})"],
+       ["{base_hours} → {plan_hours} h", "hours the audience spends in lines, everyone added up (in 2026 between {base_hours_lo} and {base_hours_hi})"]]
+ev_h6: {es: "Si la noche sale distinta", en: "If the night turns out different"}
+ev_lead6:
+  es: "Con el personal recomendado se cumple la meta en al menos el {reliability} de las noches en {wi_ok} de {wi_cases} casos distintos; el más difícil es este: {wi_worst} ({wi_worst_met} de {wi_nights} noches)."
+  en: "With the recommended crew the target is met in at least {reliability} of the nights in {wi_ok} of {wi_cases} different cases; the hardest is this one: {wi_worst} ({wi_worst_met} of {wi_nights} nights)."
+ev_h7: {es: "Servir más rápido", en: "Serving faster"}
+ev_lead7:
+  es: "Latas cerradas y cobro más rápido permiten el mismo servicio con menos horas de trabajo."
+  en: "Closed cans and faster payment give the same service with fewer working hours."
+ev_h8: {es: "Cuidados: aforo, bebidas, agua y seguridad", en: "Care: capacity, drinks, water and security"}
+ev_lead8:
+  es: "Con un servicio más rápido la gente bebe más: quienes toman 6 cervezas o más pasan del {heavy_base} al {heavy_plan} del público."
+  en: "With faster service people drink more: attendees with 6 beers or more go from {heavy_base} to {heavy_plan} of the audience."
+ev_h9: {es: "Qué tan firme es cada resultado", en: "How firm each result is"}
+ev_lead9:
+  es: "Quitar la caja de fichas mejora la noche en {improved_n} de {nights} noches simuladas; lo que vende cada vendedor es un supuesto."
+  en: "Removing the ticket window improves the night in {improved_n} of {nights} simulated nights; what each seller sells is an assumption."
+ev_crew_rule:
+  es: "El personal recomendado se eligió entre combinaciones casi iguales por su resultado en siete casos de estrés."
+  en: "The recommended crew was chosen among nearly equal mixes by its results in seven stress cases."
+ev_h10: {es: "Datos que mejorarían el plan", en: "Records that would improve the plan"}
+ev_lead10:
+  es: "Con sus datos los rangos se reducen y el plan se ajusta a su operación."
+  en: "With your records the ranges narrow and the plan fits your operation."
+ev_h11: {es: "Cómo se hizo", en: "How this was done"}
+ev_lead11:
+  es: "Una simulación por computadora reproduce la noche de 2026 y prueba cada cambio en las mismas noches."
+  en: "A computer simulation reproduces the 2026 night and tests each change on the same nights."

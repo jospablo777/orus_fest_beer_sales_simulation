@@ -6,6 +6,8 @@ date: "2026-11-24"          # day the final run finished, set by hand; printed o
 beer_price_mxn: 80          # assumed price per beer, used only for sales figures in MXN
 headline_scenario: plan     # the setup compared with 2026 in the headline figures
 plan_tickets: 2000          # ticket level of the plan (a level of the staffing grid)
+ticket_surcharge_mxn: 50    # assumed surcharge per ticket that could fund the staff
+paying_tickets: 2000        # tickets that pay the surcharge
 hall_side_uncertainty: 0.10 # relative error of each side of the hall, measured on a satellite image
 
 # Video clips of scripts/make_animation.py. "night" starts when the 2026 lines formed.

@@ -8,24 +8,34 @@ project:
 website:
   title: "Orus Fest · cerveza sin filas"
   favicon: favicon.svg
-  description: "Simulation study of beer sales and crowd flow at Orus Fest 2026, Salón Olímpico Pantitlán"
+  description: "Propuesta para quitar las filas de cerveza en Orus Fest, con una simulación de la edición 2026 en el Salón Olímpico Pantitlán"
+  site-url: "https://jospablo777.github.io/orus_fest_beer_sales_simulation/"
+  open-graph: true
   navbar:
     left:
       - href: index.qmd
         text: Resumen
-      - href: en.qmd
-        text: Summary (EN)
-      - href: technical.qmd
-        text: Technical report
-      - href: methods.qmd
-        text: Methods
-      - href: assumptions.qmd
-        text: Assumptions
-      - href: literature.qmd
-        text: Literature
+      - href: evidencia.qmd
+        text: Evidencia
+      - text: English
+        menu:
+          - href: en.qmd
+            text: Summary
+          - href: evidence.qmd
+            text: Evidence
+      - text: Técnico
+        menu:
+          - href: technical.qmd
+            text: Technical report
+          - href: methods.qmd
+            text: Methods
+          - href: assumptions.qmd
+            text: Assumptions
+          - href: literature.qmd
+            text: Literature
   page-footer:
     left: "Estudio de simulación para Orus Producciones · Orus Fest 2026, Salón Olímpico Pantitlán"
-    right: "Los números se leen de los resultados de la simulación · Numbers are read from the simulation outputs"
+    right: "Los números se leen de los resultados de la simulación · Numbers are read from the simulation outputs · versión {{< var build >}}"
 
 lang: en
 

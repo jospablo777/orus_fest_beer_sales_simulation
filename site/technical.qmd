@@ -108,7 +108,7 @@ Payment at the station with the same head count as 2026 leaves a wait of `{pytho
 
 ## Staffing reliability
 
-A night meets the target when 9 of 10 buyers who join a line between `{python} v["svc_window"]` wait at most `{python} v["tgt_wait"]` min and at most `{python} v["tgt_ab"]` of purchase attempts are abandoned. Each crew runs on `{python} v["crew_nights"]` nights. Two crews are chosen per ticket level, each the one with the fewest staff hours among the crews that meet the target in a required share of the nights: the minimum crew (`{python} v["reliability"]`) and the recommended crew (`{python} v["reliability_rec"]`). The plan uses the recommended crew. For `{python} v["tickets"]` tickets the recommended crew (`{python} v["plan_taps"]` stations, `{python} v["plan_sellers"]` sellers) meets the target in `{python} v["plan_met"]` nights (exact 95% interval `{python} v["plan_share_lo"]` to `{python} v["plan_share_hi"]`), and the minimum crew (`{python} v["min_taps"]` stations, `{python} v["min_sellers"]` sellers) in `{python} v["min_met"]` (`{python} v["min_share_lo"]` to `{python} v["min_share_hi"]`).
+A night meets the target when 9 of 10 buyers who join a line between `{python} v["svc_window"]` wait at most `{python} v["tgt_wait"]` min and at most `{python} v["tgt_ab"]` of purchase attempts are abandoned. Each crew runs on `{python} v["crew_nights"]` nights. Three crews are chosen per ticket level: the minimum crew (the fewest staff hours among the crews that meet the target in `{python} v["reliability"]` of the nights), the recommended crew (`{python} v["reliability_rec"]`) and the complete crew (every night). For the last two, the crews within 5% of the fewest hours are run under seven stress cases and the one with the highest lowest share of nights met is kept (methods, section 6.1); in the base case those crews differ by less than 64 nights can resolve. The plan uses the recommended crew. For `{python} v["tickets"]` tickets the recommended crew (`{python} v["plan_taps"]` stations, `{python} v["plan_sellers"]` sellers) meets the target in `{python} v["plan_met"]` nights (exact 95% interval `{python} v["plan_share_lo"]` to `{python} v["plan_share_hi"]`), and the minimum crew (`{python} v["min_taps"]` stations, `{python} v["min_sellers"]` sellers) in `{python} v["min_met"]` (`{python} v["min_share_lo"]` to `{python} v["min_share_hi"]`).
 
 ![](assets/figures/12_staffing_reliability.png){fig-alt="Share of nights in which each crew meets the waiting target, by ticket level"}
 
@@ -128,6 +128,31 @@ print(md_table(["Tickets", "Crew", "Stations", "Sellers", "Nights that meet the 
 ```
 
 The bad night is the 90th percentile across nights.
+
+Stress cases of the candidate crews (nights that meet the target, of 64; the chosen crew of each level in bold; Holm-adjusted McNemar p against the chosen crew in brackets when below 0.05).
+
+```{python}
+import os
+mpath = "../output/tables/crew_mixes.csv"
+if os.path.exists(mpath):
+    mx = pd.read_csv(mpath)
+    case_order = ["base"] + [c for c in mx["case"].unique() if c != "base"]
+    head = ["Tickets", "Level", "Crew (stations + sellers)", "Staff hours", "Counter per station (m)"] + \
+           [c.replace("_", " ") for c in case_order]
+    rows = []
+    for (n, lv, tp, sl), d in mx.groupby(["n_total", "level", "n_pour", "sellers"], sort=False):
+        d = d.set_index("case")
+        bold = bool(d["chosen"].iloc[0])
+        crew = f"**{tp} + {sl}**" if bold else f"{tp} + {sl}"
+        cells = []
+        for c in case_order:
+            x = d.loc[c]
+            p = x.get("mcnemar_p_holm", float("nan"))
+            cells.append(f"{int(x.nights_met)}" + (f" ({p:.3f})" if (not bold and pd.notna(p) and p < 0.05) else ""))
+        rows.append([f"{n:,}", lv, crew, f"{d['staff_hours'].iloc[0]:.1f}",
+                     f"{d['counter_m_per_station'].iloc[0]:.1f}"] + cells)
+    print(md_table(head, rows))
+```
 
 In 2026 about `{python} v["staff_2026"]` people handled beer, counting the ticket window (`{python} v["staff_2026_range"]` across nights). The plan uses `{python} v["staff_plan"]` and `{python} v["extra_hours"]` more staff hours. On the same night, each extra staff hour sells `{python} v["per_hour"]` more beers (95% interval of the median `{python} v["per_hour_lo"]` to `{python} v["per_hour_hi"]`; range across nights `{python} v["per_hour_p05"]` to `{python} v["per_hour_p95"]`), or MXN `{python} v["per_hour_mxn"]` in sales at the assumed price (`{python} v["per_hour_mxn_lo"]` to `{python} v["per_hour_mxn_hi"]`). Staff, card fees and equipment costs are not included.
 

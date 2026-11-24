@@ -1,0 +1,8 @@
+---
+title: "Evidencia"
+subtitle: "Cerveza sin filas en Orus Fest · los resultados detrás del resumen"
+lang: es
+toc-title: "En esta página"
+---
+
+{{< include _generated/evidence_es.md >}}

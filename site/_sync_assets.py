@@ -46,8 +46,26 @@ def write_organizer_pages():
     sys.path.insert(0, str(SITE))
     import _organizer
     for lang in ("es", "en"):
-        (SITE / "_generated" / f"organizer_{lang}.md").write_text(_organizer.render(lang),
-                                                                  encoding="utf-8")
+        (SITE / "_generated" / f"organizer_{lang}.md").write_text(
+            _organizer.render(lang, "summary"), encoding="utf-8")
+        (SITE / "_generated" / f"evidence_{lang}.md").write_text(
+            _organizer.render(lang, "evidence"), encoding="utf-8")
+
+
+def write_build_line():
+    """site/_variables.yml with the short commit and the build date, shown in the footer.
+    The publishing workflow sets GITHUB_SHA; locally the checked-out commit is used."""
+    import datetime
+    import subprocess
+    sha = os.environ.get("GITHUB_SHA", "")[:7]
+    if not sha:
+        try:
+            sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT,
+                                 capture_output=True, text=True, check=True).stdout.strip()
+        except (OSError, subprocess.CalledProcessError):
+            sha = "local"
+    day = datetime.date.today().isoformat()
+    (SITE / "_variables.yml").write_text(f'build: "{sha} · {day}"\n', encoding="utf-8")
 
 
 def main():
@@ -59,6 +77,7 @@ def main():
             copy_dir(ROOT / "output" / "animations", SITE / "assets" / "video", pattern)
     copy_docs()
     write_organizer_pages()
+    write_build_line()
     if os.environ.get("QUARTO_PROJECT_RENDER_ALL"):
         print("assets and docs synced to", SITE)
 

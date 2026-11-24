@@ -42,3 +42,6 @@ output/preview/
 # macOS
 .DS_Store
 ._*
+
+# Build line of the site footer, written by site/_sync_assets.py
+site/_variables.yml

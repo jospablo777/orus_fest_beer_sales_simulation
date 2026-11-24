@@ -4,7 +4,11 @@ summary_wait_<lang>.png    typical time in line through the night, 2026 and the 
 summary_sales_<lang>.png   beers sold per hour, 2026 and the plan
 summary_crews_<lang>.png   crew options and the share of nights in which each meets the target
 summary_plan_<lang>.png    floor plan of the recommended setup with numbered actions
-The first three also come in a narrow version for phones (summary_*_narrow_<lang>.png).
+summary_changes_<lang>.png wait of 9 of 10 buyers for single changes and the plan
+summary_mixes_<lang>.png   crews of the recommended level under the stress cases
+summary_busy_<lang>.png    share of time the bar staff are busy, by hour
+before_after_og_<lang>.png 1200 x 630 image for link previews
+The charts also come in a narrow version for phones (summary_*_narrow_<lang>.png).
 Reads output/tables and output/runs through scripts/report_values.py.
 Usage: uv run python scripts/make_summary.py
 """
@@ -305,6 +309,202 @@ def plan_figure(v: dict, lang: str):
     plt.close(fig)
 
 
+CHANGES = {"en": {"baseline": "2026 as it was", "more_cashiers": "4 ticket windows",
+                  "pay_at_tap": "Payment at the bar, same staff",
+                  "sellers_6": "6 floor sellers", "plan": "The plan"},
+           "es": {"baseline": "2026 como fue", "more_cashiers": "4 ventanillas de fichas",
+                  "pay_at_tap": "Cobrar en la barra, mismo personal",
+                  "sellers_6": "6 vendedores en pista", "plan": "El plan"}}
+MORE = {"en": {"x": "wait of 9 of 10 buyers, 18:00 to 02:00 (min)", "beers": "+{b} beers",
+               "title": "Each change on its own against 2026",
+               "mix_title": "Crews with almost the same hours, {tickets} tickets",
+               "mix_x": "nights that meet the target (of {n})", "base": "base night",
+               "worst": "worst of {k} stress cases", "chosen": "chosen",
+               "busy_title": "Share of time the bar staff are busy",
+               "busy_y": "busy (charging or serving)", "plan": "Plan", "y2026": "2026",
+               "hours": "{h} h"},
+        "es": {"x": "espera de 9 de cada 10 compradores, 18:00 a 02:00 (min)",
+               "beers": "+{b} cervezas", "title": "Cada cambio por separado frente a 2026",
+               "mix_title": "Combinaciones con casi las mismas horas, {tickets} boletos",
+               "mix_x": "noches que cumplen la meta (de {n})", "base": "noche base",
+               "worst": "peor de {k} casos de estrés", "chosen": "elegida",
+               "busy_title": "Porcentaje del tiempo que la barra está ocupada",
+               "busy_y": "ocupada (cobrando o sirviendo)", "plan": "Plan", "y2026": "2026",
+               "hours": "{h} h"}}
+
+
+def changes_figure(v: dict, lang: str, narrow: bool = False):
+    """Wait of 9 of 10 buyers for 2026, three single changes and the plan; whiskers from the
+    5th to the 95th percentile between nights; extra beers at the end of each bar."""
+    m, eff = v["scenario_metrics"], v["effects"]
+    names, t = CHANGES[lang], MORE[lang]
+    size = NARROW_FONT if narrow else 12
+    keys = list(names)
+    fig, ax = plt.subplots(figsize=(NARROW_W, 5.4) if narrow else (10, 4.2))
+    y = np.arange(len(keys))[::-1] * (1.7 if narrow else 1.0)
+    top = 0.0
+    for yi, k in zip(y, keys):
+        x = m.loc[m["scenario"] == k, "evening_p90_min"]
+        med, lo, hi = x.median(), x.quantile(0.05), x.quantile(0.95)
+        top = max(top, hi)
+        color = theme.BRONZE if k == "plan" else (theme.RED if k == "baseline" else theme.SILVER)
+        ax.barh(yi, med, color=color, height=0.55, edgecolor=theme.PAPER)
+        ax.hlines(yi, lo, hi, color=theme.INK, lw=1.3, alpha=0.8)
+        if k == "baseline":
+            beers = ""
+        else:
+            e = eff[(eff["scenario"] == k) & eff["outcome"].str.startswith("Beers")].iloc[0]
+            beers = t["beers"].format(b=f"{e['med']:,.0f}")
+        label = f"{np.ceil(med - 1e-9):.0f} min" + (f"  ·  {beers}" if beers else "")
+        if narrow:
+            ax.text(0, yi + 0.42, names[k], fontsize=size, va="bottom", color=theme.INK,
+                    fontweight="bold" if k == "plan" else "normal")
+            ax.text(hi + 3, yi, label, fontsize=size, va="center", color=theme.INK)
+        else:
+            ax.text(hi + 3, yi, label, fontsize=size, va="center", color=theme.INK)
+    if not narrow:
+        ax.set_yticks(y)
+        ax.set_yticklabels([names[k] for k in keys], fontsize=size)
+    else:
+        ax.set_yticks([])
+        ax.set_ylim(y.min() - 0.6, y.max() + 1.2)
+    ax.set_xlim(0, top * (1.75 if narrow else 1.45))
+    ax.set_xlabel(t["x"], fontsize=size)
+    ax.tick_params(axis="x", labelsize=size)
+    ax.tick_params(axis="y", length=0)
+    ax.spines["left"].set_visible(False)
+    ax.set_title(t["title"], loc="left", fontsize=size + 1 if narrow else 15, pad=10)
+    ax.grid(axis="x", lw=0.8)
+    ax.set_axisbelow(True)
+    fig.savefig(out_name("summary_changes", lang, narrow), dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
+def mixes_figure(v: dict, lang: str, narrow: bool = False):
+    """Candidate crews of the recommended level at the plan ticket level: nights met on the
+    base night and in the worst stress case. The chosen crew is drawn bold and marked."""
+    path = params.ROOT / "output" / "tables" / "crew_mixes.csv"
+    if not path.exists():
+        return
+    t, raw = MORE[lang], v["raw"]
+    mx = pd.read_csv(path)
+    mx = mx[(mx["n_total"] == raw["tickets"]) & (mx["level"] == "recommended")]
+    crews = mx.groupby(["n_pour", "sellers"]).agg(
+        hours=("staff_hours", "first"), chosen=("chosen", "first"),
+        base=("nights_met", lambda s: s[mx.loc[s.index, "case"] == "base"].iloc[0]),
+        worst=("nights_met", lambda s: s[mx.loc[s.index, "case"] != "base"].min()),
+        nights=("nights", "first"), cases=("case", lambda c: (c != "base").sum())
+    ).reset_index().sort_values("hours")
+    size = NARROW_FONT if narrow else 12
+    fig, ax = plt.subplots(figsize=(NARROW_W, 0.95 * len(crews) + 1.6) if narrow
+                           else (10, 0.62 * len(crews) + 1.8))
+    step = 1.9 if narrow else 1.0
+    y = np.arange(len(crews))[::-1] * step
+    crew_txt = TEXT[lang]["crew_s"]
+    for yi, r in zip(y, crews.itertuples()):
+        bold = "bold" if r.chosen else "normal"
+        ax.barh(yi + 0.18, r.base, height=0.32, color=theme.SILVER)
+        ax.barh(yi - 0.18, r.worst, height=0.32,
+                color=theme.BRONZE if r.chosen else theme.RED, hatch=None if r.chosen else "//",
+                edgecolor=theme.PAPER)
+        name = crew_txt.format(taps=r.n_pour, sellers=r.sellers) + " · " + t["hours"].format(
+            h=f"{r.hours:.0f}") + (f"  ·  {t['chosen']}" if r.chosen else "")
+        if narrow:
+            ax.text(0, yi + 0.42, name, fontsize=size, va="bottom", fontweight=bold,
+                    color=theme.INK)
+        else:
+            ax.text(-1.5, yi, name, fontsize=size, va="center", ha="right", fontweight=bold,
+                    color=theme.INK)
+        ax.text(r.base + 0.8, yi + 0.18, f"{r.base}", fontsize=size - 1, va="center",
+                color=theme.INK)
+        ax.text(r.worst + 0.8, yi - 0.18, f"{r.worst}", fontsize=size - 1, va="center",
+                color=theme.INK, fontweight=bold)
+    n = int(crews["nights"].iloc[0])
+    ax.set_xlim(0, n * 1.12)
+    ax.set_yticks([])
+    if narrow:
+        ax.set_ylim(y.min() - 0.6, y.max() + 1.25)
+    ax.set_xlabel(t["mix_x"].format(n=n), fontsize=size)
+    ax.tick_params(axis="x", labelsize=size)
+    ax.spines["left"].set_visible(False)
+    from matplotlib.patches import Patch
+    handles = [Patch(color=theme.SILVER, label=t["base"]),
+               Patch(facecolor=theme.RED, hatch="//", edgecolor=theme.PAPER,
+                     label=t["worst"].format(k=int(crews["cases"].iloc[0])))]
+    series_legend(ax, handles, [h.get_label() for h in handles], size if narrow else 12,
+                  ncol=1 if narrow else None)
+    ax.set_title(t["mix_title"].format(tickets=f"{raw['tickets']:,}"), loc="left",
+                 pad=48 if narrow else 30, fontsize=size + 1 if narrow else 15)
+    fig.savefig(out_name("summary_mixes", lang, narrow), dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
+def busy_figure(lang: str, narrow: bool = False):
+    path = params.ROOT / "output" / "tables" / "worker_busy.csv"
+    if not path.exists():
+        return
+    t = MORE[lang]
+    b = pd.read_csv(path)
+    size = NARROW_FONT if narrow else 12
+    fig, ax = plt.subplots(figsize=(NARROW_W, 4.2) if narrow else (10, 4.4))
+    lines = []
+    for scn, color, name in (("baseline", theme.RED, t["y2026"]),
+                             (b["scenario"].unique()[-1], theme.BRONZE, t["plan"])):
+        d = b[b["scenario"] == scn].sort_values("hour")
+        ax.fill_between(d["hour"], 100 * d["lo"], 100 * d["hi"], color=color, alpha=0.2, lw=0)
+        lines += ax.plot(d["hour"], 100 * d["med"], color=color, lw=2.6, marker="o", ms=4)
+    step = 4 if narrow else 2
+    hours = np.arange(13, 27, step)
+    ax.set_xticks(hours)
+    ax.set_xticklabels([f"{h % 24:02d}:00" for h in hours], fontsize=size)
+    ax.set_ylim(0, 105)
+    ax.set_yticks([0, 25, 50, 75, 100])
+    ax.set_yticklabels(["0%", "25%", "50%", "75%", "100%"], fontsize=size)
+    ax.set_ylabel(t["busy_y"], fontsize=size)
+    ax.grid(axis="y", lw=0.8)
+    series_legend(ax, lines, [t["y2026"], t["plan"]], size if narrow else 12)
+    ax.set_title(t["busy_title"], loc="left", pad=30, fontsize=size + 1 if narrow else 15)
+    fig.savefig(out_name("summary_busy", lang, narrow), dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
+def og_image(v: dict, lang: str):
+    """1200 x 630 image for link previews: the before-and-after message in two panels."""
+    import yaml
+    text = yaml.safe_load((params.ROOT / "site" / "_text.yaml").read_text(encoding="utf-8"))
+    raw = v["raw"]
+    import math
+    f = {"obs_from": raw["obs_from"], "obs_to": raw["obs_to"],
+         "plan_wait": str(math.ceil(max(raw["plan_obs_median_min"], 1) - 1e-9))}
+
+    def tx(key, **kw):
+        return text[key][lang].format(**{**f, **kw})
+    fig = plt.figure(figsize=(12, 6.3), dpi=100)
+    fig.patch.set_facecolor(theme.PAPER)
+    fig.text(0.05, 0.92, "Orus Fest", fontsize=22, fontweight="bold", color=theme.RED,
+             va="center")
+    fig.text(0.05, 0.84, tx("ba_title"), fontsize=26, fontweight="bold", color=theme.INK,
+             va="center")
+    staff_2026 = int(round(raw["ss_staff_2026"]))
+    panels = [(0.05, tx("ba_2026"), tx("ba_wait_2026"), tx("ba_lines_2026"),
+               tx("ba_staff_2026", n=staff_2026), theme.RED),
+              (0.53, tx("ba_plan"), tx("ba_wait_plan"), tx("ba_lines_plan"),
+               tx("ba_staff_plan", taps=raw["plan_taps"], sellers=raw["plan_sellers"]),
+               theme.BRONZE)]
+    for x0, label, wait, lines, staff, color in panels:
+        fig.patches.append(patches.FancyBboxPatch((x0, 0.1), 0.42, 0.63,
+                                                  boxstyle="round,pad=0.005,rounding_size=0.02",
+                                                  transform=fig.transFigure, fill=False,
+                                                  ec=color, lw=3))
+        fig.text(x0 + 0.03, 0.65, label, fontsize=24, fontweight="bold", color=color)
+        fig.text(x0 + 0.21, 0.48, wait, fontsize=42 if len(wait) > 8 else 64,
+                 fontweight="bold", color=color, ha="center", va="center")
+        fig.text(x0 + 0.21, 0.29, lines, fontsize=20, color=theme.INK, ha="center")
+        fig.text(x0 + 0.21, 0.17, staff, fontsize=20, color=theme.MUTED, ha="center")
+    fig.savefig(FIG / f"before_after_og_{lang}.png", dpi=100, facecolor=theme.PAPER)
+    plt.close(fig)
+
+
 def main():
     FIG.mkdir(parents=True, exist_ok=True)
     v = report_values.compute()
@@ -315,7 +515,11 @@ def main():
             wait_figure(waits, head, lang, narrow)
             sales_figure(v, lang, narrow)
             crews_figure(v, lang, narrow)
+            changes_figure(v, lang, narrow)
+            mixes_figure(v, lang, narrow)
+            busy_figure(lang, narrow)
         plan_figure(v, lang)
+        og_image(v, lang)
     print("summary figures written to", FIG)
 
 

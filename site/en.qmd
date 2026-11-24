@@ -2,7 +2,12 @@
 title: "Beer without the lines at [Orus Fest]{.red}"
 subtitle: "Proposal for the next edition · simulation of Orus Fest 2026, Salón Olímpico Pantitlán"
 lang: en
-toc-title: "On this page"
+toc: false
+image: assets/figures/before_after_og_en.png
+open-graph:
+  title: "Beer without the lines at Orus Fest"
+  description: "In 2026 the line for a beer took more than 40 minutes. With payment at the bar and the right crew, a few minutes."
+  image: assets/figures/before_after_og_en.png
 ---
 
 {{< include _generated/organizer_en.md >}}

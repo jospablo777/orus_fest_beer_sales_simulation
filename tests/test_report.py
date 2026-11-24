@@ -42,3 +42,23 @@ def test_what_if_status_labels():
     assert what_if_status(r, "a") == "met"
     assert what_if_status(r, "b") == "near"
     assert what_if_status(r, "c") == "far"
+
+
+def test_candidates_within_five_percent_and_three_levels():
+    from sim import staffing
+    s = pd.DataFrame({"n_total": [2000] * 5, "n_pour": [6, 8, 10, 12, 4],
+                      "sellers": [15, 12, 9, 6, 15], "staff": [21, 20, 19, 18, 19],
+                      "staff_hours": [211.5, 214.0, 216.5, 230.0, 183.5],
+                      "share_met": [62 / 64, 61 / 64, 1.0, 61 / 64, 58 / 64],
+                      "nights_met": [62, 61, 64, 61, 58], "nights": [64] * 5})
+    c = staffing.candidates(s, 0.95)
+    assert set(zip(c["n_pour"], c["sellers"])) == {(6, 15), (8, 12), (10, 9)}
+    plan = staffing.plan_table(s, 0.9, 0.95, 1.0)
+    assert list(plan["level"]) == ["minimum", "recommended", "complete"]
+    assert tuple(plan.loc[plan["level"] == "complete", ["n_pour", "sellers"]].iloc[0]) == (10, 9)
+    assert (plan["chosen_by"] == "fewest staff hours").all()
+
+
+def test_summary_page_stays_short():
+    import _organizer
+    assert _organizer.running_words("es") <= 300

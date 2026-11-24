@@ -346,3 +346,70 @@ def new_process(lang: str, wait_min: float, p90_min: float, stations: int, selle
                                                              a=service[0], b=service[1])],
                        size=14, anchor="start", opacity=0.8))
     return _svg(bar_y + 82, t["new_aria"], "".join(parts))
+
+
+def before_after(lang: str, f: dict, taps: int, sellers: int, narrow: bool = False) -> str:
+    """Two panels, 2026 and the plan: the lines as dots, one figure per person on staff and
+    the wait between f["obs_from"] and f["obs_to"] as the largest text. In 2026 the figures
+    are the typical people on staff (f["staff_2026"]); under the plan the stations (bronze)
+    and the floor sellers (green)."""
+    import yaml
+    from pathlib import Path
+    text = yaml.safe_load((Path(__file__).resolve().parents[1] / "site" / "_text.yaml")
+                          .read_text(encoding="utf-8"))
+
+    def tx(key, **kw):
+        return text[key][lang].format(**{**f, **kw})
+
+    staff_2026 = int(round(float(str(f["staff_2026"]).replace(",", ""))))
+    width = NARROW_W if narrow else W
+    pw = width - 32 if narrow else (W - 60) / 2
+    ph = 250
+    parts = []
+    title = textwrap.wrap(tx("ba_title"), 30 if narrow else 80)
+    parts.append(_text(16, 30, title, size=20 if narrow else 22, weight=700, anchor="start"))
+    top = 30 + 25 * (len(title) - 1) + 22
+
+    def panel(x0, y0, label, wait, lines, staff, color, dots, figs):
+        out = [f'<rect x="{x0}" y="{y0}" width="{pw:.0f}" height="{ph}" rx="12" fill="none" '
+               f'stroke="{color}" stroke-width="2"/>']
+        cx = x0 + pw / 2
+        out.append(_text(x0 + 18, y0 + 30, [label], size=17, weight=700, anchor="start",
+                         fill=color))
+        out.append(_text(cx, y0 + 86, [wait], size=46 if not narrow else 40, weight=800,
+                         fill=color))
+        out.append(_text(cx, y0 + 116, [lines], size=15, opacity=0.85))
+        rows = [dots[k:k + 16] for k in range(0, len(dots), 16)]
+        for j, row in enumerate(rows):
+            first = cx - (len(row) - 1) * 6
+            out += [f'<circle cx="{first + k * 12:.1f}" cy="{y0 + 140 + j * 13}" r="4" '
+                    f'fill="{c}"/>' for k, c in enumerate(row)]
+        fy = y0 + 140 + max(len(rows), 1) * 13 + 26
+        per = 11 if narrow else 14
+        for j in range(0, len(figs), per):
+            chunk = figs[j:j + per]
+            first = cx - (len(chunk) - 1) * 11
+            out += [_worker(first + k * 22, fy + (j // per) * 30, c, scale=0.9)
+                    for k, c in enumerate(chunk)]
+        out.append(_text(cx, y0 + ph - 14, [staff], size=14, opacity=0.85))
+        return "".join(out)
+
+    old_dots = [theme.DOT_TICKET] * 16 + [theme.DOT_TAP] * 32
+    new_dots = [theme.BRONZE] * 3
+    old_figs = [theme.SILVER] * staff_2026
+    new_figs = [theme.BRONZE] * taps + [theme.DOT_SELLER] * sellers
+    p1 = panel(16, top, tx("ba_2026"), tx("ba_wait_2026"), tx("ba_lines_2026"),
+               tx("ba_staff_2026", n=staff_2026), theme.RED, old_dots, old_figs)
+    if narrow:
+        y2 = top + ph + 16
+        p2 = panel(16, y2, tx("ba_plan"), tx("ba_wait_plan"), tx("ba_lines_plan"),
+                   tx("ba_staff_plan", taps=taps, sellers=sellers), theme.BRONZE, new_dots,
+                   new_figs)
+        height = y2 + ph + 12
+    else:
+        p2 = panel(16 + pw + 28, top, tx("ba_plan"), tx("ba_wait_plan"), tx("ba_lines_plan"),
+                   tx("ba_staff_plan", taps=taps, sellers=sellers), theme.BRONZE, new_dots,
+                   new_figs)
+        height = top + ph + 12
+    label = f'{tx("ba_2026")}: {tx("ba_wait_2026")}. {tx("ba_plan")}: {tx("ba_wait_plan")}.'
+    return _svg(height, label, "".join(parts) + p1 + p2, width)

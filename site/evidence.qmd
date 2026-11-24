@@ -1,0 +1,8 @@
+---
+title: "Evidence"
+subtitle: "Beer without the lines at Orus Fest · the results behind the summary"
+lang: en
+toc-title: "On this page"
+---
+
+{{< include _generated/evidence_en.md >}}

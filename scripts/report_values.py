@@ -59,7 +59,9 @@ def crew_rows(plan: pd.DataFrame, levels) -> list[dict]:
         if got.empty:
             rows.append({"tickets": level, "crew": None, "level": None})
             continue
-        for kind in ("minimum", "recommended"):
+        for kind in ("minimum", "recommended", "complete"):
+            if not (got["level"] == kind).any():
+                continue
             r = got[got["level"] == kind].iloc[0]
             rows.append({
                 "tickets": level, "crew": kind, "level": kind, "taps": int(r["n_pour"]),
@@ -88,6 +90,17 @@ def shortest_interval(values: pd.Series, share: float = 0.9) -> tuple[int, int, 
                     best = (key, (int(lo), int(hi), k, len(x)))
                 break
     return best[1]
+
+
+def counter_per_station(n_pour: int) -> float:
+    """Meters of counter per station between pour_x_min and pour_x_max, without the gap left
+    at the cocktail line (sim/venue.py: station_x)."""
+    base = params.load()
+    b, c = base["bar"], base["venue"].get("cocktail_line")
+    length = b["pour_x_max"] - b["pour_x_min"]
+    if c and b["pour_x_min"] < c["x"] < b["pour_x_max"]:
+        length -= 2 * (c["half_width"] + 0.7)
+    return length / n_pour
 
 
 def serving_savings() -> dict:
@@ -171,6 +184,7 @@ def compute() -> dict:
 
     at_level = plan[plan["n_total"] == tickets].set_index("level")
     crew, low = at_level.loc["recommended"], at_level.loc["minimum"]
+    full = at_level.loc["complete"] if "complete" in at_level.index else crew
     raw = {"price": price, "tickets": tickets, "plan_taps": int(crew["n_pour"]),
            "plan_sellers": int(crew["sellers"]), "target_wait": target["evening_p90_min"],
            "min_taps": int(low["n_pour"]), "min_sellers": int(low["sellers"]),
@@ -236,8 +250,26 @@ def compute() -> dict:
     raw["long_wait_max"] = cal_cfg["observations"]["long_wait"].get("max_median_min")
     raw["long_wait_min"] = cal_cfg["observations"]["long_wait"]["min_median_min"]
     raw["ref_no_limit"] = reference_values("no_upper_limit", stf_cfg, tickets)
+    shares_path = TAB / "worker_shares.csv"
+    if shares_path.exists():
+        ws = pd.read_csv(shares_path)
+        q = ws[ws["quantity"] == "bar busy share, whole night"].set_index("scenario")["med"]
+        raw["busy_base"], raw["busy_plan"] = pct(q["baseline"]), pct(q[head])
+    else:
+        raw["busy_base"] = raw["busy_plan"] = ""
     for k in ("author", "contact_label", "contact_url", "date"):
         raw[k] = report_cfg.get(k, "")
+    raw.update({"full_taps": int(full["n_pour"]), "full_sellers": int(full["sellers"]),
+                "full_met": int(full["nights_met"]), "full_nights": int(full["nights"]),
+                "full_staff": float(full["staff"]), "full_staff_hours": float(full["staff_hours"]),
+                "rec_staff": float(crew["staff"]),
+                "counter_m_plan": counter_per_station(int(crew["n_pour"])),
+                "surcharge": report_cfg.get("ticket_surcharge_mxn", 0),
+                "paying_tickets": report_cfg.get("paying_tickets", tickets)})
+    above = raw["full_staff_hours"] - raw["ss_hours_2026"]
+    budget = raw["surcharge"] * raw["paying_tickets"]
+    raw["cost_limit_full"] = budget / above if above > 0 and budget else None
+
     raw["max_sellers"] = max(stf_cfg["grid"]["sellers.n"])
     raw["model_tickets"] = int(base_cfg["crowd"]["n_total"])
     (raw["pour_interval_lo"], raw["pour_interval_hi"], raw["pour_interval_k"],

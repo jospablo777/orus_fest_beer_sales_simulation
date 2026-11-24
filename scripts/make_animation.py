@@ -38,6 +38,30 @@ def main():
             for clip in clips for lang in langs]
     for line in ex.pool(args.processes).imap_unordered(render_clip, jobs):
         print(line, flush=True)
+    if not args.still:
+        for lang in langs:
+            light_cut(params.ROOT / "output" / "animations"
+                      / f"night_2026_vs_{args.scenario}_phone_{lang}.mp4")
+
+
+def light_cut(path: Path, limit_mb: float = 4.0, crf: int = 33):
+    """A copy of a phone cut under limit_mb for the summary page (suffix _light), encoded
+    again with a higher compression. Nothing is written when the cut is already small."""
+    import shutil
+    import subprocess
+    if not path.exists():
+        return
+    out = path.with_name(path.stem.replace("_phone_", "_phone_light_") + path.suffix)
+    if path.stat().st_size <= limit_mb * 1e6:
+        shutil.copy2(path, out)
+    else:
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(path), "-c:v", "libx264",
+                        "-crf", str(crf), "-preset", "slow", "-pix_fmt", "yuv420p", "-an",
+                        str(out)], check=True)
+    poster = path.with_suffix(".jpg")
+    if poster.exists():
+        shutil.copy2(poster, out.with_suffix(".jpg"))
+    print(f"{out.name}: {out.stat().st_size / 1e6:.1f} MB", flush=True)
 
 
 if __name__ == "__main__":
