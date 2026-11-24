@@ -2,6 +2,8 @@
 
 All scenarios of one draw share the random seed (common random numbers), so the difference
 between a scenario and the baseline of the same draw is that draw's counterfactual effect.
+The draws and seeds are those of the staffing grid (config/staffing.yaml: draws, seed
+90000 + draw), so the plan scenario repeats the staffing nights of the plan crew.
 
 Usage: uv run python scripts/run_scenarios.py [--base FILE] [--calibration FILE]
                                               [--scenarios FILE] [--max-draws N] [--processes P]
@@ -28,7 +30,8 @@ def main():
     ap.add_argument("--base", default=params.ROOT / "config" / "base.yaml")
     ap.add_argument("--calibration", default=params.ROOT / "config" / "calibration.yaml")
     ap.add_argument("--scenarios", default=params.ROOT / "config" / "scenarios.yaml")
-    ap.add_argument("--max-draws", type=int, default=48)
+    ap.add_argument("--max-draws", type=int, default=None,
+                    help="default: `draws` of config/staffing.yaml")
     ap.add_argument("--processes", type=int, default=None)
     ap.add_argument("--families", default=None,
                     help="comma-separated families to run (main, what_if); results replace "
@@ -43,14 +46,15 @@ def main():
         fams = set(args.families.split(","))
         scen = {k: v for k, v in scen.items() if v["family"] in fams}
     draws = pd.read_csv(OUT / "posterior_draws.csv")
-    acc = draws.head(args.max_draws)
+    n_draws = args.max_draws or params.load(params.ROOT / "config" / "staffing.yaml")["draws"]
+    acc = draws.head(n_draws)
     prior_cols = [c for c in draws.columns if c in cal["priors"]]
 
     tasks = []
     for _, row in acc.iterrows():
         cfg = ex.draw_config(base, row[prior_cols], cal["priors"])
         for key, s in scen.items():
-            tasks.append((sc.apply(cfg, s), 50_000 + int(row["draw"]), cal["observations"],
+            tasks.append((sc.apply(cfg, s), 90_000 + int(row["draw"]), cal["observations"],
                           {"draw": int(row["draw"]), "scenario": key, "family": s["family"],
                            "label": s["label"]}))
     t0 = time.time()

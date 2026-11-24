@@ -152,7 +152,7 @@ DJ sets: 13:00 to 13:30, then between every pair of bands (15 to 35 min), and fr
 
 | Item | Value | Source | File |
 |---|---|---|---|
-| Grid | 1,500 to 2,500 tickets × 4 to 12 serving stations × 0 to 12 sellers, payment at the station (15 s), 64 nights per crew; 3,000 tickets for the capacity chart | Design choice | `config/staffing.yaml` |
+| Grid | 1,500 to 2,500 tickets × 4 to 12 serving stations × 0 to 15 sellers, payment at the station (15 s), 64 nights per crew; 3,000 tickets for the capacity chart | Design choice | `config/staffing.yaml` |
 | Service target | 9 of 10 buyers who join a line between 18:00 and 02:00 wait at most 10 min; at most 5% of purchase attempts abandoned | Assumed | `config/staffing.yaml: service_target` |
 | Reliability | minimum crew: meets the target in at least 90% of the simulated nights; recommended crew: at least 95%; in each case the one with the fewest staff hours. Without a crew at 95% the recommended crew is the minimum crew | Assumed | `config/staffing.yaml: reliability`, `sim/staffing.py` |
 | Safety reference | 2.2 people/m² (NFPA 101 limit for assembly areas of up to 930 m², 0.46 m² per person), compared with the people standing on the free floor. NFPA 101 caps larger areas at 0.65 m² per person (1.54 people/m²); the free floor is about 710 m² and the whole audience area, with vendor strips and tables, about 1,050 m². The technical report gives the ticket level for both values. The licensed capacity of the hall is the legal limit | Literature | `config/staffing.yaml: safety` |
@@ -162,8 +162,8 @@ DJ sets: 13:00 to 13:30, then between every pair of bands (15 to 35 min), and fr
 | Item | Value | Source | File |
 |---|---|---|---|
 | Beer price used for revenue figures | MXN 80 | Assumed | `config/report.yaml` |
-| Nights used | 64 nights resampled by weight from the nights that match 2026; 48 of them for the scenarios and all 64 for the staffing grid | Design choice (runtime) | `calibration.yaml: sampler`, `scripts/run_scenarios.py --max-draws`, `staffing.yaml: draws` |
-| Random seeds | calibration draw d uses seed 10000 + d; scenarios of draw d share seed 50000 + d; staffing grid 90000 + d | Design choice | `scripts/` |
+| Nights used | 64 nights resampled by weight from the nights that match 2026; all 64 for the scenarios and for the staffing grid | Design choice (runtime) | `calibration.yaml: sampler`, `scripts/run_scenarios.py --max-draws`, `staffing.yaml: draws` |
+| Random seeds | calibration draw d uses seed 10000 + d; scenarios and staffing grid of draw d share seed 90000 + d | Design choice | `scripts/` |
 
 ## References
 

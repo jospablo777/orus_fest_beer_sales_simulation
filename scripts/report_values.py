@@ -68,8 +68,45 @@ def crew_rows(plan: pd.DataFrame, levels) -> list[dict]:
                 "share_hi": float(r["share_hi"]), "wait_median": float(r["wait_median"]),
                 "wait_bad": float(r["wait_bad_night"]), "inside": float(r["inside_peak"]),
                 "density": float(r["floor_density"]), "staff_hours": float(r["staff_hours"]),
+                "staff": float(r["staff"]),
                 "fallback": bool(r["fallback"])})
     return rows
+
+
+def shortest_interval(values: pd.Series, share: float = 0.9) -> tuple[int, int, int, int]:
+    """Narrowest range of whole numbers [lo, hi] that holds at least `share` of the values,
+    as (lo, hi, values inside, values). Ties go to the range that holds more values."""
+    x = values.round().astype(int)
+    levels = sorted(x.unique())
+    best = None
+    for i, lo in enumerate(levels):
+        for hi in levels[i:]:
+            k = int(x.between(lo, hi).sum())
+            if k >= share * len(x):
+                key = (hi - lo, -k)
+                if best is None or key < best[0]:
+                    best = (key, (int(lo), int(hi), k, len(x)))
+                break
+    return best[1]
+
+
+def serving_savings() -> dict:
+    """Seconds saved per beer by each serving option of config/serving.yaml."""
+    options = params.load(ROOT / "config" / "serving.yaml")["options"]
+    return {k: float(o["overrides"].get("bar.pour_saving_s", 0.0)) for k, o in options.items()}
+
+
+MONTHS = {"es": ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto",
+                 "septiembre", "octubre", "noviembre", "diciembre"],
+          "en": ["January", "February", "March", "April", "May", "June", "July", "August",
+                 "September", "October", "November", "December"]}
+
+
+def long_date(iso: str, lang: str) -> str:
+    """"2026-11-24" as "24 de noviembre de 2026" or "24 November 2026", without the locale."""
+    year, month, day = (int(p) for p in str(iso).split("-"))
+    name = MONTHS[lang][month - 1]
+    return f"{day} de {name} de {year}" if lang == "es" else f"{day} {name} {year}"
 
 
 def reference_values(name: str, stf_cfg: dict, tickets: int) -> dict | None:
@@ -199,6 +236,12 @@ def compute() -> dict:
     raw["long_wait_max"] = cal_cfg["observations"]["long_wait"].get("max_median_min")
     raw["long_wait_min"] = cal_cfg["observations"]["long_wait"]["min_median_min"]
     raw["ref_no_limit"] = reference_values("no_upper_limit", stf_cfg, tickets)
+    for k in ("author", "contact_label", "contact_url", "date"):
+        raw[k] = report_cfg.get(k, "")
+    raw["max_sellers"] = max(stf_cfg["grid"]["sellers.n"])
+    raw["model_tickets"] = int(base_cfg["crowd"]["n_total"])
+    (raw["pour_interval_lo"], raw["pour_interval_hi"], raw["pour_interval_k"],
+     raw["pour_interval_n"]) = shortest_interval(post["bar.n_pour"])
 
     lim = raw["density_limit"]
 
@@ -229,7 +272,8 @@ def compute() -> dict:
          "serving": pd.read_csv(serving_path) if serving_path.exists() else None,
          "threshold_check": table("threshold_check.csv"),
          "hourly_plan": hourly_sales(series, head), "hourly_2026": hourly_sales(series, "baseline"),
-         "comparisons": cmp_, "effects": eff, "what_if": wi.reset_index()}
+         "comparisons": cmp_, "effects": eff, "what_if": wi.reset_index(),
+         "scenario_metrics": met}
 
     # formatted strings for the technical page
     f = {
@@ -315,6 +359,7 @@ def compute() -> dict:
         "base_p90_lo": n0(raw["base_evening_p90_min_lo"]),
         "base_p90_hi": n0(raw["base_evening_p90_min_hi"]),
         "density_at_plan": f"{raw['density_at_plan']:.2f}",
+        "max_sellers": str(raw["max_sellers"]),
     }
     for first, second, tag in (("pay_at_tap", head, "plan_vs_tap"), (head, "full_setup", "full_vs_plan"),
                                ("pay_at_tap", "cashless", "cashless_vs_tap")):

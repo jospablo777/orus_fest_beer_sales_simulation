@@ -37,6 +37,12 @@ def up(x):
     return f"{math.ceil(x - 1e-9):,d}"
 
 
+def crew_short(taps: int, sellers: int, lang: str) -> str:
+    if lang == "es":
+        return f"{taps} puestos y {sellers} vendedores" if sellers else f"{taps} puestos, sin vendedores"
+    return f"{taps} stations and {sellers} sellers" if sellers else f"{taps} stations, no sellers"
+
+
 def crew_name(taps: int, sellers: int, lang: str) -> str:
     if lang == "es":
         return f"{taps} puestos en la barra" + (f" y {sellers} vendedores en pista" if sellers else "")
@@ -69,9 +75,13 @@ def fields(v: dict, lang: str, text: dict) -> dict:
         "base_lost": n10(r["base_lost_attempts"]), "plan_lost": n0(r["plan_lost_attempts"]),
         "base_lost_lo": n10(r["base_lost_attempts_lo"]),
         "base_lost_hi": n10(r["base_lost_attempts_hi"]),
-        "d_beers": n0(r["d_beers_med"]), "d_beers_lo": n0(r["d_beers_med_lo"]),
-        "d_beers_hi": n0(r["d_beers_med_hi"]), "d_mxn": n0(round(r["d_beers_med"] * price, -3)),
+        "d_beers": n0(r["d_beers_med"]), "d_beers_lo": n0(r["d_beers_lo"]),
+        "d_beers_hi": n0(r["d_beers_hi"]), "d_mxn": n0(round(r["d_beers_med"] * price, -3)),
+        "d_mxn_lo": n0(round(r["d_beers_lo"] * price, -3)),
+        "d_mxn_hi": n0(round(r["d_beers_hi"] * price, -3)),
         "per_hour": n0(r["ss_beers_per_extra_hour"]),
+        "per_hour_lo": n0(r["ss_p05"]), "per_hour_hi": n0(r["ss_p95"]),
+        "extra_hours": n0(r["ss_extra_hours"]),
         "per_hour_mxn": n0(round(r["ss_beers_per_extra_hour"] * price, -1)),
         "staff_2026": n0(r["ss_staff_2026"]), "staff_2026_lo": n0(r["ss_staff_2026_lo"]),
         "staff_2026_hi": n0(r["ss_staff_2026_hi"]), "staff_plan": n0(r["ss_staff_plan"]),
@@ -95,10 +105,22 @@ def fields(v: dict, lang: str, text: dict) -> dict:
         "sellers_from": r["sellers_from"], "sellers_to": r["sellers_to"],
         "clip_from": r["clip_from"], "clip_to": r["clip_to"],
         "sims": v["sims"], "hall_side": f"{100 * r['hall_side_uncertainty']:.0f}%",
-        "pour_lo": n0(r["pour_2026_lo"]), "pour_hi": n0(r["pour_2026_hi"]),
+        "pour_lo": str(r["pour_interval_lo"]), "pour_hi": str(r["pour_interval_hi"]),
         "wait_max": n0(r["long_wait_max"]) if r["long_wait_max"] else "",
         "wi_nights": n0(r["wi_plan_nights"]),
         "lim_large": str(r["density_limit_large"]),
+        "date": report_values.long_date(r["date"], lang), "author": r["author"],
+        "contact_label": r["contact_label"], "contact_url": r["contact_url"],
+        "max_sellers": str(r["max_sellers"]),
+        "chk_beers": n0(round(r["base_beers_total"], -2)),
+        "chk_beers_lo": n0(round(r["base_beers_total_lo"], -2)),
+        "chk_beers_hi": n0(round(r["base_beers_total_hi"], -2)),
+        "chk_tickets": n0(r["model_tickets"]),
+        "chk_inside": n10(r["base_peak_occupancy"]),
+        "chk_inside_lo": n10(r["base_peak_occupancy_lo"]),
+        "chk_inside_hi": n10(r["base_peak_occupancy_hi"]),
+        "chk_pour_lo": str(r["pour_interval_lo"]), "chk_pour_hi": str(r["pour_interval_hi"]),
+        "chk_pour_k": str(r["pour_interval_k"]), "chk_pour_n": str(r["pour_interval_n"]),
     }
     taps, sellers = r["plan_taps"], r["plan_sellers"]
     f["crew_es"], f["crew_en"] = crew_name(taps, sellers, "es"), crew_name(taps, sellers, "en")
@@ -111,8 +133,14 @@ def fields(v: dict, lang: str, text: dict) -> dict:
               "min_absent_nights": str(r["wi_plan_minimum_two_absent_nights"]),
               "crew_nights": str(r["rec_nights"]),
               "seller_share": pct0(r["plan_seller_share"]),
+              "seller_share_lo": pct0(r["plan_seller_share_lo"]),
+              "seller_share_hi": pct0(r["plan_seller_share_hi"]),
+              "rec_absent_met": str(r["wi_plan_two_absent_met"]),
+              "rec_absent_nights": str(r["wi_plan_two_absent_nights"]),
               "alt_met": str(r["wi_no_sellers_met"]), "alt_nights": str(r["wi_no_sellers_nights"])})
     same = (taps, sellers) == (r["min_taps"], r["min_sellers"])
+    close = abs(r["rec_met"] - r["min_met"]) <= 0.05 * r["rec_nights"]
+    edge = r["max_sellers"] in (sellers, r["min_sellers"])
     alt_ok = r["wi_no_sellers_met"] >= r["reliability"] * r["wi_no_sellers_nights"]
     crews = v["crews"]
     alone = crews[(crews["sellers"] == 0) & (crews["share_met"] >= r["reliability"])]
@@ -120,8 +148,11 @@ def fields(v: dict, lang: str, text: dict) -> dict:
         f[f"alt_crew_{code}"] = text["alt_crew"][code]
         rec_key = "rec_fallback" if r["fallback"] else "rec_sentence"
         f[f"rec_sentence_{code}"] = text[rec_key][code].format(**f)
-        f[f"min_sentence_{code}"] = "" if same else text["min_sentence"][code].format(
-            **{**f, "min_crew_es": f["min_crew_es"], "min_crew_en": f["min_crew_en"]})
+        f[f"min_crew_short_{code}"] = crew_short(r["min_taps"], r["min_sellers"], code)
+        f[f"min_close_{code}"] = text["min_close"][code] if close else ""
+        f[f"grows_{code}"] = text["min_grows"]["close" if close else "apart"][code]
+        f[f"min_sentence_{code}"] = "" if same else text["min_sentence"][code].format(**f)
+        f[f"grid_edge_{code}"] = text["grid_edge"][code].format(**f) if edge else ""
         f[f"alt_{code}"] = text["alt_ok" if alt_ok else "alt_none"][code].format(**f)
         f[f"alt_sentence_{code}"] = f[f"alt_{code}"]
         f[f"alone_sentence_{code}"] = (text["alone_sentence"][code].format(**f)
@@ -158,10 +189,63 @@ def fields(v: dict, lang: str, text: dict) -> dict:
         f["cap_range"] = ""
         if r["cap_tickets_lo"] and r["cap_tickets_hi"]:
             f["cap_range"] = text["cap_range"][code].format(
-                cap_lo=n0(round(r["cap_tickets_lo"], -2)), cap_hi=n0(round(r["cap_tickets_hi"], -2)))
+                cap_lo=n0(round(r["cap_tickets_lo"], -2)), cap_hi=n0(round(r["cap_tickets_hi"], -2)),
+                hall_side=f["hall_side"])
         f[f"cap_sentence_{code}"] = text[known][code].format(**f)
     f["no_limit"] = f[f"no_limit_{lang}"]
     return f
+
+
+def what_if_status(r: dict, k: str) -> str:
+    """met: share of nights at the reliability or above; near: below it, with the upper limit
+    of the 95% Clopper-Pearson interval at the reliability or above; far: upper limit below."""
+    share = r[f"wi_{k}_met"] / r[f"wi_{k}_nights"]
+    if share >= r["reliability"]:
+        return "met"
+    return "near" if r[f"wi_{k}_met_hi"] >= r["reliability"] else "far"
+
+
+SINGLE = ["baseline", "more_cashiers", "pay_at_tap", "sellers_6", "plan"]
+
+
+def single_changes(v, lang, text, html_table) -> list[tuple[str, str]]:
+    """Each change on its own against 2026 (main scenarios, same nights): additional people on
+    beer, the wait of 9 of 10 buyers and the additional beers, each with the range between
+    nights (5% to 95%)."""
+    r, m, eff = v["raw"], v["scenario_metrics"], v["effects"]
+    rng = text["single_range"][lang]
+
+    def with_range(x, fmt):
+        lo, med, hi = (fmt(q) for q in x.quantile([0.05, 0.5, 0.95]))
+        return med if lo == hi else rng.format(v=med, lo=lo, hi=hi)
+
+    base = m[m["scenario"] == "baseline"].set_index("draw")
+    rows = []
+    for k in SINGLE:
+        x = m[m["scenario"] == k].set_index("draw")
+        wait = with_range(x["evening_p90_min"], up)          # rounded up, as in the what-if table
+        if k == "baseline":
+            staff = text["single_base_staff"][lang].format(v=rng.format(
+                v=n0(r["ss_staff_2026"]), lo=n0(r["ss_staff_2026_lo"]),
+                hi=n0(r["ss_staff_2026_hi"])))
+            beers = text["single_base_beers"][lang].format(v=rng.format(
+                v=n0(r["base_beers_total"]), lo=n0(r["base_beers_total_lo"]),
+                hi=n0(r["base_beers_total_hi"])))
+        else:
+            staff = with_range(x["staff"] - base["staff"].reindex(x.index),
+                               lambda q: f"{q:+.0f}".replace("+0", "0"))
+            e = eff[(eff["scenario"] == k) & eff["outcome"].str.startswith("Beers")].iloc[0]
+            beers = rng.format(v=f"{e['med']:+,.0f}", lo=f"{e['lo']:+,.0f}",
+                               hi=f"{e['hi']:+,.0f}")
+        row = (text["single_case"][k][lang], staff, wait, beers)
+        if k == "plan":
+            row = tuple(f"<strong>{c}</strong>" for c in row)
+        rows.append(row)
+    nights = n0(base.index.nunique())
+    return [("h2", text["h_single"][lang]),
+            ("p", text["single_intro"][lang].format(nights=nights)),
+            ("html", html_table(text["single_head"][lang], rows)),
+            ("p", text["single_text"][lang]), ("links", text["single_more"][lang])]
 
 
 def serving_section(v, lang, text, f, html_table) -> list[tuple[str, str]]:
@@ -178,7 +262,7 @@ def serving_section(v, lang, text, f, html_table) -> list[tuple[str, str]]:
         return f"{int(taps)} {unit[0]}" + (f" + {int(sellers)} {unit[1]}" if sellers else "")
 
     rows = []
-    for x in sv.itertuples():
+    for x in sv[~sv["option"].str.endswith(("_low", "_high"))].itertuples():
         wait = (f"{up(x.plan_crew_wait)} / {up(x.plan_crew_wait_bad)}"
                 if x.plan_crew_wait == x.plan_crew_wait else "")
         rows.append((text["serve_option"][x.option][lang], text["serve_assumption"][x.option][lang],
@@ -204,6 +288,21 @@ def serving_section(v, lang, text, f, html_table) -> list[tuple[str, str]]:
         closing = text["serve_none"][lang]
     intro = text["serve_intro"][lang].format(serve_nights=n0(bottles["nights"]),
                                              tickets=f["tickets"])
+    cases = sv.set_index("option")
+    if {"cans_low", "cans_high"} <= set(cases.index):
+        saving = report_values.serving_savings()
+
+        def crew_hours(option):
+            x = cases.loc[option]
+            if x["recommended_taps"] != x["recommended_taps"]:
+                return text["staff_none"][lang]
+            hours = ("horas de trabajo" if lang == "es" else "working hours")
+            return (crew_name(int(x["recommended_taps"]), int(x["recommended_sellers"]), lang)
+                    + f" ({n0(x['recommended_staff_hours'])} {hours})")
+
+        closing += " " + text["serve_cans_range"][lang].format(
+            low_s=n0(saving["cans_low"]), high_s=n0(saving["cans_high"]),
+            low_crew=crew_hours("cans_low"), high_crew=crew_hours("cans_high"))
     return [("h2", text["h_serve"][lang]), ("p", intro),
             ("html", html_table(text["serve_head"][lang], rows)), ("p", closing),
             ("p", text["serve_notes"][lang])]
@@ -227,15 +326,28 @@ def pieces(lang: str) -> list[tuple[str, str]]:
     def img(name, alt):
         return f'<img src="assets/figures/{name}_{lang}.png" alt="{alt}" loading="lazy">'
 
-    def video(name, label):
-        return (f'<video controls preload="none" playsinline '
+    def chart(name, alt):
+        """Wide image, and the narrow one for phones (scripts/make_summary.py)."""
+        return (f'<div class="diagram wide">{img(name, alt)}</div>'
+                f'<div class="diagram narrow">{img(f"{name}_narrow", alt)}</div>')
+
+    def one_video(name, label, cls):
+        return (f'<video class="{cls}" controls preload="none" playsinline '
                 f'poster="assets/video/{name}_{lang}.jpg" '
                 f'src="assets/video/{name}_{lang}.mp4" aria-label="{label}"></video>')
 
+    def video(name, label):
+        """Both floor panels with the charts, and the cut with the floor panels for phones."""
+        return (one_video(name, label, "video-wide")
+                + one_video(f"{name}_phone", label, "video-phone"))
+
     def html_table(head, rows):
-        return ("<div class=\"tablewrap\"><table class=\"table\"><thead><tr>"
+        """Below 600 px wide each row is shown as a block of label and value (data-label)."""
+        def cell(h, c):
+            return f'<td data-label="{h}">{c}</td>'
+        return ("<div class=\"tablewrap\"><table class=\"table stack\"><thead><tr>"
                 + "".join(f"<th>{h}</th>" for h in head) + "</tr></thead><tbody>"
-                + "".join("<tr>" + "".join(f"<td>{c}</td>" for c in row) + "</tr>"
+                + "".join("<tr>" + "".join(cell(h, c) for h, c in zip(head, row)) + "</tr>"
                           for row in rows) + "</tbody></table></div>")
 
     exchange, total = r["base_obs_exchange_median_min"], r["base_obs_buyer_median_min"]
@@ -256,16 +368,18 @@ def pieces(lang: str) -> list[tuple[str, str]]:
         lang, max(r["plan_obs_median_min"], 1), r["plan_evening_p90_min"], r["plan_taps"],
         r["plan_sellers"], scale, observed, service, narrow))
 
-    out = [("html", f'<p class="lede">{t("lede")}</p>'),
+    out = [("html", f'<p class="byline"><a href="{r["contact_url"]}">{r["author"]}</a></p>'),
+           ("html", f'<p class="lede">{t("lede")}</p>'),
            ("h2", t("h_old")), figure(old), ("p", t("old_text")),
            ("h2", t("h_new")), figure(new), ("p", t("new_text"))]
+    out += single_changes(v, lang, text, html_table)
 
     tiles = "".join(
         f'<div class="tile good"><span class="v">{t(f"tile_{k}_v")}</span>'
         f'<span class="l">{t(f"tile_{k}")}</span></div>'
         for k in ("audience", "staff", "sales", "reputation"))
     out += [("h2", t("h_gain")), ("html", f'<div class="tiles">{tiles}</div>'),
-            figure(img("summary_wait", t("fig_wait_alt")), t("wait_caption"))]
+            figure(chart("summary_wait", t("fig_wait_alt")), t("wait_caption"))]
 
     seller_key = "sellers" if r["plan_sellers"] else "none"
     actions = [(t("a1_t"), t("a1")), (t("a2_t"), t("a2")),
@@ -283,38 +397,39 @@ def pieces(lang: str) -> list[tuple[str, str]]:
     rows = []
     for row in v["staffing_rows"]:
         if row["crew"] is None:
-            rows.append((n0(row["tickets"]), text["staff_none"][lang], "", "", "", ""))
+            rows.append((n0(row["tickets"]), text["staff_none"][lang], "", "", "", "", "", ""))
             continue
         kind = "fallback" if row["fallback"] else row["level"]
         rows.append((n0(row["tickets"]), text["crew_level"][kind][lang], row["taps"],
-                     row["sellers"], f"{row['met']} / {row['nights']}", n10(row["inside"])))
-    out += [("h2", t("h_staff")), ("p", t("staff_text")),
-            figure(img("summary_crews", t("fig_crews_alt"))),
+                     row["sellers"], n0(row["staff"]), n0(row["staff_hours"]),
+                     f"{row['met']} / {row['nights']}", n10(row["inside"])))
+    crew_notes = " ".join(x for x in (f[f"min_sentence_{lang}"], f[f"grid_edge_{lang}"]) if x)
+    out += [("h2", t("h_staff")), ("p", t("staff_intro")), ("p", t("staff_text"))]
+    if crew_notes:
+        out.append(("p", crew_notes))
+    out += [figure(chart("summary_crews", t("fig_crews_alt"))),
             ("html", html_table(text["staff_table_head"][lang], rows)),
-            figure(img("summary_sales", t("fig_sales_alt")), t("sales_text"))]
+            figure(chart("summary_sales", t("fig_sales_alt")), t("sales_text"))]
 
     cases = [k for k in WHAT_IF if f"wi_{k}" in r]
     wi_rows = [(text["wi_case"][k][lang], up(r[f"wi_{k}"]),
-                f"{r[f'wi_{k}_met']} / {r[f'wi_{k}_nights']}") for k in cases]
-    def lower_first(s):
-        return s[:1].lower() + s[1:]
-
-    miss = [lower_first(text["wi_case"][k][lang]) for k in cases
-            if r[f"wi_{k}_met"] < r["reliability"] * r[f"wi_{k}_nights"]]
-    closing = (text["whatif_miss"][lang].format(reliability=f["reliability"],
-                                                cases="; ".join(miss))
-               if miss else text["whatif_all_ok"][lang].format(reliability=f["reliability"]))
+                f"{r[f'wi_{k}_met']} / {r[f'wi_{k}_nights']}",
+                text["wi_status"][what_if_status(r, k)][lang]) for k in cases]
     out += [("p", t("whatif_intro")),
-            ("html", html_table(text["whatif_head"][lang], wi_rows)), ("p", closing)]
+            ("html", html_table(text["whatif_head"][lang], wi_rows))]
     out += serving_section(v, lang, text, f, html_table)
 
     conf = "".join(f'<div class="conf {k}"><strong>{t(f"conf_{k}_t")}</strong>'
                    f'<span>{t(f"conf_{k}")}</span></div>' for k in ("firm", "prob", "check"))
     out += [("h2", t("h_conf")), ("html", f'<div class="confs">{conf}</div>')]
 
-    needs = "".join(f"<li>{item}</li>" for item in text["needs"][lang])
+    checks = [e.format(**f) for e in text["need_estimates"][lang]]
+    needs = "".join(f"<li>{item}" + (f' <span class="check">{checks[k]}</span>'
+                                     if k < len(checks) else "") + "</li>"
+                    for k, item in enumerate(text["needs"][lang]))
     out += [("h2", t("h_need")),
-            ("html", f'<div class="needs"><p>{t("need_text")}</p><ol>{needs}</ol></div>')]
+            ("html", f'<div class="needs"><p>{t("need_text")}</p><p>{t("need_check")}</p>'
+                     f'<ol>{needs}</ol></div>')]
 
     out += [("h2", t("h_how")), ("p", t("how_text")), ("links", t("links"))]
     return out

@@ -1,8 +1,8 @@
 n_total,n_pour,sellers,reference_met,reference_nights,reference_chosen,current_met,current_nights,current_chosen,p_fisher
 1500,4,12,59,64,True,59,64,True,1.0
+1500,4,15,64,64,True,63,64,False,1.0
 1500,6,9,60,64,False,61,64,True,1.0
-1500,6,12,64,64,True,64,64,False,1.0
-2000,6,12,54,64,False,59,64,True,0.27146117889788257
-2000,8,12,63,64,True,61,64,True,0.619023622047244
-2500,10,12,55,64,False,60,64,True,0.24119883866740477
-2500,12,12,61,64,True,61,64,True,1.0
+2000,4,15,50,64,False,58,64,True,0.08657956523093921
+2000,6,15,64,64,True,62,64,True,0.49606299212598426
+2500,8,15,57,64,False,60,64,True,0.530177167921833
+2500,10,15,62,64,True,62,64,True,1.0

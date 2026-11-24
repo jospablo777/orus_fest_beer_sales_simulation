@@ -229,3 +229,20 @@ p.lede { font-size: 1.25rem; }
   main table th, main table td { padding: 5px 4px; }
   main li, main p { overflow-wrap: anywhere; }
 }
+.byline { margin: -0.4rem 0 1.2rem; font-size: 1rem; }
+.byline a { color: $ink; text-decoration-color: $gold; }
+.needs .check { display: block; color: $muted; font-size: 0.95rem; }
+video.video-phone { display: none; }
+@media (max-width: 599.98px) {
+  video.video-wide { display: none; }
+  video.video-phone { display: block; }
+  .tablewrap { overflow-x: visible; }
+  .tablewrap table.stack, .tablewrap table.stack tbody, .tablewrap table.stack tr,
+  .tablewrap table.stack td { display: block; width: 100%; font-size: 0.95rem; }
+  .tablewrap table.stack thead { display: none; }
+  .tablewrap table.stack tr { border: 1px solid $rule; border-radius: 8px; margin-bottom: 10px; padding: 4px 10px; background: $surface; }
+  .tablewrap table.stack td { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid $rule; text-align: right; overflow-wrap: anywhere; }
+  .tablewrap table.stack td:last-child { border-bottom: 0; }
+  .tablewrap table.stack td::before { content: attr(data-label); color: $muted; text-align: left; flex: 1 1 55%; }
+  .tablewrap table.stack td:empty { display: none; }
+}

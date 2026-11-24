@@ -193,7 +193,7 @@ With faster service the share of attendees who drink 6 beers or more rises from 
 
 ## Sensitivity to the calibration settings
 
-The current calibration is compared with two earlier runs on the same hall layout. Each comparison gives the median night and, in brackets, the range across nights (5% to 95%). The runs simulate different nights, so outcomes are compared with a Mann-Whitney U test and shares of nights with Fisher's exact test. The crew table lists every minimum and recommended crew of either run with the nights in which it meets the service target under each calibration. The staffing grid of every run was run with the current settings (`{python} v["crew_nights"]` nights per crew, 0 to 12 sellers). The plan rows of an earlier run use the crew that run recommended under the rule of its time (90% of 32 nights, at most 9 sellers).
+The current calibration is compared with two earlier runs on the same hall layout. Each comparison gives the median night and, in brackets, the range across nights (5% to 95%). The runs simulate different nights, so outcomes are compared with a Mann-Whitney U test and shares of nights with Fisher's exact test. The crew table lists every minimum and recommended crew of either run with the nights in which it meets the service target under each calibration. The staffing grid of every run was run with the current settings (`{python} v["crew_nights"]` nights per crew, 0 to `{python} v["max_sellers"]` sellers). The plan rows of an earlier run use the crew that run recommended under the rule of its time (90% of 32 nights, at most 9 sellers).
 
 ```{python}
 #| include: false

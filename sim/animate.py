@@ -37,7 +37,24 @@ C_COCKTAIL = "#8a7a3a"
 DENSITY_CMAP = LinearSegmentedColormap.from_list("density", theme.DENSITY_STEPS)
 
 
-def draw_venue(ax, cfg, points, labels=True, lang="en"):
+def _fit_inside(ax, txt, box, margin=0.4, max_size=8.0, min_size=4.0):
+    """Shrink a text until it fits inside a box of the hall (meters), margin on each side."""
+    fig = ax.figure
+    renderer = fig.canvas.get_renderer()
+    ax.apply_aspect()
+    txt.set_fontsize(max_size)
+    w = box["x1"] - box["x0"] - 2 * margin
+    h = box["y1"] - box["y0"] - 2 * margin
+    while txt.get_fontsize() > min_size:
+        bb = txt.get_window_extent(renderer).transformed(ax.transData.inverted())
+        if abs(bb.width) <= w and abs(bb.height) <= h:
+            break
+        txt.set_fontsize(txt.get_fontsize() - 0.25)
+
+
+def draw_venue(ax, cfg, points, labels=True, lang="en", booth_label=True):
+    """Plan view of the hall. booth_label=False leaves the booth unlabeled, for figures that
+    name it in their legend."""
     v = cfg["venue"]
     L = i18n_labels(lang)
     ax.set_facecolor(C_BG)
@@ -60,10 +77,11 @@ def draw_venue(ax, cfg, points, labels=True, lang="en"):
         r = v["booth"]
         ax.add_patch(patches.Rectangle((r["x0"], r["y0"]), r["x1"] - r["x0"], r["y1"] - r["y0"],
                                        fc=C_BOOTH, alpha=0.35, ec=C_BOOTH, lw=0.8, zorder=2))
-        if labels:
-            ax.text((r["x0"] + r["x1"]) / 2, (r["y0"] + r["y1"]) / 2,
-                    textwrap.fill(L["booth"], 10), ha="center", va="center", fontsize=6.5,
-                    color=INK, zorder=2)
+        booth_text = None
+        if labels and booth_label:
+            booth_text = ax.text((r["x0"] + r["x1"]) / 2, (r["y0"] + r["y1"]) / 2,
+                                 textwrap.fill(L["booth"], 12), ha="center", va="center",
+                                 color=INK, zorder=2, linespacing=1.1)
     if v.get("cocktail_line"):
         r = venue.cocktail_strip()
         ax.add_patch(patches.Rectangle((r["x0"], r["y0"]), r["x1"] - r["x0"], r["y1"] - r["y0"],
@@ -89,6 +107,8 @@ def draw_venue(ax, cfg, points, labels=True, lang="en"):
     ax.set_yticks([])
     for s in ax.spines.values():
         s.set_visible(False)
+    if v.get("booth") and labels and booth_label:
+        _fit_inside(ax, booth_text, v["booth"])
 
 
 def _colors(frame):
@@ -118,19 +138,23 @@ def rolling_wait(txn, t_grid_clock, window_min=15):
     return out
 
 
-def side_by_side(runs, cfgs, titles, path, fps=20, dpi=120, lang="en", still_only=False,
-                 still_at=None):
-    """runs: list of two result dicts with frames recorded over the same window.
-    Writes the video and a still image with the same name and the suffix .jpg. The still is
-    the frame nearest the clock time still_at ("HH:MM"), or the frame with the longest 2026
-    lines when still_at is None. With still_only the video is skipped, which is enough to
-    check the layout."""
-    L = i18n_labels(lang)
-    fa, fb = runs[0]["frames"], runs[1]["frames"]
-    n = min(len(fa), len(fb))
-    t0_min = runs[0]["series"]["clock_min"].iloc[0] - runs[0]["series"]["t_min"].iloc[0]
-    clocks = np.array([t0_min + f["t"] / 60 for f in fa[:n]])
+def _phone_layout(L, titles):
+    """Phone cut: the two floor panels and their readouts, the clock above and the colour key
+    below. Drawn 720 px wide; on a phone it is shown about 360 px wide."""
+    # The bottom 18% of the frame stays empty for the video controls of a phone browser.
+    fig = plt.figure(figsize=(7.2, 11.2))
+    gs = fig.add_gridspec(1, 2, left=0.02, right=0.98, top=0.865, bottom=0.40, wspace=0.06)
+    floor_axes = [fig.add_subplot(gs[0, j]) for j in range(2)]
+    title = fig.text(0.03, 0.985, "", fontsize=18, fontweight="bold", color=INK, va="top")
+    return fig, floor_axes, [], title, {"panel_title": 14, "wrap": 22, "info": 15,
+                                        "info_y": -0.015, "legend": dict(
+                                            loc="upper left", bbox_to_anchor=(0.03, 0.295),
+                                            ncol=2, fontsize=12.5, columnspacing=1.0,
+                                            handletextpad=0.3), "info_lines": 3,
+                                        "bitrate": 2000}
 
+
+def _wide_layout(L, titles):
     # The bottom 10% of the frame stays empty: a browser draws its video controls there.
     fig = plt.figure(figsize=(16, 10))
     gs = fig.add_gridspec(3, 3, width_ratios=[1, 1, 1.35], left=0.02, right=0.97,
@@ -138,26 +162,49 @@ def side_by_side(runs, cfgs, titles, path, fps=20, dpi=120, lang="en", still_onl
     floor_axes = [fig.add_subplot(gs[:, 0]), fig.add_subplot(gs[:, 1])]
     ts_axes = [fig.add_subplot(gs[i, 2]) for i in range(3)]
     title = fig.text(0.02, 0.966, "", fontsize=21, fontweight="bold", color=INK, va="top")
-    fig.text(0.02, 0.9145, L["dot_note"],
-             fontsize=12.5, color=theme.MUTED, va="top")
+    fig.text(0.02, 0.9145, L["dot_note"], fontsize=12.5, color=theme.MUTED, va="top")
+    return fig, floor_axes, ts_axes, title, {"panel_title": 13, "wrap": 30, "info": 12.5,
+                                             "info_y": -0.02, "legend": dict(
+                                                 loc="upper left", bbox_to_anchor=(0.40, 0.975),
+                                                 ncol=3, fontsize=12.5, columnspacing=1.2,
+                                                 handletextpad=0.4), "info_lines": 2}
+
+
+def side_by_side(runs, cfgs, titles, path, fps=20, dpi=120, lang="en", still_only=False,
+                 still_at=None, layout="wide"):
+    """runs: list of two result dicts with frames recorded over the same window.
+    Writes the video and a still image with the same name and the suffix .jpg. The still is
+    the frame nearest the clock time still_at ("HH:MM"), or the frame with the longest 2026
+    lines when still_at is None. With still_only the video is skipped, which is enough to
+    check the layout. layout "wide" shows the floor panels and three charts; "phone" shows
+    only the floor panels and their readouts."""
+    L = i18n_labels(lang)
+    fa, fb = runs[0]["frames"], runs[1]["frames"]
+    n = min(len(fa), len(fb))
+    t0_min = runs[0]["series"]["clock_min"].iloc[0] - runs[0]["series"]["t_min"].iloc[0]
+    clocks = np.array([t0_min + f["t"] / 60 for f in fa[:n]])
+
+    build = _phone_layout if layout == "phone" else _wide_layout
+    fig, floor_axes, ts_axes, title, look = build(L, titles)
 
     scat, sell, info = [], [], []
     for ax, run, cfg, ttl in zip(floor_axes, runs, cfgs, titles):
-        draw_venue(ax, cfg, run["points"], lang=lang)
-        ax.set_title(textwrap.fill(ttl, 30), fontsize=13, color=INK, fontweight="bold", pad=6)
+        draw_venue(ax, cfg, run["points"], lang=lang, booth_label=False)
+        ax.set_title(textwrap.fill(ttl, look["wrap"]), fontsize=look["panel_title"], color=INK,
+                     fontweight="bold", pad=6)
         scat.append(ax.scatter([], [], s=5, lw=0, zorder=3))
         sell.append(ax.scatter([], [], s=70, c=C_SELLER, marker="o", edgecolors=INK,
                                linewidths=0.9, zorder=6))
-        info.append(ax.text(0.5, -0.02, "", transform=ax.transAxes, ha="center", va="top",
-                            fontsize=12.5, color=INK, linespacing=1.5))
+        info.append(ax.text(0.5, look["info_y"], "", transform=ax.transAxes, ha="center",
+                            va="top", fontsize=look["info"], color=INK, linespacing=1.5))
 
     legend = [(L["watching"], C_CROWD), (L["to_line"], C_TO_LINE),
               (L["ticket_line"], C_CASH), (L["tap_line"], C_POUR),
               (L["wait_seller"], C_WAIT_SELLER), (L["seller"], C_SELLER)]
     handles = [Line2D([], [], ls="", marker="o", ms=8, color=col) for _, col in legend]
-    fig.legend(handles, [lab for lab, _ in legend], loc="upper left",
-               bbox_to_anchor=(0.43, 0.975), ncol=3, frameon=False, fontsize=12.5,
-               columnspacing=2.0, handletextpad=0.4, labelcolor=INK)
+    handles.append(Line2D([], [], ls="", marker="s", ms=10, color=C_BOOTH, alpha=0.6))
+    fig.legend(handles, [lab for lab, _ in legend] + [L["booth"]], frameon=False,
+               labelcolor=INK, **look["legend"])
 
     palette = [theme.RED, theme.BRONZE]
     series_spec = [("occupancy", L["people_inside"]), ("in_lines_total", L["people_in_lines"]),
@@ -185,8 +232,9 @@ def side_by_side(runs, cfgs, titles, path, fps=20, dpi=120, lang="en", still_onl
         ax.set_xticklabels([min_to_clock(x) for x in ticks], fontsize=11)
         ax.tick_params(axis="y", labelsize=11)
         markers.append(ax.axvline(clocks[0], color=INK, lw=1.0, alpha=0.5))
-    ts_axes[-1].legend(fontsize=12, frameon=False, loc="upper left", ncol=1,
-                       bbox_to_anchor=(0.0, -0.22), handlelength=2.5)
+    if ts_axes:
+        ts_axes[-1].legend(fontsize=12, frameon=False, loc="upper left", ncol=1,
+                           bbox_to_anchor=(0.0, -0.22), handlelength=2.5)
     sched = runs[0]["series"].set_index("clock_min")["act"]
 
     def update(k):
@@ -204,17 +252,22 @@ def side_by_side(runs, cfgs, titles, path, fps=20, dpi=120, lang="en", still_onl
                                 else np.empty((0, 2)))
             n_line = int(np.isin(f["state"], [QUEUED, SERVICE]).sum())
             w = waits[j][k]
-            wtxt = f"  ·  {L['wait']} {w:.0f} {L['minutes']}" if np.isfinite(w) else ""
             beers = runs[j]["series"]
             b = beers.loc[(beers["clock_min"] - c).abs().idxmin(), "beers_total"]
-            info[j].set_text(f"{n_line} {L['in_lines']}{wtxt}\n{b:,} {L['beers_sold']}")
+            if look["info_lines"] == 3:
+                wtxt = (f"\n{L['wait']} {w:.0f} {L['minutes']}" if np.isfinite(w) else "\n")
+                info[j].set_text(f"{n_line} {L['in_lines']}{wtxt}\n{b:,} {L['beers_sold']}")
+            else:
+                wtxt = f"  ·  {L['wait']} {w:.0f} {L['minutes']}" if np.isfinite(w) else ""
+                info[j].set_text(f"{n_line} {L['in_lines']}{wtxt}\n{b:,} {L['beers_sold']}")
         for mk in markers:
             mk.set_xdata([c, c])
         return []
 
     if not still_only:
         anim = animation.FuncAnimation(fig, update, frames=n, interval=1000 / fps, blit=False)
-        writer = animation.FFMpegWriter(fps=fps, codec="libx264", bitrate=4000,
+        writer = animation.FFMpegWriter(fps=fps, codec="libx264",
+                                        bitrate=look.get("bitrate", 4000),
                                         extra_args=["-preset", "veryfast", "-pix_fmt", "yuv420p"])
         anim.save(path, writer=writer, dpi=dpi)
     if still_at:
@@ -287,9 +340,11 @@ def render_clip(job) -> str:
     out = params.ROOT / "output"
     (out / "animations").mkdir(parents=True, exist_ok=True)
     (out / "figures").mkdir(parents=True, exist_ok=True)
-    side_by_side(runs, [cfg_a, cfg_b], titles,
-                 out / "animations" / f"{clip_name}_2026_vs_{scenario}_{lang}.mp4",
-                 fps=clip["fps"], lang=lang, still_only=still, still_at=clip.get("still"))
+    for layout, suffix, dpi in (("wide", "", 120), ("phone", "_phone", 100)):
+        side_by_side(runs, [cfg_a, cfg_b], titles,
+                     out / "animations" / f"{clip_name}_2026_vs_{scenario}{suffix}_{lang}.mp4",
+                     fps=clip["fps"], dpi=dpi, lang=lang, still_only=still,
+                     still_at=clip.get("still"), layout=layout)
     if clip_name == "night" and not still:
         density_views(runs, [cfg_a, cfg_b], titles,
                       out / "figures" / f"density_2026_vs_{scenario}_{lang}.png", lang=lang)

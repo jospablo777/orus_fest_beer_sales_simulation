@@ -132,3 +132,20 @@ footer { max-width: 980px; margin: 0 auto; padding: 18px 20px 30px; color: var(-
   table { font-size: 0.85rem; }
   th, td { padding: 6px; }
 }
+.byline { margin: -0.4rem 0 1.2rem; font-size: 1rem; }
+.byline a { color: var(--ink); text-decoration-color: var(--gold); }
+.needs .check { display: block; color: var(--muted); font-size: 0.95rem; }
+video.video-phone { display: none; }
+@media (max-width: 599.98px) {
+  video.video-wide { display: none; }
+  video.video-phone { display: block; }
+  .tablewrap { overflow-x: visible; }
+  .tablewrap table.stack, .tablewrap table.stack tbody, .tablewrap table.stack tr,
+  .tablewrap table.stack td { display: block; width: 100%; font-size: 0.95rem; }
+  .tablewrap table.stack thead { display: none; }
+  .tablewrap table.stack tr { border: 1px solid var(--rule); border-radius: 8px; margin-bottom: 10px; padding: 4px 10px; background: var(--surface); }
+  .tablewrap table.stack td { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--rule); text-align: right; overflow-wrap: anywhere; }
+  .tablewrap table.stack td:last-child { border-bottom: 0; }
+  .tablewrap table.stack td::before { content: attr(data-label); color: var(--muted); text-align: left; flex: 1 1 55%; }
+  .tablewrap table.stack td:empty { display: none; }
+}
