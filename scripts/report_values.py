@@ -294,7 +294,7 @@ def compute() -> dict:
         raw["busy_base"], raw["busy_plan"] = pct(q["baseline"]), pct(q[head])
     else:
         raw["busy_base"] = raw["busy_plan"] = ""
-    for k in ("author", "contact_label", "contact_url", "date"):
+    for k in ("author", "contact_label", "contact_url", "date", "festival_url"):
         raw[k] = report_cfg.get(k, "")
     raw.update({"full_taps": int(full["n_pour"]), "full_sellers": int(full["sellers"]),
                 "full_met": int(full["nights_met"]), "full_nights": int(full["nights"]),

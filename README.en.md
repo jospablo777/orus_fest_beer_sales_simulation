@@ -4,7 +4,7 @@
 
 The report for the organizers is published at <https://jospablo777.github.io/orus_fest_beer_sales_simulation/>.
 
-Agent-based model of attendance and beer sales at [Salón Olímpico Pantitlán](https://maps.app.goo.gl/t6iT2RLpPtnoVEb9A) (Mexico City). It is calibrated to what we saw when we attended Orus Fest 2026 (1 August 2026) and is used to compare ways of selling at the next edition.
+Agent-based model of attendance and beer sales at [Salón Olímpico Pantitlán](https://maps.app.goo.gl/t6iT2RLpPtnoVEb9A) (Mexico City). It is calibrated to what we saw when we attended [Orus Fest](https://www.facebook.com/orusfestoficial/) 2026 (1 August 2026) and is used to compare ways of selling at the next edition.
 
 At the 2026 edition beer was sold through a ticket system. One window sold tickets for every drink, and a second line exchanged them at the bar. At 15:30 buying was relatively quick, although it still took a while. Between 18:00 and 20:00 the exchange line took over 40 minutes with the tickets already bought, and the line at the ticket window was long as well. The model reproduces that night, then reruns it with other ways of selling and other crews.
 

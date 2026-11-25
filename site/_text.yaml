@@ -351,8 +351,8 @@ wait_caption:
 # ---- Summary page (site/index.qmd, site/en.qmd) ------------------------------------------
 sum_h_problem: {es: "El problema", en: "The problem"}
 sum_problem:
-  es: "En Orus Fest 2026 la fila para una cerveza tomó más de 40 minutos entre las {obs_from} y las {obs_to}. La simulación solo reproduce esas filas con {pour_lo} a {pour_hi} personas sirviendo cerveza para unas {inside_2026} personas dentro del salón."
-  en: "At Orus Fest 2026 the line for a beer took more than 40 minutes between {obs_from} and {obs_to}. The simulation reproduces those lines only with {pour_lo} to {pour_hi} people serving beer for about {inside_2026} people inside the hall."
+  es: "En <a href=\"{festival_url}\">Orus Fest 2026</a> la fila para una cerveza tomó más de 40 minutos entre las {obs_from} y las {obs_to}. La simulación solo reproduce esas filas con {pour_lo} a {pour_hi} personas sirviendo cerveza para unas {inside_2026} personas dentro del salón."
+  en: "At <a href=\"{festival_url}\">Orus Fest 2026</a> the line for a beer took more than 40 minutes between {obs_from} and {obs_to}. The simulation reproduces those lines only with {pour_lo} to {pour_hi} people serving beer for about {inside_2026} people inside the hall."
 sum_h_do: {es: "Qué hacer y qué se gana", en: "What to do and what it gains"}
 sum_card1: {es: "Cobrar y servir en el mismo puesto.", en: "Take payment where the beer is served."}
 sum_card1_gain_some:

@@ -110,6 +110,7 @@ def fields(v: dict, lang: str, text: dict) -> dict:
         "wi_nights": n0(r["wi_plan_nights"]),
         "lim_large": str(r["density_limit_large"]),
         "date": report_values.long_date(r["date"], lang), "author": r["author"],
+        "festival_url": r["festival_url"],
         "contact_label": r["contact_label"], "contact_url": r["contact_url"],
         "max_sellers": str(r["max_sellers"]),
         "chk_beers": n0(round(r["base_beers_total"], -2)),

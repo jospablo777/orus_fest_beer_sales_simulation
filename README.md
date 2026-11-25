@@ -4,7 +4,7 @@
 
 El reporte para los organizadores está publicado en <https://jospablo777.github.io/orus_fest_beer_sales_simulation/>.
 
-Modelo basado en agentes de la asistencia y la venta de cerveza en el [Salón Olímpico Pantitlán](https://maps.app.goo.gl/t6iT2RLpPtnoVEb9A) (Ciudad de México). Está calibrado con lo que vimos en nuestra asistencia al Orus Fest 2026 (1 de agosto de 2026) y sirve para comparar formas de vender en la próxima edición.
+Modelo basado en agentes de la asistencia y la venta de cerveza en el [Salón Olímpico Pantitlán](https://maps.app.goo.gl/t6iT2RLpPtnoVEb9A) (Ciudad de México). Está calibrado con lo que vimos en nuestra asistencia al [Orus Fest](https://www.facebook.com/orusfestoficial/) 2026 (1 de agosto de 2026) y sirve para comparar formas de vender en la próxima edición.
 
 En 2026 la cerveza se vendió con fichas. Una ventanilla vendía las fichas de todas las bebidas y una segunda fila las canjeaba en la barra. A las 15:30 comprar era relativamente rápido, aunque igual llevaba su tiempo. Entre las 18:00 y las 20:00 la fila de canje tomó más de 40 minutos con las fichas ya compradas, y la fila de la ventanilla también era larga. El modelo reproduce esa noche y la repite con otras formas de vender y con otro personal.
 

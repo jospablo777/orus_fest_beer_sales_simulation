@@ -2,6 +2,7 @@
 author: "José P. Barrantes"
 contact_label: "LinkedIn"
 contact_url: "https://www.linkedin.com/in/jose-barrantes/"
+festival_url: "https://www.facebook.com/orusfestoficial/"
 date: "2026-11-24"          # day the final run finished, set by hand; printed on the organizer pages
 beer_price_mxn: 80          # assumed price per beer, used only for sales figures in MXN
 headline_scenario: plan     # the setup compared with 2026 in the headline figures
