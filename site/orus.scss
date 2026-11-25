@@ -284,3 +284,7 @@ p.lead-claim { font-size: 1.12rem; margin: 0.4rem 0 0.8rem; }
   &:hover { background: $gold; color: $paper; }
   .bi { margin-right: 6px; }
 }
+
+// the festival name in the page title links to the festival page
+h1.title a.red { text-decoration: none; }
+h1.title a.red:hover { text-decoration: underline; text-underline-offset: 6px; }

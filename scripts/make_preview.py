@@ -55,10 +55,14 @@ show(fromHash());
 
 def front_matter(path: Path) -> dict:
     """Title and subtitle of a site page. A Quarto span such as [Orus Fest]{.red} becomes
-    an HTML span."""
+    an HTML span, and a link with a class such as [Orus Fest](url){.red} an HTML link."""
     meta = yaml.safe_load(path.read_text(encoding="utf-8").split("---")[1])
-    return {k: re.sub(r"\[([^\]]+)\]\{\.(\w+)\}", r'<span class="\2">\1</span>', str(v))
-            for k, v in meta.items()}
+    out = {}
+    for k, v in meta.items():
+        v = re.sub(r"\[([^\]]+)\]\(([^)]+)\)\{\.(\w+)\}",
+                   r'<a class="\3" href="\2">\1</a>', str(v))
+        out[k] = re.sub(r"\[([^\]]+)\]\{\.(\w+)\}", r'<span class="\2">\1</span>', v)
+    return out
 
 
 def plain(html: str) -> str:

@@ -1,5 +1,5 @@
 ---
-title: "Beer without the lines at [Orus Fest]{.red}"
+title: "Beer without the lines at [Orus Fest](https://www.facebook.com/orusfestoficial/){.red}"
 subtitle: "Proposal for the next edition · simulation of Orus Fest 2026, Salón Olímpico Pantitlán"
 lang: en
 toc: false

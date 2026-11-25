@@ -1,5 +1,5 @@
 ---
-title: "Cerveza sin filas en [Orus Fest]{.red}"
+title: "Cerveza sin filas en [Orus Fest](https://www.facebook.com/orusfestoficial/){.red}"
 subtitle: "Propuesta para la próxima edición · simulación de Orus Fest 2026, Salón Olímpico Pantitlán"
 lang: es
 toc: false
